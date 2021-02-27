@@ -1,0 +1,6 @@
+-cp src
+-D analyzer-optimize
+--js js/app.js
+-main Main
+--library hxsocketio
+-lib hxnodejs
