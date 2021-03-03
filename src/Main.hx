@@ -1,81 +1,98 @@
+import haxe.io.Path;
+import sys.FileSystem;
+import sys.io.File;
+import hx.ws.Log;
+import hx.ws.WebSocketServer;
 import haxe.crypto.Md5;
-import js.Node;
-import js.node.Path;
-import js.node.Fs;
-import js.node.Http;
 import js.node.socketio.*;
+
+typedef Event =
+{
+    var name:String;
+    var data:Dynamic;
+}
 
 class Main 
 {
 
     public static var currID:Int;
     private static var passwords:Map<String, String> = [];
-	private static var loggedPlayers:Map<String, Socket> = [];
+	private static var loggedPlayers:Map<String, SocketHandler> = [];
 	private static var games:Map<String, Game> = [];
 
+    private static function path(s:String):String
+    {
+        var p = new Path(s);
+        var progPath = Sys.programPath();
+        p.dir = progPath.substring(0, progPath.lastIndexOf("\\"));
+        return p.toString();
+    }
+
 	public static function main() 
-	{
-        currID = Std.parseInt(Fs.readFileSync(Path.join(Node.__dirname, "currid.txt"), {encoding: "UTF-8"}));
-        init(Fs.readFileSync(Path.join(Node.__dirname, "playerdata.txt"), {encoding: "UTF-8"}));
+	{    
+        currID = Std.parseInt(File.getContent(path("currid.txt")));
+        init(File.getContent(path("playerdata.txt")));
     }
 
     public static function incrementID() 
     {
         currID++;
-        Fs.writeFile(Path.join(Node.__dirname, "currid.txt"), '$currID', (e)->{});
+        File.saveContent("currid.txt", '$currID');
     }
 
     private static function init(playerdata:String) 
     {
-        trace(playerdata);
         for (line in playerdata.split('\n'))
         {
             var pair = line.split(':');
             passwords[pair[0]] = pair[1];
         }
 
-        var server = new Server();
-
-        server.on('connection', onConnected);
-        server.on('disconnect', onDisconnected);
-
-        server.listen(8000);
+        Log.mask = Log.INFO | Log.DEBUG | Log.DATA;
+        var server = new WebSocketServer<SocketHandler>("localhost", 5000, 100);
+        server.start();
     }
 
-    private static function onConnected(socket:Socket) 
+    public static function handleEvent(sender:SocketHandler, eventName:String, data:Dynamic) 
     {
-        socket.on('login', onLoginAttempt.bind(socket));
+        switch eventName
+        {
+            case 'login':
+                onLoginAttempt(sender, data);
+            default:
+                trace("Unexpected event: " + eventName);
+        }
     }
 
-    private static function onDisconnected(socket:Socket) 
+    public static function handleDisconnect(socket:SocketHandler) 
     {
         for (k => v in loggedPlayers.keyValueIterator())
-            if (v == socket)
+            if (v.id == socket.id)
             {
                 loggedPlayers.remove(k);
-                handleDisconnectionForGame(k);
+                //handleDisconnectionForGame(k);
                 return;
             }
     }
 
-    private static function onLoginAttempt(socket:Socket, data) 
+    private static function onLoginAttempt(socket:SocketHandler, data) 
     {
         if (passwords.get(data.login) == Md5.encode(data.password))
         {
             onLogged(socket, data.login);
-            socket.emit('login_success');
+            socket.emit('login_result', 'success');
         }
         else 
-            socket.emit('login_failed');
+            socket.emit('login_result', 'fail');
     }
 
-    private static function onLogged(socket:Socket, login:String)
+    private static function onLogged(socket, login:String)
     {
         loggedPlayers[login] = socket;
-        socket.on('callout', onCallout.bind(socket));
+        //socket.on('callout', onCallout.bind(socket));
     }
 
-    private static function onCallout(socket:Socket, data)
+    /*private static function onCallout(socket, data)
     {
         if (loggedPlayers.exists(data.callee_login))
         {
@@ -121,7 +138,7 @@ class Main
             games.remove(winnerLogin);
             games.remove(loserLogin);
             game.log += winner == White? "w" : "b";
-            Fs.writeFile(Path.join(Node.__dirname, 'games/${game.id}.txt'), game.log, (e)->{});
+            File.saveContent('games/${game.id}.txt', game.log);
         }
     }
 
@@ -143,7 +160,7 @@ class Main
             loggedPlayers[game.whiteLogin].emit('win_quit');
             games.remove(game.whiteLogin);
         }
-        Fs.writeFile(Path.join(Node.__dirname, 'games/${game.id}.txt'), game.log, (e)->{});
-    }
+        File.saveContent('games/${game.id}.txt', game.log);
+    }*/
 
 }
