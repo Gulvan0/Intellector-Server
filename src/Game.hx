@@ -32,13 +32,13 @@ class Game
         var from = field[fromJ][fromI];
         var to = field[toJ][toI];
         field[toJ][toI] = from;
-        if (((from.type == Intellector && to.type == Defensor) || (from.type == Defensor && to.type == Intellector)) && from.color == to.color)
+        if (to != null && ((from.type == Intellector && to.type == Defensor) || (from.type == Defensor && to.type == Intellector)) && from.color == to.color)
             field[fromJ][fromI] = to;
         else 
             field[fromJ][fromI] = null;
-        log += '$fromI$fromJ$toI$toJ\n';
+        log += '$fromI$fromJ$toI$toJ;\n';
         whiteTurn = !whiteTurn;
-        return (to.type == Intellector && from.color != to.color)? from.color : null;
+        return (to != null && to.type == Intellector && from.color != to.color)? from.color : null;
     }
 
     public function arrangePieces()
@@ -81,7 +81,7 @@ class Game
         this.whiteLogin = whiteLogin;
         this.blackLogin = blackLogin;
         whiteTurn = true;
-        log = "";
+        log = '$whiteLogin : $blackLogin;\n';
         arrangePieces();
     }
 }
