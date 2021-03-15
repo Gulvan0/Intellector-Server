@@ -27,18 +27,70 @@ class Game
     public var field:Array<Array<Null<Figure>>>;
     public var log:String;
 
-    public function move(fromI, fromJ, toI, toJ):Null<Color>
+    public var turn:Int;
+    public var lastActualTimestamp:Float;
+    public var secsPerTurn:Int;
+    public var secsLeftWhite:Int;
+    public var secsLeftBlack:Int;
+
+    public function move(fromI, fromJ, toI, toJ, ?morphInto:FigureType):Null<Color>
     {
         var from = field[fromJ][fromI];
         var to = field[toJ][toI];
         field[toJ][toI] = from;
+
+        if (morphInto != null)
+            field[toJ][toI].type = morphInto;
+
         if (to != null && ((from.type == Intellector && to.type == Defensor) || (from.type == Defensor && to.type == Intellector)) && from.color == to.color)
             field[fromJ][fromI] = to;
         else 
             field[fromJ][fromI] = null;
-        log += '$fromI$fromJ$toI$toJ;\n';
+
+        if (morphInto != null)
+            log += '$fromI$fromJ$toI$toJ${morphInto.getName()};\n';
+        else 
+            log += '$fromI$fromJ$toI$toJ;\n';
+
+        updateTime();
+
         whiteTurn = !whiteTurn;
-        return (to != null && to.type == Intellector && from.color != to.color)? from.color : null;
+        turn++;
+
+        if (to != null && to.type == Intellector && from.color != to.color)
+            return from.color;
+        else if (from.type == Intellector && isFinalRel(toI, toJ, from.color))
+            return from.color;
+        else
+           return null;
+    }
+
+    public function updateTime() 
+    {
+        var ts = Date.now().getTime();
+        if (turn > 2)
+        {
+            var secondsElapsed = Math.round((ts - lastActualTimestamp) / 1000);
+            if (whiteTurn)
+            {
+                secsLeftWhite -= secondsElapsed;
+                secsLeftWhite += secsPerTurn;
+            }
+            else 
+            {
+                secsLeftBlack -= secondsElapsed;
+                secsLeftBlack += secsPerTurn;
+            }
+        }
+        lastActualTimestamp = ts;
+    }
+
+    private function isFinalRel(i:Int, j:Int, color:Color):Bool
+    {
+        if (color == White)
+            return j == 0 && i % 2 == 0;
+        else 
+            return j == 6 && i % 2 == 0;
     }
 
     public function arrangePieces()
@@ -75,13 +127,17 @@ class Game
         field[5][8] = {type: Progressor, color: White};
     }
 
-    public function new(whiteLogin, blackLogin) 
+    public function new(whiteLogin, blackLogin, secStart:Int, secBonus:Int) 
     {
         id = Main.currID;
         this.whiteLogin = whiteLogin;
         this.blackLogin = blackLogin;
         whiteTurn = true;
         log = '$whiteLogin : $blackLogin;\n';
+        turn = 1;
+        secsLeftWhite = secStart;
+        secsLeftBlack = secStart;
+        secsPerTurn = secBonus;
         arrangePieces();
     }
 }

@@ -15,11 +15,18 @@ enum UserState
     InGame;
 }
 
+typedef TimeControl = 
+{
+    var startSecs:Int;
+    var bonusSecs:Int;
+}
+
 class SocketHandler extends WebSocketHandler
 {
 
     public var ustate:UserState;
     public var calledPlayers:Array<String>;
+    public var calloutTimeControls:Map<String, TimeControl>;
 
     public function emit(eventName:String, data:Dynamic) 
     {
@@ -31,6 +38,7 @@ class SocketHandler extends WebSocketHandler
     {
         super(s);
         calledPlayers = [];
+        calloutTimeControls = new Map();
         onopen = () -> {
             ustate = NotLogged;
             trace(id + ". OPEN");
@@ -83,8 +91,8 @@ class SocketHandler extends WebSocketHandler
         return switch ustate 
         {
             case NotLogged: ['login', 'register'].has(eventName);
-            case MainMenu: ['callout', 'accept_challenge', 'cancel_callout'].has(eventName);
-            case InGame: ['move'].has(eventName);
+            case MainMenu: ['callout', 'accept_challenge', 'decline_challenge', 'cancel_callout'].has(eventName);
+            case InGame: ['move', 'request_timeout_check'].has(eventName);
         }
     }
 }

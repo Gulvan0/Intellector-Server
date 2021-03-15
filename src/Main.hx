@@ -1,3 +1,4 @@
+import Game.FigureType;
 import Game.Color;
 import hx.ws.Log;
 import hx.ws.WebSocketServer;
@@ -26,6 +27,7 @@ typedef MoveData =
     var toI:Int;
     var fromJ:Int;
     var toJ:Int;
+    var morphInto:Null<String>;
 }
 
 class Main 
@@ -41,8 +43,13 @@ class Main
         currID = Std.parseInt(Data.read("currid.txt"));
         parsePasswords(Data.read("playerdata.txt"));
 
+        #if prod
+        Log.mask = Log.INFO | Log.DEBUG;
+        var server = new WebSocketServer<SocketHandler>("ec2-13-48-10-164.eu-north-1.compute.amazonaws.com", 5000, 100);
+        #else
         Log.mask = Log.INFO | Log.DEBUG | Log.DATA;
         var server = new WebSocketServer<SocketHandler>("localhost", 5000, 100);
+        #end
         server.start();
     }
 
@@ -77,10 +84,14 @@ class Main
                 onCallout(sender, data);
             case 'accept_challenge':
                 onAcceptChallenge(sender, data);
+            case 'decline_challenge':
+                onDeclineChallenge(sender, data);
             case 'cancel_callout':
                 onCancelCallout(sender, data);
             case 'move':
                 onMove(sender, data);
+            case 'request_timeout_check':
+                onTimeoutCheck(sender, data);
             default:
                 trace("Unexpected event: " + eventName);
         }
@@ -99,13 +110,16 @@ class Main
 
     private static function onLoginAttempt(socket:SocketHandler, data) 
     {
-        if (passwords.get(data.login) == Md5.encode(data.password))
-        {
-            onLogged(socket, data.login);
-            socket.emit('login_result', 'success');
-        }
-        else 
-            socket.emit('login_result', 'fail');
+        if (!loggedPlayers.exists(data.login))
+            if (passwords.get(data.login) == Md5.encode(data.password))
+            {
+                onLogged(socket, data.login);
+                socket.emit('login_result', 'success');
+            }
+            else 
+                socket.emit('login_result', 'fail');
+        else
+            socket.emit('login_result', 'online');
     }
 
     private static function onRegisterAttempt(socket:SocketHandler, data) 
@@ -137,7 +151,9 @@ class Main
                         socket.emit('repeated_callout', {callee: data.callee_login});
                     else
                     {
+                        socket.emit('callout_success', {callee: data.callee_login});
                         loggedPlayers[data.caller_login].calledPlayers.push(data.callee_login);
+                        loggedPlayers[data.caller_login].calloutTimeControls[data.callee_login] = {startSecs: data.secsStart, bonusSecs:data.secsBonus};
                         loggedPlayers[data.callee_login].emit('incoming_challenge', {caller: data.caller_login});
                     }
                 else 
@@ -158,13 +174,26 @@ class Main
                 loggedPlayers[data.callee_login].calledPlayers = [];
                 loggedPlayers[data.caller_login].ustate = InGame;
                 loggedPlayers[data.callee_login].ustate = InGame;
-                startGame(data.callee_login, data.caller_login);
+                var tc = loggedPlayers[data.caller_login].calloutTimeControls[data.callee_login];
+                startGame(data.callee_login, data.caller_login, tc.startSecs, tc.bonusSecs);
             }
             else
                 socket.emit('callout_not_found', {caller: data.caller_login});
         }
         else 
             socket.emit('caller_unavailable', {caller: data.caller_login});
+    }
+
+    private static function onDeclineChallenge(socket:SocketHandler, data)
+    {
+        if (!loggedPlayers.exists(data.caller_login))
+            return;
+
+        if (loggedPlayers[data.caller_login].calledPlayers.has(data.callee_login))
+        {
+            loggedPlayers[data.caller_login].calledPlayers.remove(data.callee_login);
+            loggedPlayers[data.caller_login].emit('challenge_declined', {callee: data.callee_login});
+        }
     }
 
     private static function onCancelCallout(socket:SocketHandler, data)
@@ -175,34 +204,60 @@ class Main
             socket.emit('callout_not_found', {callee: data.callee_login});
     }
 
-    private static function startGame(login1:String, login2:String) 
+    private static function startGame(login1:String, login2:String, startSecs:Int, bonusSecs:Int) 
     {
         var rand = Math.random();
         var whiteLogin = rand >= 0.5? login1 : login2;
         var blackLogin = rand >= 0.5? login2 : login1;
 
-        var game:Game = new Game(whiteLogin, blackLogin);
+        var game:Game = new Game(whiteLogin, blackLogin, startSecs, bonusSecs);
         games[whiteLogin] = game;
         games[blackLogin] = game;
 
-        loggedPlayers[whiteLogin].emit('game_started', {enemy: blackLogin, colour: 'white'});
-        loggedPlayers[blackLogin].emit('game_started', {enemy: whiteLogin, colour: 'black'});
+        loggedPlayers[whiteLogin].emit('game_started', {enemy: blackLogin, colour: 'white', match_id: game.id, startSecs: startSecs, bonusSecs: bonusSecs});
+        loggedPlayers[blackLogin].emit('game_started', {enemy: whiteLogin, colour: 'black', match_id: game.id, startSecs: startSecs, bonusSecs: bonusSecs});
     }
 
     private static function onMove(socket:SocketHandler, data)
     {
-        var game = games[data.issuer_login];
+        var game = games.get(data.issuer_login);
+
+        if (game == null)
+            return;
+
+        if (data.issuer_login != game.whiteLogin)
+            data = mirrorMoveData(data);
+
+        var winner = game.move(data.fromI, data.fromJ, data.toI, data.toJ, data.morphInto == null? null : FigureType.createByName(data.morphInto));
+
+        loggedPlayers[game.whiteLogin].emit('time_correction', {whiteSeconds: game.secsLeftWhite, blackSeconds: game.secsLeftBlack});
+        loggedPlayers[game.blackLogin].emit('time_correction', {whiteSeconds: game.secsLeftWhite, blackSeconds: game.secsLeftBlack});
+
         if (data.issuer_login == game.whiteLogin)
             loggedPlayers[game.blackLogin].emit('move', mirrorMoveData(data));
         else 
-        {
-            data = mirrorMoveData(data);
             loggedPlayers[game.whiteLogin].emit('move', data);
-        }
 
-        var winner = game.move(data.fromI, data.fromJ, data.toI, data.toJ);
-        if (winner != null)
+        if (game.secsLeftWhite <= game.secsPerTurn)
+            endGame(Timeout, Black, game);
+        else if (game.secsLeftBlack <= game.secsPerTurn)
+            endGame(Timeout, White, game);
+        else if (winner != null)
             endGame(Mate, winner, game);
+    }
+
+    private static function onTimeoutCheck(socket:SocketHandler, data) 
+    {
+        var game = games.get(data.issuer_login);
+
+        if (game == null)
+            return;
+
+        game.updateTime();
+        if (game.secsLeftWhite <= 0)
+            endGame(Timeout, Black, game);
+        else if (game.secsLeftBlack <= 0)
+            endGame(Timeout, White, game);
     }
 
     private static function handleDisconnectionForGame(disconnectedLogin:String)
@@ -239,7 +294,7 @@ class Main
         var reflection = (i, j) -> (6 - (i % 2) - j);
         var newFromJ = reflection(data.fromI, data.fromJ);
         var newToJ = reflection(data.toI, data.toJ);
-        return {issuer_login: data.issuer_login, fromI: data.fromI, toI: data.toI, fromJ: newFromJ, toJ: newToJ};
+        return {issuer_login: data.issuer_login, fromI: data.fromI, toI: data.toI, fromJ: newFromJ, toJ: newToJ, morphInto: data.morphInto};
     }
 
 }
