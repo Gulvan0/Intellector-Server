@@ -1,5 +1,6 @@
 package;
 
+import sys.FileSystem;
 using StringTools;
 import sys.io.File;
 
@@ -20,6 +21,21 @@ class Data
         var fo = File.append(convertPath(path), false);
         fo.writeString(content);
         fo.close();
+    }
+
+    public static function logExists(gameId:Int):Bool
+    {
+        return FileSystem.exists(logPath(gameId));
+    }
+
+    public static function getLog(gameId:Int):String
+    {
+        return read(logPath(gameId));
+    }
+
+    private static function logPath(gameId:Int) 
+    {
+        return convertPath('games/$gameId.txt');    
     }
 
     private static function convertPath(s:String):String

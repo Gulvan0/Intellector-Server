@@ -1,3 +1,4 @@
+import SocketHandler.TimeControl;
 import Game.FigureType;
 import Game.Color;
 import hx.ws.Log;
@@ -30,6 +31,12 @@ typedef MoveData =
     var morphInto:Null<String>;
 }
 
+typedef Challenge = 
+{
+    var issuer:String;
+    var timeControl:TimeControl;
+}
+
 class Main 
 {
 
@@ -37,6 +44,9 @@ class Main
     private static var passwords:Map<String, String> = [];
 	private static var loggedPlayers:Map<String, SocketHandler> = [];
 	private static var games:Map<String, Game> = [];
+    private static var gamesByID:Map<Int, Game> = [];
+    private static var spectatorsByID:Map<Int, SocketHandler> = [];
+    private static var openChallenges:Map<String, Challenge> = [];
 
 	public static function main() 
 	{    
@@ -92,6 +102,16 @@ class Main
                 onMove(sender, data);
             case 'request_timeout_check':
                 onTimeoutCheck(sender, data);
+            case 'message':
+                onMessage(sender, data);
+            case 'get_game':
+                onGameRequest(sender, data);
+            case 'get_challenge':
+                onOpenChallengeRequest(sender, data);
+            case 'open_callout':
+                onOpenCallout(sender, data);
+            case 'accept_open_challenge':
+                onOpenChallengeAccept(sender, data);
             default:
                 trace("Unexpected event: " + eventName);
         }
@@ -103,9 +123,62 @@ class Main
             if (v.id == socket.id)
             {
                 loggedPlayers.remove(k);
+                openChallenges.remove(k);
                 handleDisconnectionForGame(k);
                 return;
             }
+    }
+
+    private static function onGameRequest(socket:SocketHandler, data) 
+    {
+        var id = Std.parseInt(data.id);
+        if (gamesByID.exists(id))
+            socket.emit('gamestate_ongoing', {log: gamesByID[id].log});
+        else if (Data.logExists(id))
+            socket.emit('gamestate_over', {log: Data.getLog(id)});
+        else 
+            socket.emit('gamestate_notfound', {});
+    }
+
+    private static function onOpenChallengeRequest(socket:SocketHandler, data) 
+    {
+        var challenge = openChallenges.get(data.challenger);
+        if (challenge != null)
+            socket.emit('openchallenge_info', {challenger:challenge.issuer, startSecs:challenge.timeControl.startSecs, bonusSecs:challenge.timeControl.bonusSecs});
+        else 
+            socket.emit('openchallenge_notfound', {});
+    }
+
+    private static function onOpenCallout(socket:SocketHandler, data) 
+    {
+        openChallenges[data.caller_login] = {issuer: data.caller_login, timeControl: {startSecs:data.startSecs, bonusSecs:data.bonusSecs}};
+    }
+
+    private static function onOpenChallengeAccept(socket:SocketHandler, data) 
+    {
+        var callee:String = data.callee_login;
+        if (loggedPlayers.exists(data.caller_login))
+        {
+            if (callee.startsWith("guest_"))
+                loggedPlayers[callee] = socket;
+            loggedPlayers[data.caller_login].calledPlayers = [];
+            loggedPlayers[callee].calledPlayers = [];
+            loggedPlayers[data.caller_login].ustate = InGame;
+            loggedPlayers[callee].ustate = InGame;
+            var tc = openChallenges[data.caller_login].timeControl;
+            openChallenges.remove(data.caller_login);
+            startGame(callee, data.caller_login, tc.startSecs, tc.bonusSecs);
+        }
+        else 
+            socket.emit('caller_unavailable', {caller: data.caller_login});
+    }
+
+    private static function onMessage(socket:SocketHandler, data) 
+    {
+        if (games[data.issuer_login].whiteLogin == data.issuer_login)
+            loggedPlayers[games[data.issuer_login].blackLogin].emit('message', data);
+        else 
+            loggedPlayers[games[data.issuer_login].whiteLogin].emit('message', data);
     }
 
     private static function onLoginAttempt(socket:SocketHandler, data) 
@@ -213,6 +286,7 @@ class Main
         var game:Game = new Game(whiteLogin, blackLogin, startSecs, bonusSecs);
         games[whiteLogin] = game;
         games[blackLogin] = game;
+        gamesByID[game.id] = game;
 
         loggedPlayers[whiteLogin].emit('game_started', {enemy: blackLogin, colour: 'white', match_id: game.id, startSecs: startSecs, bonusSecs: bonusSecs});
         loggedPlayers[blackLogin].emit('game_started', {enemy: whiteLogin, colour: 'black', match_id: game.id, startSecs: startSecs, bonusSecs: bonusSecs});
@@ -284,6 +358,7 @@ class Main
             if (games.exists(login))
                 games.remove(login);
         }
+        gamesByID.remove(game.id);
 
         game.log += winner == White? "w" : "b";
         Data.overwrite('games/${game.id}.txt', game.log);

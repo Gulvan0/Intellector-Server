@@ -77,22 +77,26 @@ class SocketHandler extends WebSocketHandler
     {
         if (['login', 'register'].has(eventName))
             data.login = cast(data.login, String).toLowerCase();
-        else if (['callout', 'accept_challenge', 'cancel_callout', 'decline_challenge'].has(eventName))
+        else if (['callout', 'accept_challenge', 'cancel_callout', 'decline_challenge', 'accept_open_challenge'].has(eventName))
         {
             data.caller_login = cast(data.caller_login, String).toLowerCase();
             data.callee_login = cast(data.callee_login, String).toLowerCase();
         }
-        else if ('move' == eventName)
+        else if (['move', 'message', 'request_timeout_check'].has(eventName))
             data.issuer_login = cast(data.issuer_login, String).toLowerCase();
+        else if (eventName == 'get_challenge')
+            data.challenger = cast(data.challenger, String).toLowerCase();
+        else if (eventName == 'open_callout')
+            data.caller_login = cast(data.caller_login, String).toLowerCase();
     }
 
     private function handlerActive(eventName:String) 
     {
         return switch ustate 
         {
-            case NotLogged: ['login', 'register'].has(eventName);
-            case MainMenu: ['callout', 'accept_challenge', 'decline_challenge', 'cancel_callout'].has(eventName);
-            case InGame: ['move', 'request_timeout_check'].has(eventName);
+            case NotLogged: ['login', 'register', 'get_game', 'get_challenge', 'accept_open_challenge'].has(eventName);
+            case MainMenu: ['callout', 'accept_challenge', 'decline_challenge', 'cancel_callout', 'open_callout', 'get_game', 'get_challenge', 'accept_open_challenge', 'spectator_message'].has(eventName);
+            case InGame: ['move', 'request_timeout_check', 'message'].has(eventName);
         }
     }
 }
