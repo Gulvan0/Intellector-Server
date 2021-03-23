@@ -1,3 +1,4 @@
+import Game.MatchResult;
 import SocketHandler.TimeControl;
 import Game.FigureType;
 import Game.Color;
@@ -11,14 +12,6 @@ typedef Event =
 {
     var name:String;
     var data:Dynamic;
-}
-
-enum GameOverReason
-{
-    Mate;
-    Agreement;
-    Timeout;
-    Abandon;
 }
 
 typedef MoveData =
@@ -302,7 +295,7 @@ class Main
         if (data.issuer_login != game.whiteLogin)
             data = mirrorMoveData(data);
 
-        var winner = game.move(data.fromI, data.fromJ, data.toI, data.toJ, data.morphInto == null? null : FigureType.createByName(data.morphInto));
+        game.move(data.fromI, data.fromJ, data.toI, data.toJ, data.morphInto == null? null : FigureType.createByName(data.morphInto));
 
         loggedPlayers[game.whiteLogin].emit('time_correction', {whiteSeconds: game.secsLeftWhite, blackSeconds: game.secsLeftBlack});
         loggedPlayers[game.blackLogin].emit('time_correction', {whiteSeconds: game.secsLeftWhite, blackSeconds: game.secsLeftBlack});
@@ -311,27 +304,14 @@ class Main
             loggedPlayers[game.blackLogin].emit('move', mirrorMoveData(data));
         else 
             loggedPlayers[game.whiteLogin].emit('move', data);
-
-        if (game.secsLeftWhite <= game.secsPerTurn)
-            endGame(Timeout, Black, game);
-        else if (game.secsLeftBlack <= game.secsPerTurn)
-            endGame(Timeout, White, game);
-        else if (winner != null)
-            endGame(Mate, winner, game);
     }
 
     private static function onTimeoutCheck(socket:SocketHandler, data) 
     {
         var game = games.get(data.issuer_login);
 
-        if (game == null)
-            return;
-
-        game.updateTime();
-        if (game.secsLeftWhite <= 0)
-            endGame(Timeout, Black, game);
-        else if (game.secsLeftBlack <= 0)
-            endGame(Timeout, White, game);
+        if (game != null)
+            game.updateTimeLeft();
     }
 
     private static function handleDisconnectionForGame(disconnectedLogin:String)
@@ -341,18 +321,27 @@ class Main
 
         var game = games[disconnectedLogin];
         var winner = game.whiteLogin == disconnectedLogin? Black : White;
-        endGame(Abandon, winner, game);
+        endGame(Abandon(winner), game);
     }
 
-    private static function endGame(reason:GameOverReason, winner:Null<Color>, game:Game) 
+    public static function endGame(result:MatchResult, game:Game) 
     {
-        var matchResults = {winner_color: winner == null? "" : winner.getName().toLowerCase(), reason: reason.getName().toLowerCase()};
+        var winnerStr = switch result 
+        {
+            case Mate(winner): winner.getName().toLowerCase();
+            case Breakthrough(winner): winner.getName().toLowerCase();
+            case Resignation(winner): winner.getName().toLowerCase();
+            case Timeout(winner): winner.getName().toLowerCase();
+            case Abandon(winner): winner.getName().toLowerCase();
+            default: "";
+        }
+        var resultsData = {winner_color: winnerStr, reason: result.getName().toLowerCase()};
 
         for (login in [game.whiteLogin, game.blackLogin])
         {
             if (loggedPlayers.exists(login))
             {
-                loggedPlayers[login].emit('game_ended', matchResults);
+                loggedPlayers[login].emit('game_ended', resultsData);
                 loggedPlayers[login].ustate = MainMenu;
             }
             if (games.exists(login))
@@ -360,7 +349,7 @@ class Main
         }
         gamesByID.remove(game.id);
 
-        game.log += winner == White? "w" : "b";
+        game.log += winnerStr != ""? winnerStr : "draw";
         Data.overwrite('games/${game.id}.txt', game.log);
     }
 

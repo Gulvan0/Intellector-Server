@@ -16,6 +16,18 @@ enum Color
     Black;
 }
 
+enum MatchResult
+{
+    Mate(winner:Color);
+    Breakthrough(winner:Color);
+    Resignation(winner:Color);
+    Timeout(winner:Color);
+    Abandon(winner:Color);
+    ThreefoldRepetition;
+    HundredMoveRule;
+    DrawAgreement;
+}
+
 typedef Figure = {type:FigureType, color:Color};
 
 class Game
@@ -33,56 +45,86 @@ class Game
     public var secsLeftWhite:Int;
     public var secsLeftBlack:Int;
 
-    public function move(fromI, fromJ, toI, toJ, ?morphInto:FigureType):Null<Color>
+    private var positionCount:Map<String, Int> = [];
+    private var silentMovesCount:Int = 0;
+
+    public function move(fromI, fromJ, toI, toJ, ?morphInto:FigureType)
     {
         var from = field[fromJ][fromI];
         var to = field[toJ][toI];
+
+        var isCastle = to != null && ((from.type == Intellector && to.type == Defensor) || (from.type == Defensor && to.type == Intellector)) && from.color == to.color;
+
         field[toJ][toI] = from;
 
         if (morphInto != null)
             field[toJ][toI].type = morphInto;
 
-        if (to != null && ((from.type == Intellector && to.type == Defensor) || (from.type == Defensor && to.type == Intellector)) && from.color == to.color)
+        if (isCastle)
             field[fromJ][fromI] = to;
         else 
             field[fromJ][fromI] = null;
+
+        if (isCastle || (to == null && from.type != Progressor))
+            silentMovesCount++;
+        else 
+            silentMovesCount = 0;
 
         if (morphInto != null)
             log += '$fromI$fromJ$toI$toJ${morphInto.getName()};\n';
         else 
             log += '$fromI$fromJ$toI$toJ;\n';
 
-        updateTime();
+        if (turn > 2)
+        {
+            updateTimeLeft();
+            incrementTime();
+        }
+        else if (turn == 2)
+            lastActualTimestamp = Date.now().getTime();
 
         whiteTurn = !whiteTurn;
         turn++;
 
-        if (to != null && to.type == Intellector && from.color != to.color)
-            return from.color;
-        else if (from.type == Intellector && isFinalRel(toI, toJ, from.color))
-            return from.color;
+        var sPos = serializePosition();
+        var samePosCount = positionCount.get(sPos);
+        if (samePosCount == null)
+            positionCount[sPos] = 1;
         else
-           return null;
+            positionCount[sPos] = ++samePosCount;
+
+        if (samePosCount == 3)
+            Main.endGame(ThreefoldRepetition, this);
+        else if (to != null && to.type == Intellector && from.color != to.color)
+            Main.endGame(Mate(from.color), this);
+        else if (from.type == Intellector && isFinalRel(toI, toJ, from.color))
+            Main.endGame(Breakthrough(from.color), this);
+        else if (silentMovesCount == 100)
+            Main.endGame(HundredMoveRule, this);
     }
 
-    public function updateTime() 
+    public function updateTimeLeft()
     {
         var ts = Date.now().getTime();
-        if (turn > 2)
-        {
-            var secondsElapsed = Math.round((ts - lastActualTimestamp) / 1000);
-            if (whiteTurn)
-            {
-                secsLeftWhite -= secondsElapsed;
-                secsLeftWhite += secsPerTurn;
-            }
-            else 
-            {
-                secsLeftBlack -= secondsElapsed;
-                secsLeftBlack += secsPerTurn;
-            }
-        }
+        var secondsElapsed = Math.round((ts - lastActualTimestamp) / 1000);
+        if (whiteTurn)
+            secsLeftWhite -= secondsElapsed;
+        else 
+            secsLeftBlack -= secondsElapsed;
         lastActualTimestamp = ts;
+
+        if (secsLeftWhite <= 0)
+            Main.endGame(Timeout(Black), this);
+        else if (secsLeftBlack <= 0)
+            Main.endGame(Timeout(White), this);
+    }
+
+    private function incrementTime()
+    {
+        if (whiteTurn)
+            secsLeftWhite += secsPerTurn;
+        else 
+            secsLeftBlack += secsPerTurn;
     }
 
     private function isFinalRel(i:Int, j:Int, color:Color):Bool
@@ -125,6 +167,19 @@ class Game
         field[5][4] = {type: Progressor, color: White};
         field[5][6] = {type: Progressor, color: White};
         field[5][8] = {type: Progressor, color: White};
+    }
+
+    private function serializePosition():String
+    {
+        var s = whiteTurn? "w" : "b";
+        for (i in 0...9)
+            for (j in 0...7)
+            {
+                var fig = field[j][i];
+                if (fig != null)
+                    s += '$i$j${fig.type.getName().charAt(1)}${fig.color == White? "w" : "b"}';
+            }
+        return s;
     }
 
     public function new(whiteLogin, blackLogin, secStart:Int, secBonus:Int) 
