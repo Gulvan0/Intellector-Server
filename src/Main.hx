@@ -38,7 +38,7 @@ class Main
 	private static var loggedPlayers:Map<String, SocketHandler> = [];
 	private static var games:Map<String, Game> = [];
     private static var gamesByID:Map<Int, Game> = [];
-    private static var spectatorsByID:Map<Int, SocketHandler> = [];
+    private static var spectators:Map<String, Int> = [];
     private static var openChallenges:Map<String, Challenge> = [];
 
 	public static function main() 
@@ -105,6 +105,10 @@ class Main
                 onOpenCallout(sender, data);
             case 'accept_open_challenge':
                 onOpenChallengeAccept(sender, data);
+            case 'spectate':
+                onSpectate(sender, data);
+            case 'stop_spectate':
+                onStopSpectate(sender, data);
             default:
                 trace("Unexpected event: " + eventName);
         }
@@ -122,9 +126,65 @@ class Main
             }
     }
 
+    private static function onSpectate(socket:SocketHandler, data) 
+    {
+        if (loggedPlayers.exists(data.watched_login))
+            if (games.exists(data.watched_login))
+            {
+                var game = games.get(data.watched_login);
+                var color = data.watched_login == game.whiteLogin? 'white' : 'black';
+
+                spectators.set(socket.login, game.id);
+
+                game.updateTimeLeft();
+
+                socket.emit('spectation_data', {
+                    match_id: game.id, 
+                    requestedColor: color, 
+                    whiteLogin: game.whiteLogin, 
+                    blackLogin: game.blackLogin, 
+                    startSecs: game.startSecs,
+                    bonusSecs: game.secsPerTurn, 
+                    whiteSeconds: game.secsLeftWhite, 
+                    blackSeconds: game.secsLeftBlack, 
+                    position: game.serializePosition(), 
+                    movesPlayed: game.moveHistory
+                });
+
+                if (color == 'white')
+                    game.whiteSpectators.push(socket);
+                else 
+                    game.blackSpectators.push(socket);
+
+                loggedPlayers[game.whiteLogin].emit('new_spectator', {login: socket.login});
+                loggedPlayers[game.blackLogin].emit('new_spectator', {login: socket.login});
+            }
+            else 
+                socket.emit('watched_notingame', {watched_login: data.watched_login});
+        else 
+            socket.emit('watched_unavailable', {watched_login: data.watched_login});
+    }
+
+    private static function onStopSpectate(socket:SocketHandler, data) 
+    {
+        var gameID = spectators.get(socket.login);
+        if (gameID != null)
+        {
+            var game = gamesByID[gameID];
+
+            game.whiteSpectators.remove(socket);
+            game.blackSpectators.remove(socket);
+
+            spectators.remove(socket.login);
+
+            loggedPlayers[game.whiteLogin].emit('spectator_left', {login: socket.login});
+            loggedPlayers[game.blackLogin].emit('spectator_left', {login: socket.login});
+        }
+    }
+
     private static function onGameRequest(socket:SocketHandler, data) 
     {
-        var id = Std.parseInt(data.id);
+        var id = data.id;
         if (gamesByID.exists(id))
             socket.emit('gamestate_ongoing', {log: gamesByID[id].log});
         else if (Data.logExists(id))
@@ -205,6 +265,7 @@ class Main
     private static function onLogged(socket:SocketHandler, login:String)
     {
         loggedPlayers[login] = socket;
+        socket.login = login;
         socket.ustate = MainMenu;
     }
 
@@ -297,13 +358,23 @@ class Main
 
         game.move(data.fromI, data.fromJ, data.toI, data.toJ, data.morphInto == null? null : FigureType.createByName(data.morphInto));
 
-        loggedPlayers[game.whiteLogin].emit('time_correction', {whiteSeconds: game.secsLeftWhite, blackSeconds: game.secsLeftBlack});
-        loggedPlayers[game.blackLogin].emit('time_correction', {whiteSeconds: game.secsLeftWhite, blackSeconds: game.secsLeftBlack});
+        var timedata = {whiteSeconds: game.secsLeftWhite, blackSeconds: game.secsLeftBlack};
 
+        loggedPlayers[game.whiteLogin].emit('time_correction', timedata);
+        loggedPlayers[game.blackLogin].emit('time_correction', timedata);
+        for (spec in game.whiteSpectators.concat(game.blackSpectators))
+            spec.emit('time_correction', timedata);
+
+        var mirroredData = mirrorMoveData(data);
         if (data.issuer_login == game.whiteLogin)
-            loggedPlayers[game.blackLogin].emit('move', mirrorMoveData(data));
+            loggedPlayers[game.blackLogin].emit('move', mirroredData);
         else 
             loggedPlayers[game.whiteLogin].emit('move', data);
+
+        for (spec in game.whiteSpectators)
+            spec.emit('move', data);
+        for (spec in game.blackSpectators)
+            spec.emit('move', mirroredData);
     }
 
     private static function onTimeoutCheck(socket:SocketHandler, data) 

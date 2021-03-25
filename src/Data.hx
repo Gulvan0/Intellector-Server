@@ -25,7 +25,7 @@ class Data
 
     public static function logExists(gameId:Int):Bool
     {
-        return FileSystem.exists(logPath(gameId));
+        return FileSystem.exists(convertPath(logPath(gameId)));
     }
 
     public static function getLog(gameId:Int):String
@@ -35,7 +35,7 @@ class Data
 
     private static function logPath(gameId:Int) 
     {
-        return convertPath('games/$gameId.txt');    
+        return 'games/$gameId.txt';    
     }
 
     private static function convertPath(s:String):String

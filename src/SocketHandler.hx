@@ -25,6 +25,7 @@ class SocketHandler extends WebSocketHandler
 {
 
     public var ustate:UserState;
+    public var login:String;
     public var calledPlayers:Array<String>;
     public var calloutTimeControls:Map<String, TimeControl>;
 
@@ -88,6 +89,8 @@ class SocketHandler extends WebSocketHandler
             data.challenger = cast(data.challenger, String).toLowerCase();
         else if (eventName == 'open_callout')
             data.caller_login = cast(data.caller_login, String).toLowerCase();
+        else if (eventName == 'spectate')
+            data.watched_login = cast(data.watched_login, String).toLowerCase();
     }
 
     private function handlerActive(eventName:String) 
@@ -95,7 +98,7 @@ class SocketHandler extends WebSocketHandler
         return switch ustate 
         {
             case NotLogged: ['login', 'register', 'get_game', 'get_challenge', 'accept_open_challenge'].has(eventName);
-            case MainMenu: ['callout', 'accept_challenge', 'decline_challenge', 'cancel_callout', 'open_callout', 'get_game', 'get_challenge', 'accept_open_challenge', 'spectator_message'].has(eventName);
+            case MainMenu: ['callout', 'accept_challenge', 'decline_challenge', 'cancel_callout', 'open_callout', 'get_game', 'get_challenge', 'accept_open_challenge', 'spectate', 'stop_spectate'].has(eventName);
             case InGame: ['move', 'request_timeout_check', 'message'].has(eventName);
         }
     }

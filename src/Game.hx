@@ -41,6 +41,7 @@ class Game
 
     public var turn:Int;
     public var lastActualTimestamp:Float;
+    public var startSecs:Int;
     public var secsPerTurn:Int;
     public var secsLeftWhite:Int;
     public var secsLeftBlack:Int;
@@ -48,11 +49,19 @@ class Game
     private var positionCount:Map<String, Int> = [];
     private var silentMovesCount:Int = 0;
 
+    public var whiteSpectators:Array<SocketHandler> = [];
+    public var blackSpectators:Array<SocketHandler> = [];
+
+    public var moveHistory:Array<String> = [];
+
     public function move(fromI, fromJ, toI, toJ, ?morphInto:FigureType)
     {
         var from = field[fromJ][fromI];
         var to = field[toJ][toI];
 
+        var capture = to != null && to.color != from.color;
+        var mate = capture && to.type == Intellector;
+        var breakthrough = from.type == Intellector && isFinalRel(toI, toJ, from.color);
         var isCastle = to != null && ((from.type == Intellector && to.type == Defensor) || (from.type == Defensor && to.type == Intellector)) && from.color == to.color;
 
         field[toJ][toI] = from;
@@ -85,6 +94,7 @@ class Game
 
         whiteTurn = !whiteTurn;
         turn++;
+        moveHistory.push(figureAbbreviation(from.type) + (capture? "x" : "") + locToStr(toI, toJ) + (morphInto != null? '=[${figureAbbreviation(morphInto)}]' : '') + ((mate || breakthrough)? "#" : ""));
 
         var sPos = serializePosition();
         var samePosCount = positionCount.get(sPos);
@@ -95,9 +105,9 @@ class Game
 
         if (samePosCount == 3)
             Main.endGame(ThreefoldRepetition, this);
-        else if (to != null && to.type == Intellector && from.color != to.color)
+        else if (mate)
             Main.endGame(Mate(from.color), this);
-        else if (from.type == Intellector && isFinalRel(toI, toJ, from.color))
+        else if (breakthrough)
             Main.endGame(Breakthrough(from.color), this);
         else if (silentMovesCount == 100)
             Main.endGame(HundredMoveRule, this);
@@ -169,7 +179,7 @@ class Game
         field[5][8] = {type: Progressor, color: White};
     }
 
-    private function serializePosition():String
+    public function serializePosition():String
     {
         var s = whiteTurn? "w" : "b";
         for (i in 0...9)
@@ -182,6 +192,24 @@ class Game
         return s;
     }
 
+    private inline function figureAbbreviation(figure:FigureType):String
+    {
+        return switch figure 
+        {
+            case Progressor: "P";
+            case Aggressor: "Ag";
+            case Dominator: "Dm";
+            case Liberator: "Lb";
+            case Defensor: "Df";
+            case Intellector: "In";
+        }
+    }
+
+    private function locToStr(i:Int, j:Int):String
+    {
+        return String.fromCharCode('a'.code + i) + (7 - (i % 2) - j);
+    }
+
     public function new(whiteLogin, blackLogin, secStart:Int, secBonus:Int) 
     {
         id = Main.currID;
@@ -190,6 +218,7 @@ class Game
         whiteTurn = true;
         log = '$whiteLogin : $blackLogin;\n';
         turn = 1;
+        startSecs = secStart;
         secsLeftWhite = secStart;
         secsLeftBlack = secStart;
         secsPerTurn = secBonus;
