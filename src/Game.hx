@@ -1,5 +1,7 @@
 package;
 
+import haxe.Timer;
+
 enum FigureType
 {
     Progressor;
@@ -54,8 +56,16 @@ class Game
 
     public var moveHistory:Array<String> = [];
 
+    public var terminator:Null<Timer>;
+
     public function move(fromI, fromJ, toI, toJ, ?morphInto:FigureType)
     {
+        if (terminator != null)
+        {
+            terminator.stop();
+            terminator = null;
+        }
+
         var from = field[fromJ][fromI];
         var to = field[toJ][toI];
 
@@ -135,6 +145,34 @@ class Game
             secsLeftWhite += secsPerTurn;
         else 
             secsLeftBlack += secsPerTurn;
+    }
+
+    public function launchTerminateTimer() 
+    {
+        terminator = new Timer(Math.ceil(Math.min(secsLeftWhite, secsLeftBlack)) + 5);
+        terminator.run = () -> {
+            terminator.stop();
+            terminator = null;
+            updateTimeLeft();
+        };
+    }
+
+    public function getActualData(color:String) 
+    {
+        updateTimeLeft();
+        return {
+            match_id: id, 
+            requestedColor: color, 
+            whiteLogin: whiteLogin, 
+            blackLogin: blackLogin, 
+            startSecs: startSecs,
+            bonusSecs: secsPerTurn, 
+            whiteSeconds: secsLeftWhite, 
+            blackSeconds: secsLeftBlack, 
+            position: serializePosition(), 
+            movesPlayed: moveHistory,
+            currentLog: log
+        };
     }
 
     private function isFinalRel(i:Int, j:Int, color:Color):Bool

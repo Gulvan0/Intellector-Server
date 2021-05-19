@@ -5,6 +5,7 @@ import Main.Event;
 import hx.ws.Buffer;
 import hx.ws.Types.MessageType;
 import hx.ws.SocketImpl;
+import hx.ws.SecureSocketImpl;
 import hx.ws.WebSocketHandler;
 using Lambda;
 
@@ -35,7 +36,7 @@ class SocketHandler extends WebSocketHandler
         send(Json.stringify(event));
     }
 
-    public function new(s: SocketImpl) 
+    public function new(s:SocketImpl) 
     {
         super(s);
         calledPlayers = [];
@@ -50,6 +51,7 @@ class SocketHandler extends WebSocketHandler
         }
         onerror = (error) -> {
             trace(id + ". ERROR: " + error);
+            Main.handleDisconnect(this);
         }
 
         onmessage = (message: MessageType) -> {

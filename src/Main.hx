@@ -1,3 +1,6 @@
+import sys.ssl.Key;
+import sys.ssl.Certificate;
+import hx.ws.WebSocketSecureServer;
 import Game.MatchResult;
 import SocketHandler.TimeControl;
 import Game.FigureType;
@@ -48,11 +51,17 @@ class Main
 
         #if prod
         Log.mask = Log.INFO | Log.DEBUG;
-        var server = new WebSocketServer<SocketHandler>("ec2-13-48-10-164.eu-north-1.compute.amazonaws.com", 5000, 100);
+        var cert = Certificate.loadFile("/root/15646055_www.example.com.cert");
+        var key = Key.loadFile("/root/15646055_www.example.com.key");
+        var hostname:String = '0.0.0.0';
         #else
         Log.mask = Log.INFO | Log.DEBUG | Log.DATA;
-        var server = new WebSocketServer<SocketHandler>("localhost", 5000, 100);
+        var cert = Certificate.loadFile("Q:/Github/Intellector-Server/local-cert/rootcert.pem");
+        var key = Key.loadFile("Q:/Github/Intellector-Server/local-cert/rootkey.pem");
+        var hostname:String = 'localhost';
         #end
+
+        var server = new WebSocketSecureServer<SocketHandler>(hostname, 5000, cert, key, cert, 100);
         server.start();
     }
 
@@ -116,14 +125,11 @@ class Main
 
     public static function handleDisconnect(socket:SocketHandler) 
     {
-        for (k => v in loggedPlayers.keyValueIterator())
-            if (v.id == socket.id)
-            {
-                loggedPlayers.remove(k);
-                openChallenges.remove(k);
-                handleDisconnectionForGame(k);
-                return;
-            }
+        loggedPlayers.remove(socket.login);
+        spectators.remove(socket.login);
+        openChallenges.remove(socket.login);
+        handleDisconnectionForGame(socket.login);
+        return;
     }
 
     private static function onSpectate(socket:SocketHandler, data) 
@@ -136,20 +142,7 @@ class Main
 
                 spectators.set(socket.login, game.id);
 
-                game.updateTimeLeft();
-
-                socket.emit('spectation_data', {
-                    match_id: game.id, 
-                    requestedColor: color, 
-                    whiteLogin: game.whiteLogin, 
-                    blackLogin: game.blackLogin, 
-                    startSecs: game.startSecs,
-                    bonusSecs: game.secsPerTurn, 
-                    whiteSeconds: game.secsLeftWhite, 
-                    blackSeconds: game.secsLeftBlack, 
-                    position: game.serializePosition(), 
-                    movesPlayed: game.moveHistory
-                });
+                socket.emit('spectation_data', game.getActualData(color));
 
                 if (color == 'white')
                     game.whiteSpectators.push(socket);
@@ -172,13 +165,18 @@ class Main
         {
             var game = gamesByID[gameID];
 
-            game.whiteSpectators.remove(socket);
-            game.blackSpectators.remove(socket);
+            if (game != null)
+            {
+                game.whiteSpectators.remove(socket);
+                game.blackSpectators.remove(socket);
+                
+                if (loggedPlayers.exists(game.whiteLogin))
+                    loggedPlayers[game.whiteLogin].emit('spectator_left', {login: socket.login});
+                if (loggedPlayers.exists(game.blackLogin))
+                loggedPlayers[game.blackLogin].emit('spectator_left', {login: socket.login});
+            }
 
             spectators.remove(socket.login);
-
-            loggedPlayers[game.whiteLogin].emit('spectator_left', {login: socket.login});
-            loggedPlayers[game.blackLogin].emit('spectator_left', {login: socket.login});
         }
     }
 
@@ -186,7 +184,12 @@ class Main
     {
         var id = data.id;
         if (gamesByID.exists(id))
-            socket.emit('gamestate_ongoing', {log: gamesByID[id].log});
+        {
+            var game = gamesByID[id];
+            if (games.get(socket.login) == game)
+                socket.ustate = InGame;
+            socket.emit('gamestate_ongoing', game.getActualData('white'));
+        }
         else if (Data.logExists(id))
             socket.emit('gamestate_over', {log: Data.getLog(id)});
         else 
@@ -198,7 +201,14 @@ class Main
         var challenge = openChallenges.get(data.challenger);
         if (challenge != null)
             socket.emit('openchallenge_info', {challenger:challenge.issuer, startSecs:challenge.timeControl.startSecs, bonusSecs:challenge.timeControl.bonusSecs});
-        else 
+        else if (games.exists(data.challenger))
+        {
+            var game = games.get(data.challenger);
+            if (games.get(socket.login) == game)
+                socket.ustate = InGame;
+            socket.emit('openchallenge_ongoing', game.getActualData('white'));
+        }
+        else
             socket.emit('openchallenge_notfound', {});
     }
 
@@ -391,8 +401,13 @@ class Main
             return;
 
         var game = games[disconnectedLogin];
-        var winner = game.whiteLogin == disconnectedLogin? Black : White;
-        endGame(Abandon(winner), game);
+        var opponentColor = game.whiteLogin == disconnectedLogin? Black : White;
+        var opponent = game.whiteLogin == disconnectedLogin? game.blackLogin : game.whiteLogin;
+        if (disconnectedLogin.startsWith("guest"))
+            endGame(Abandon(opponentColor), game);
+        else if (!loggedPlayers.exists(opponent))
+            game.launchTerminateTimer();
+        //else send disconnect notification
     }
 
     public static function endGame(result:MatchResult, game:Game) 
