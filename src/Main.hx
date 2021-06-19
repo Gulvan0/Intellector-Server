@@ -54,14 +54,13 @@ class Main
         var cert = Certificate.loadFile("/root/15646055_www.example.com.cert");
         var key = Key.loadFile("/root/15646055_www.example.com.key");
         var hostname:String = '0.0.0.0';
+        var server = new WebSocketSecureServer<SocketHandler>(hostname, 5000, cert, key, cert, 100);
         #else
         Log.mask = Log.INFO | Log.DEBUG | Log.DATA;
-        var cert = Certificate.loadFile("Q:/Github/Intellector-Server/local-cert/rootcert.pem");
-        var key = Key.loadFile("Q:/Github/Intellector-Server/local-cert/rootkey.pem");
         var hostname:String = 'localhost';
+        var server = new WebSocketServer<SocketHandler>(hostname, 5000, 100);
         #end
 
-        var server = new WebSocketSecureServer<SocketHandler>(hostname, 5000, cert, key, cert, 100);
         server.start();
     }
 
@@ -128,8 +127,8 @@ class Main
         loggedPlayers.remove(socket.login);
         spectators.remove(socket.login);
         openChallenges.remove(socket.login);
+        trace(loggedPlayers);
         handleDisconnectionForGame(socket.login);
-        return;
     }
 
     private static function onSpectate(socket:SocketHandler, data) 
@@ -363,9 +362,6 @@ class Main
         if (game == null)
             return;
 
-        if (data.issuer_login != game.whiteLogin)
-            data = mirrorMoveData(data);
-
         game.move(data.fromI, data.fromJ, data.toI, data.toJ, data.morphInto == null? null : FigureType.createByName(data.morphInto));
 
         var timedata = {whiteSeconds: game.secsLeftWhite, blackSeconds: game.secsLeftBlack};
@@ -375,16 +371,15 @@ class Main
         for (spec in game.whiteSpectators.concat(game.blackSpectators))
             spec.emit('time_correction', timedata);
 
-        var mirroredData = mirrorMoveData(data);
         if (data.issuer_login == game.whiteLogin)
-            loggedPlayers[game.blackLogin].emit('move', mirroredData);
+            loggedPlayers[game.blackLogin].emit('move', data);
         else 
             loggedPlayers[game.whiteLogin].emit('move', data);
 
         for (spec in game.whiteSpectators)
             spec.emit('move', data);
         for (spec in game.blackSpectators)
-            spec.emit('move', mirroredData);
+            spec.emit('move', data);
     }
 
     private static function onTimeoutCheck(socket:SocketHandler, data) 
@@ -437,14 +432,6 @@ class Main
 
         game.log += winnerStr != ""? winnerStr : "draw";
         Data.overwrite('games/${game.id}.txt', game.log);
-    }
-
-    private static function mirrorMoveData(data:MoveData):MoveData
-    {
-        var reflection = (i, j) -> (6 - (i % 2) - j);
-        var newFromJ = reflection(data.fromI, data.fromJ);
-        var newToJ = reflection(data.toI, data.toJ);
-        return {issuer_login: data.issuer_login, fromI: data.fromI, toI: data.toI, fromJ: newFromJ, toJ: newToJ, morphInto: data.morphInto};
     }
 
 }
