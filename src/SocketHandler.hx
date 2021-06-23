@@ -44,13 +44,16 @@ class SocketHandler extends WebSocketHandler
         onopen = () -> {
             ustate = NotLogged;
             trace(id + ". OPEN");
+            Data.writeLog('logs/connection/', 'null:$id /connected/');
         }
         onclose = () -> {
             trace(id + ". CLOSE");
+            Data.writeLog('logs/connection/', '$login:$id /closed/');
             Main.handleDisconnect(this);
         }
         onerror = (error) -> {
             trace(id + ". ERROR: " + error);
+            Data.writeLog('logs/connection/', '$login:$id /error/$error');
             Main.handleDisconnect(this);
         }
 

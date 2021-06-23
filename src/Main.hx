@@ -1,3 +1,4 @@
+import sys.io.File;
 import sys.ssl.Key;
 import sys.ssl.Certificate;
 import hx.ws.WebSocketSecureServer;
@@ -127,7 +128,9 @@ class Main
         loggedPlayers.remove(socket.login);
         spectators.remove(socket.login);
         openChallenges.remove(socket.login);
-        trace(loggedPlayers);
+        
+        var playersLeft:String = loggedPlayers.empty()? 'none' : [for (k in loggedPlayers.keys()) k].join(", ");
+        Data.writeLog('logs/connection/', '${socket.login} removed. Online: $playersLeft');
         handleDisconnectionForGame(socket.login);
     }
 
@@ -254,7 +257,10 @@ class Main
             else 
                 socket.emit('login_result', 'fail');
         else
+        {
+            Data.writeLog('logs/connection/', '${data.login} ALREADY ONLINE');
             socket.emit('login_result', 'online');
+        }
     }
 
     private static function onRegisterAttempt(socket:SocketHandler, data) 
@@ -276,6 +282,7 @@ class Main
         loggedPlayers[login] = socket;
         socket.login = login;
         socket.ustate = MainMenu;
+        Data.writeLog('logs/connection/', '$login:${socket.id} /logged/');
     }
 
     private static function onCallout(socket:SocketHandler, data)

@@ -6,6 +6,15 @@ import sys.io.File;
 
 class Data
 {
+    public static function writeLog(folder:String, entry:String)
+    {
+        var datetime:String = Date.now().toString();
+        var date_time:Array<String> = datetime.split(" ");
+        var logPath:String = folder + date_time[0] + ".txt";
+        var line:String = date_time[1] + " " + entry + "\n";
+        append(logPath, line);
+    }
+
     public static function read(path:String):String
     {
         return File.getContent(convertPath(path));
@@ -41,6 +50,10 @@ class Data
     private static function convertPath(s:String):String
     {
         var progPath = Sys.programPath();
+        #if prod
+        return progPath.substring(0, progPath.lastIndexOf("/") + 1) + s;
+        #else
         return progPath.substring(0, progPath.lastIndexOf("\\") + 1) + s.replace("/", "\\");
+        #end
     }
 }
