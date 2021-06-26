@@ -118,6 +118,8 @@ class Main
                 onSpectate(sender, data);
             case 'stop_spectate':
                 onStopSpectate(sender, data);
+            case 'resign':
+                onResign(sender);
             default:
                 trace("Unexpected event: " + eventName);
         }
@@ -236,6 +238,18 @@ class Main
         }
         else 
             socket.emit('caller_unavailable', {caller: data.caller_login});
+    }
+
+    private static function onResign(socket:SocketHandler) 
+    {
+        var game = games[socket.login];
+        if (game == null)
+            return;
+
+        if (game.whiteLogin == socket.login)
+            endGame(Resignation(Black), game);
+        else 
+            endGame(Resignation(White), game);
     }
 
     private static function onMessage(socket:SocketHandler, data) 
