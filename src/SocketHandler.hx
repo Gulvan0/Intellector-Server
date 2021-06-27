@@ -104,7 +104,7 @@ class SocketHandler extends WebSocketHandler
         {
             case NotLogged: ['login', 'register', 'get_game', 'get_challenge', 'accept_open_challenge'].has(eventName);
             case MainMenu: ['callout', 'accept_challenge', 'decline_challenge', 'cancel_callout', 'open_callout', 'get_game', 'get_challenge', 'accept_open_challenge', 'spectate', 'stop_spectate'].has(eventName);
-            case InGame: ['move', 'request_timeout_check', 'message', 'resign'].has(eventName);
+            case InGame: ['move', 'request_timeout_check', 'message', 'resign', 'draw_offer', 'draw_cancel', 'draw_accept', 'draw_decline'].has(eventName);
         }
     }
 }

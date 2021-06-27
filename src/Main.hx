@@ -120,6 +120,14 @@ class Main
                 onStopSpectate(sender, data);
             case 'resign':
                 onResign(sender);
+            case 'draw_offer':
+                onDrawOffer(sender);
+            case 'draw_cancel':
+                onDrawCancel(sender);
+            case 'draw_accept':
+                onDrawAccept(sender);
+            case 'draw_decline':
+                onDrawDecline(sender);
             default:
                 trace("Unexpected event: " + eventName);
         }
@@ -250,6 +258,56 @@ class Main
             endGame(Resignation(Black), game);
         else 
             endGame(Resignation(White), game);
+    }
+
+    private static function onDrawOffer(socket:SocketHandler) 
+    {
+        var game:Game = games.get(socket.login);
+        if (game == null)
+            return;
+
+        if (game.pendingDrawOfferer == null)
+        {
+            game.pendingDrawOfferer = socket.login;
+            loggedPlayers[game.getOpponent(socket.login)].emit('draw_offered', {});
+        }
+        else if (game.pendingDrawOfferer != socket.login)
+            acceptDraw(game, loggedPlayers[game.pendingDrawOfferer]);
+    }
+
+    private static function onDrawCancel(socket:SocketHandler) 
+    {
+        var game:Game = games.get(socket.login);
+        if (game == null)
+            return;
+
+        game.pendingDrawOfferer = null;
+        loggedPlayers[game.getOpponent(socket.login)].emit('draw_cancelled', {});
+    }
+
+    private static function onDrawAccept(socket:SocketHandler) 
+    {
+        var game:Game = games.get(socket.login);
+        if (game == null)
+            return;
+
+        acceptDraw(game, loggedPlayers[game.pendingDrawOfferer]);
+    }
+
+    private static function onDrawDecline(socket:SocketHandler) 
+    {
+        var game:Game = games.get(socket.login);
+        if (game == null)
+            return;
+
+        game.pendingDrawOfferer = null;
+        loggedPlayers[game.getOpponent(socket.login)].emit('draw_declined', {});
+    }
+
+    private static function acceptDraw(game:Game, offerer:SocketHandler) 
+    {
+        offerer.emit('draw_accepted', {});
+        endGame(DrawAgreement, game);
     }
 
     private static function onMessage(socket:SocketHandler, data) 

@@ -53,10 +53,16 @@ class Game
 
     public var whiteSpectators:Array<SocketHandler> = [];
     public var blackSpectators:Array<SocketHandler> = [];
+    public var pendingDrawOfferer:Null<String>;
 
     public var moveHistory:Array<String> = [];
 
     public var terminator:Null<Timer>;
+
+    public function getOpponent(playerLogin:String):String
+    {
+        return playerLogin == whiteLogin? blackLogin : whiteLogin;
+    }
 
     public function move(fromI, fromJ, toI, toJ, ?morphInto:FigureType)
     {
