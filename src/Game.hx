@@ -54,14 +54,46 @@ class Game
     public var whiteSpectators:Array<SocketHandler> = [];
     public var blackSpectators:Array<SocketHandler> = [];
     public var pendingDrawOfferer:Null<String>;
+    public var pendingTakebackOfferer:Null<String>;
 
-    public var moveHistory:Array<String> = [];
+    public var moveHistory:Array<Ply> = [];
 
     public var terminator:Null<Timer>;
 
     public function getOpponent(playerLogin:String):String
     {
         return playerLogin == whiteLogin? blackLogin : whiteLogin;
+    }
+
+    public function getPlayerToMove() 
+    {
+        return whiteTurn? whiteLogin : blackLogin;
+    }
+
+    public function revertMoves(cnt:Int) 
+    {
+        turn -= cnt;
+
+        silentMovesCount -= cnt;
+        if (silentMovesCount < 0)
+            silentMovesCount = 0;
+
+        if (cnt % 2 == 1)
+            whiteTurn = !whiteTurn;
+
+        var toRevert = moveHistory.splice(moveHistory.length - cnt, cnt);
+        toRevert.reverse();
+
+        for (ply in toRevert)
+        {
+            var latterPosition = serializePosition();
+            positionCount[latterPosition]--;
+            for (tranform in ply) 
+                field[tranform.j][tranform.i] = tranform.former;
+        }
+
+        var logLines = log.split(";");
+        log = logLines.slice(0, logLines.length - cnt).join(";") + "\n";
     }
 
     public function move(fromI, fromJ, toI, toJ, ?morphInto:FigureType)
@@ -110,7 +142,7 @@ class Game
 
         whiteTurn = !whiteTurn;
         turn++;
-        moveHistory.push(figureAbbreviation(from.type) + (capture? "x" : "") + locToStr(toI, toJ) + (morphInto != null? '=[${figureAbbreviation(morphInto)}]' : '') + ((mate || breakthrough)? "#" : ""));
+        moveHistory.push([new HexTransform(fromI, fromJ, from, field[fromJ][fromI]), new HexTransform(toI, toJ, to, field[toJ][toI])]);
 
         var sPos = serializePosition();
         var samePosCount = positionCount.get(sPos);
@@ -175,8 +207,7 @@ class Game
             bonusSecs: secsPerTurn, 
             whiteSeconds: secsLeftWhite, 
             blackSeconds: secsLeftBlack, 
-            position: serializePosition(), 
-            movesPlayed: moveHistory,
+            position: serializePosition(),
             currentLog: log
         };
     }
@@ -234,24 +265,6 @@ class Game
                     s += '$i$j${fig.type.getName().charAt(1)}${fig.color == White? "w" : "b"}';
             }
         return s;
-    }
-
-    private inline function figureAbbreviation(figure:FigureType):String
-    {
-        return switch figure 
-        {
-            case Progressor: "P";
-            case Aggressor: "Ag";
-            case Dominator: "Dm";
-            case Liberator: "Lb";
-            case Defensor: "Df";
-            case Intellector: "In";
-        }
-    }
-
-    private function locToStr(i:Int, j:Int):String
-    {
-        return String.fromCharCode('a'.code + i) + (7 - (i % 2) - j);
     }
 
     public function new(whiteLogin, blackLogin, secStart:Int, secBonus:Int) 

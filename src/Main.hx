@@ -235,7 +235,16 @@ class Main
         if (loggedPlayers.exists(data.caller_login))
         {
             if (callee.startsWith("guest_"))
-                loggedPlayers[callee] = socket;
+                if (loggedPlayers.exists(callee))
+                {
+                    socket.close();
+                    return;
+                }
+                else
+                {
+                    socket.login = callee;
+                    loggedPlayers[callee] = socket;
+                }
             loggedPlayers[data.caller_login].calledPlayers = [];
             loggedPlayers[callee].calledPlayers = [];
             loggedPlayers[data.caller_login].ustate = InGame;
@@ -259,6 +268,8 @@ class Main
         else 
             endGame(Resignation(White), game);
     }
+
+    //----------------------------------------------------------------------------------------------------
 
     private static function onDrawOffer(socket:SocketHandler) 
     {
@@ -309,6 +320,67 @@ class Main
         offerer.emit('draw_accepted', {});
         endGame(DrawAgreement, game);
     }
+
+    //-----------------------------------------------------------------------------------------------------
+
+    private static function onTakebackOffer(socket:SocketHandler) 
+    {
+        var game:Game = games.get(socket.login);
+        if (game == null)
+            return;
+
+        if (game.pendingTakebackOfferer == null)
+        {
+            game.pendingTakebackOfferer = socket.login;
+            loggedPlayers[game.getOpponent(socket.login)].emit('takeback_offered', {});
+        }
+        else if (game.pendingTakebackOfferer != socket.login)
+            acceptTakeback(game, loggedPlayers[game.pendingTakebackOfferer]);
+    }
+
+    private static function onTakebackCancel(socket:SocketHandler) 
+    {
+        var game:Game = games.get(socket.login);
+        if (game == null)
+            return;
+
+        game.pendingTakebackOfferer = null;
+        loggedPlayers[game.getOpponent(socket.login)].emit('takeback_cancelled', {});
+    }
+
+    private static function onTakebackAccept(socket:SocketHandler) 
+    {
+        var game:Game = games.get(socket.login);
+        if (game == null)
+            return;
+
+        acceptTakeback(game, loggedPlayers[game.pendingTakebackOfferer]);
+    }
+
+    private static function onTakebackDecline(socket:SocketHandler) 
+    {
+        var game:Game = games.get(socket.login);
+        if (game == null)
+            return;
+
+        game.pendingTakebackOfferer = null;
+        loggedPlayers[game.getOpponent(socket.login)].emit('takeback_declined', {});
+    }
+
+    private static function acceptTakeback(game:Game, offerer:SocketHandler) 
+    {
+        offerer.emit('takeback_accepted', {});
+
+        var cnt = game.getPlayerToMove() == offerer.login? 2 : 1;
+        game.revertMoves(cnt);
+
+        loggedPlayers[game.whiteLogin].emit('rollback', cnt);
+        loggedPlayers[game.blackLogin].emit('rollback', cnt);
+        for (spec in game.whiteSpectators.concat(game.blackSpectators))
+            spec.emit('rollback', cnt);
+    }
+
+    //-----------------------------------------------------------------------------------------------------
 
     private static function onMessage(socket:SocketHandler, data) 
     {
