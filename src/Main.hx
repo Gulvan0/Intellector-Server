@@ -128,6 +128,14 @@ class Main
                 onDrawAccept(sender);
             case 'draw_decline':
                 onDrawDecline(sender);
+            case 'takeback_offer':
+                onTakebackOffer(sender);
+            case 'takeback_cancel':
+                onTakebackCancel(sender);
+            case 'takeback_accept':
+                onTakebackAccept(sender);
+            case 'takeback_decline':
+                onTakebackDecline(sender);
             default:
                 trace("Unexpected event: " + eventName);
         }
@@ -370,6 +378,8 @@ class Main
     private static function acceptTakeback(game:Game, offerer:SocketHandler) 
     {
         offerer.emit('takeback_accepted', {});
+
+        game.pendingTakebackOfferer = null;
 
         var cnt = game.getPlayerToMove() == offerer.login? 2 : 1;
         game.revertMoves(cnt);

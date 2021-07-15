@@ -93,7 +93,7 @@ class Game
         }
 
         var logLines = log.split(";");
-        log = logLines.slice(0, logLines.length - cnt).join(";") + "\n";
+        log = logLines.slice(0, logLines.length - cnt - 1).join(";") + ";\n";
     }
 
     public function move(fromI, fromJ, toI, toJ, ?morphInto:FigureType)
