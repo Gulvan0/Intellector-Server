@@ -163,6 +163,9 @@ class Game
 
     public function updateTimeLeft()
     {
+        if (turn < 2)
+            return;
+        
         var ts = Date.now().getTime();
         var secondsElapsed = Math.round((ts - lastActualTimestamp) / 1000);
         if (whiteTurn)
