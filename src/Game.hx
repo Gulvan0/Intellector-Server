@@ -65,9 +65,14 @@ class Game
         return playerLogin == whiteLogin? blackLogin : whiteLogin;
     }
 
-    public function getPlayerToMove() 
+    public function getPlayerToMove():String
     {
         return whiteTurn? whiteLogin : blackLogin;
+    }
+
+    public function hasPlayer(login:String):Bool
+    {
+        return whiteLogin == login || blackLogin == login;
     }
 
     public function revertMoves(cnt:Int) 

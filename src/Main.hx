@@ -206,8 +206,14 @@ class Main
         if (gamesByID.exists(id))
         {
             var game = gamesByID[id];
-            if (games.get(socket.login) == game)
+            if (game.hasPlayer(socket.login))
+            {
                 socket.ustate = InGame;
+                
+                var opponent:String = game.getOpponent(socket.login);
+                if (loggedPlayers.exists(opponent))
+                    loggedPlayers.get(opponent).emit("opponent_reconnected", {});
+            }
             socket.emit('gamestate_ongoing', game.getActualData('white'));
         }
         else if (Data.logExists(id))
@@ -563,7 +569,8 @@ class Main
             endGame(Abandon(opponentColor), game);
         else if (!loggedPlayers.exists(opponent))
             game.launchTerminateTimer();
-        //else send disconnect notification
+        else 
+            loggedPlayers.get(opponent).emit("opponent_disconnected", {});
     }
 
     public static function endGame(result:MatchResult, game:Game) 
