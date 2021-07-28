@@ -168,7 +168,7 @@ class Game
 
     public function updateTimeLeft()
     {
-        if (turn < 2)
+        if (turn <= 2)
             return;
         
         var ts = Date.now().getTime();

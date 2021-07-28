@@ -44,6 +44,7 @@ class Main
     private static var gamesByID:Map<Int, Game> = [];
     private static var spectators:Map<String, Int> = [];
     private static var openChallenges:Map<String, Challenge> = [];
+    private static var guestPasswords:Map<String, String> = [];
 
 	public static function main() 
 	{    
@@ -52,8 +53,8 @@ class Main
 
         #if prod
         Log.mask = Log.INFO | Log.DEBUG;
-        var cert = Certificate.loadFile("/root/15646055_www.example.com.cert");
-        var key = Key.loadFile("/root/15646055_www.example.com.key");
+        var cert = Certificate.loadFile("/etc/letsencrypt/live/play-intellector.ru/fullchain.pem");
+        var key = Key.loadFile("/etc/letsencrypt/live/play-intellector.ru/privkey.pem");
         var hostname:String = '0.0.0.0';
         var server = new WebSocketSecureServer<SocketHandler>(hostname, 5000, cert, key, cert, 100);
         #else
@@ -207,19 +208,22 @@ class Main
         {
             var game = gamesByID[id];
             if (game.hasPlayer(socket.login))
-            {
-                socket.ustate = InGame;
-                
-                var opponent:String = game.getOpponent(socket.login);
-                if (loggedPlayers.exists(opponent))
-                    loggedPlayers.get(opponent).emit("opponent_reconnected", {});
-            }
+                onPlayerReconnected(socket, game);
             socket.emit('gamestate_ongoing', game.getActualData('white'));
         }
         else if (Data.logExists(id))
             socket.emit('gamestate_over', {log: Data.getLog(id)});
         else 
             socket.emit('gamestate_notfound', {});
+    }
+
+    private static function onPlayerReconnected(socket:SocketHandler, game:Game) 
+    {
+        socket.ustate = InGame;
+                
+        var opponent:String = game.getOpponent(socket.login);
+        if (loggedPlayers.exists(opponent))
+            loggedPlayers.get(opponent).emit("opponent_reconnected", {});
     }
 
     private static function onOpenChallengeRequest(socket:SocketHandler, data) 
@@ -256,8 +260,11 @@ class Main
                 }
                 else
                 {
+                    var password:String = Utils.generateRandomPassword(10);
                     socket.login = callee;
                     loggedPlayers[callee] = socket;
+                    guestPasswords[callee] = password;
+                    socket.emit("one_time_login_details", {password: password});
                 }
             loggedPlayers[data.caller_login].calledPlayers = [];
             loggedPlayers[callee].calledPlayers = [];
@@ -408,19 +415,46 @@ class Main
 
     private static function onLoginAttempt(socket:SocketHandler, data) 
     {
-        if (!loggedPlayers.exists(data.login))
-            if (passwords.get(data.login) == Md5.encode(data.password))
-            {
-                onLogged(socket, data.login);
-                socket.emit('login_result', 'success');
-            }
-            else 
-                socket.emit('login_result', 'fail');
-        else
+        var guestLogin:Bool = StringTools.startsWith(data.login, "guest_");
+        
+        var passwordCorrect:Bool = false;
+        if (guestLogin)
+            passwordCorrect = guestPasswords.get(data.login) == data.password;
+        else 
+            passwordCorrect = passwords.get(data.login) == Md5.encode(data.password);
+
+        if (!passwordCorrect)
         {
-            Data.writeLog('logs/connection/', '${data.login} ALREADY ONLINE');
-            socket.emit('login_result', 'online');
+            socket.emit('login_result', 'fail');
+            return;
         }
+
+        var otherSocket = loggedPlayers.get(data.login);
+        if (otherSocket != null)
+        {
+            if (!guestLogin)
+                Data.writeLog('logs/connection/', '${data.login} ALREADY ONLINE');
+            otherSocket.emit("dont_reconnect", {});
+            otherSocket.close();
+        }
+
+        if (guestLogin && !games.exists(data.login))
+        {
+            loggedPlayers.remove(data.login);
+            guestPasswords.remove(data.login);
+            socket.emit('login_result', 'fail');
+            return;
+        }
+
+        onLogged(socket, data.login);
+        if (guestLogin || games.exists(data.login))
+        {
+            var game:Game = games[data.login];
+            onPlayerReconnected(socket, game);
+            socket.emit('ongoing_game', game.getActualData('white'));
+        }
+        else 
+            socket.emit('login_result', 'success');
     }
 
     private static function onRegisterAttempt(socket:SocketHandler, data) 
@@ -533,15 +567,25 @@ class Main
 
         var timedata = {whiteSeconds: game.secsLeftWhite, blackSeconds: game.secsLeftBlack};
 
-        loggedPlayers[game.whiteLogin].emit('time_correction', timedata);
-        loggedPlayers[game.blackLogin].emit('time_correction', timedata);
+        var whiteSocket = loggedPlayers.get(game.whiteLogin);
+        var blackSocket = loggedPlayers.get(game.blackLogin);
+
         for (spec in game.whiteSpectators.concat(game.blackSpectators))
             spec.emit('time_correction', timedata);
 
-        if (data.issuer_login == game.whiteLogin)
-            loggedPlayers[game.blackLogin].emit('move', data);
-        else 
-            loggedPlayers[game.whiteLogin].emit('move', data);
+        if (whiteSocket != null)
+        {
+            whiteSocket.emit('time_correction', timedata);
+            if (data.issuer_login == game.blackLogin)
+                whiteSocket.emit('move', data);
+        }
+
+        if (blackSocket != null)
+        {
+            blackSocket.emit('time_correction', timedata);
+            if (data.issuer_login == game.whiteLogin)
+                blackSocket.emit('move', data);
+        }
 
         for (spec in game.whiteSpectators)
             spec.emit('move', data);
@@ -563,11 +607,8 @@ class Main
             return;
 
         var game = games[disconnectedLogin];
-        var opponentColor = game.whiteLogin == disconnectedLogin? Black : White;
         var opponent = game.whiteLogin == disconnectedLogin? game.blackLogin : game.whiteLogin;
-        if (disconnectedLogin.startsWith("guest"))
-            endGame(Abandon(opponentColor), game);
-        else if (!loggedPlayers.exists(opponent))
+        if (!loggedPlayers.exists(opponent))
             game.launchTerminateTimer();
         else 
             loggedPlayers.get(opponent).emit("opponent_disconnected", {});
@@ -593,8 +634,8 @@ class Main
                 loggedPlayers[login].emit('game_ended', resultsData);
                 loggedPlayers[login].ustate = MainMenu;
             }
-            if (games.exists(login))
-                games.remove(login);
+            games.remove(login);
+            guestPasswords.remove(login);
         }
         gamesByID.remove(game.id);
 
