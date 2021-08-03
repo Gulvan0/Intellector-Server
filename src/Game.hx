@@ -1,5 +1,7 @@
 package;
 
+import subsystems.GameManager;
+import subsystems.Proposals.ProposalType;
 import haxe.Timer;
 
 enum FigureType
@@ -53,8 +55,7 @@ class Game
 
     public var whiteSpectators:Array<SocketHandler> = [];
     public var blackSpectators:Array<SocketHandler> = [];
-    public var pendingDrawOfferer:Null<String>;
-    public var pendingTakebackOfferer:Null<String>;
+    public var pendingOfferer:Map<ProposalType, String> = [];
 
     public var moveHistory:Array<Ply> = [];
 
@@ -157,13 +158,13 @@ class Game
             positionCount[sPos] = ++samePosCount;
 
         if (samePosCount == 3)
-            Main.endGame(ThreefoldRepetition, this);
+            GameManager.endGame(ThreefoldRepetition, this);
         else if (mate)
-            Main.endGame(Mate(from.color), this);
+            GameManager.endGame(Mate(from.color), this);
         else if (breakthrough)
-            Main.endGame(Breakthrough(from.color), this);
+            GameManager.endGame(Breakthrough(from.color), this);
         else if (silentMovesCount == 100)
-            Main.endGame(HundredMoveRule, this);
+            GameManager.endGame(HundredMoveRule, this);
     }
 
     public function updateTimeLeft()
@@ -180,9 +181,9 @@ class Game
         lastActualTimestamp = ts;
 
         if (secsLeftWhite <= 0)
-            Main.endGame(Timeout(Black), this);
+            GameManager.endGame(Timeout(Black), this);
         else if (secsLeftBlack <= 0)
-            Main.endGame(Timeout(White), this);
+            GameManager.endGame(Timeout(White), this);
     }
 
     private function incrementTime()
@@ -277,7 +278,7 @@ class Game
 
     public function new(whiteLogin, blackLogin, secStart:Int, secBonus:Int) 
     {
-        id = Main.currID;
+        id = GameManager.currID;
         this.whiteLogin = whiteLogin;
         this.blackLogin = blackLogin;
         whiteTurn = true;

@@ -1,7 +1,7 @@
 package;
 
+import subsystems.Connection;
 import haxe.Json;
-import Main.Event;
 import hx.ws.Buffer;
 import hx.ws.Types.MessageType;
 import hx.ws.SocketImpl;
@@ -14,6 +14,12 @@ enum UserState
     NotLogged;
     MainMenu;
     InGame;
+}
+
+typedef Event =
+{
+    var name:String;
+    var data:Dynamic;
 }
 
 typedef TimeControl = 
@@ -49,12 +55,12 @@ class SocketHandler extends WebSocketHandler
         onclose = () -> {
             trace(id + ". CLOSE");
             Data.writeLog('logs/connection/', '$login:$id /closed/');
-            Main.handleDisconnect(this);
+            Connection.handleDisconnect(this);
         }
         onerror = (error) -> {
             trace(id + ". ERROR: " + error);
             Data.writeLog('logs/connection/', '$login:$id /error/$error');
-            Main.handleDisconnect(this);
+            Connection.handleDisconnect(this);
         }
 
         onmessage = (message: MessageType) -> {
