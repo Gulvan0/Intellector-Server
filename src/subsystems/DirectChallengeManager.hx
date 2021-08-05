@@ -1,4 +1,6 @@
 package subsystems;
+import Game.Color;
+import SocketHandler.CalloutParams;
 import SocketHandler.TimeControl;
 using Lambda;
 
@@ -26,10 +28,11 @@ class DirectChallengeManager
             caller.emit('repeated_callout', {callee: data.callee_login});
         else
         {
+            var callerColor = data.color == null? null : Color.createByName(data.color);
             caller.emit('callout_success', {callee: data.callee_login});
             caller.calledPlayers.push(data.callee_login);
-            caller.calloutTimeControls[data.callee_login] = {startSecs: data.secsStart, bonusSecs:data.secsBonus};
-            callee.emit('incoming_challenge', {caller: data.caller_login});
+            caller.calloutParams[data.callee_login] = {startSecs: data.secsStart, bonusSecs:data.secsBonus, color: callerColor};
+            callee.emit('incoming_challenge', {caller: data.caller_login, startSecs: data.secsStart, bonusSecs:data.secsBonus, color: callerColor});
         }
     }
 
@@ -46,8 +49,8 @@ class DirectChallengeManager
             callee.calledPlayers = [];
             caller.ustate = InGame;
             callee.ustate = InGame;
-            var tc:TimeControl = caller.calloutTimeControls[callee.login];
-            GameManager.startGame(callee.login, caller.login, tc.startSecs, tc.bonusSecs);
+            var params:CalloutParams = caller.calloutParams[callee.login];
+            GameManager.startGame(callee.login, caller.login, params.startSecs, params.bonusSecs, params.color);
         }
     }
 
@@ -60,6 +63,7 @@ class DirectChallengeManager
         if (caller.calledPlayers.has(callee.login))
         {
             caller.calledPlayers.remove(callee.login);
+            caller.calloutParams.remove(callee.login);
             caller.emit('challenge_declined', {callee: callee.login});
         }
     }
@@ -69,7 +73,7 @@ class DirectChallengeManager
         if (caller.calledPlayers.has(data.callee_login))
         {
             caller.calledPlayers.remove(data.callee_login);
-            caller.calloutTimeControls.remove(data.callee_login);
+            caller.calloutParams.remove(data.callee_login);
         }
         else
             caller.emit('callout_not_found', {callee: data.callee_login});

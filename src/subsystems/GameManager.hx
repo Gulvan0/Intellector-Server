@@ -1,5 +1,6 @@
 package subsystems;
 
+import Game.Color;
 import Game.MatchResult;
 
 typedef MoveData =
@@ -59,11 +60,27 @@ class GameManager
             opponent.emit('message', data);
     }
 
-    public static function startGame(login1:String, login2:String, startSecs:Int, bonusSecs:Int) 
+    public static function startGame(calleeLogin:String, callerLogin:String, startSecs:Int, bonusSecs:Int, callerColor:Null<Color>) 
     {
-        var rand = Math.random();
-        var whiteLogin = rand >= 0.5? login1 : login2;
-        var blackLogin = rand >= 0.5? login2 : login1;
+        var whiteLogin:String;
+        var blackLogin:String;
+
+        if (callerColor == null)
+        {
+            var rand = Math.random();
+            whiteLogin = rand >= 0.5? callerLogin : calleeLogin;
+            blackLogin = rand >= 0.5? calleeLogin : callerLogin;
+        }
+        else if (callerColor == White)
+        {
+            whiteLogin = callerLogin;
+            blackLogin = calleeLogin;
+        }
+        else 
+        {
+            whiteLogin = calleeLogin;
+            blackLogin = callerLogin;
+        }
 
         var game:Game = new Game(whiteLogin, blackLogin, startSecs, bonusSecs);
         games[whiteLogin] = game;

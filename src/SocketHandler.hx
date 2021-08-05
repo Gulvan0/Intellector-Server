@@ -1,5 +1,6 @@
 package;
 
+import Game.Color;
 import subsystems.Connection;
 import haxe.Json;
 import hx.ws.Buffer;
@@ -28,13 +29,20 @@ typedef TimeControl =
     var bonusSecs:Int;
 }
 
+typedef CalloutParams = 
+{
+    var startSecs:Int;
+    var bonusSecs:Int;
+    var color:Null<Color>;
+}
+
 class SocketHandler extends WebSocketHandler
 {
 
     public var ustate:UserState;
     public var login:String;
     public var calledPlayers:Array<String>;
-    public var calloutTimeControls:Map<String, TimeControl>;
+    public var calloutParams:Map<String, CalloutParams>;
 
     public function emit(eventName:String, data:Dynamic) 
     {
@@ -46,7 +54,7 @@ class SocketHandler extends WebSocketHandler
     {
         super(s);
         calledPlayers = [];
-        calloutTimeControls = new Map();
+        calloutParams = new Map();
         onopen = () -> {
             ustate = NotLogged;
             trace(id + ". OPEN");
@@ -98,7 +106,7 @@ class SocketHandler extends WebSocketHandler
             data.issuer_login = cast(data.issuer_login, String).toLowerCase();
         else if (eventName == 'get_challenge')
             data.challenger = cast(data.challenger, String).toLowerCase();
-        else if (eventName == 'open_callout')
+        else if (['open_callout', 'cancel_open_callout'].has(eventName))
             data.caller_login = cast(data.caller_login, String).toLowerCase();
         else if (eventName == 'spectate')
             data.watched_login = cast(data.watched_login, String).toLowerCase();
@@ -109,7 +117,7 @@ class SocketHandler extends WebSocketHandler
         return switch ustate 
         {
             case NotLogged: ['login', 'register', 'get_game', 'get_challenge', 'accept_open_challenge'].has(eventName);
-            case MainMenu: ['callout', 'accept_challenge', 'decline_challenge', 'cancel_callout', 'open_callout', 'get_game', 'get_challenge', 'accept_open_challenge', 'spectate', 'stop_spectate'].has(eventName);
+            case MainMenu: ['callout', 'accept_challenge', 'decline_challenge', 'cancel_callout', 'open_callout', 'cancel_open_callout', 'get_game', 'get_challenge', 'accept_open_challenge', 'spectate', 'stop_spectate'].has(eventName);
             case InGame: ['move', 'request_timeout_check', 'message', 'resign', 'draw_offer', 'draw_cancel', 'draw_accept', 'draw_decline', 'takeback_offer', 'takeback_cancel', 'takeback_accept', 'takeback_decline'].has(eventName);
         }
     }

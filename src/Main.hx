@@ -1,3 +1,4 @@
+import Game.Color;
 import subsystems.*;
 import sys.io.File;
 import sys.ssl.Key;
@@ -12,7 +13,9 @@ using StringTools;
 typedef Challenge = 
 {
     var issuer:String;
-    var timeControl:TimeControl;
+    var startSecs:Int;
+    var bonusSecs:Int;
+    var color:Null<Color>;
 }
 
 class Main 
@@ -76,6 +79,8 @@ class Main
                 OpenChallengeManager.createChallenge(sender, data);
             case 'accept_open_challenge':
                 OpenChallengeManager.acceptChallenge(sender, data);
+            case 'cancel_open_callout':
+                OpenChallengeManager.cancelChallenge(sender, data);
             case 'spectate':
                 Spectation.spectate(sender, data);
             case 'stop_spectate':

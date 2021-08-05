@@ -1,5 +1,6 @@
 package subsystems;
 
+import Game.Color;
 import Main.Challenge;
 using StringTools;
 
@@ -25,7 +26,10 @@ class OpenChallengeManager
     {
         var challenge = openChallenges.get(data.challenger);
         if (challenge != null)
-            socket.emit('openchallenge_info', {challenger:challenge.issuer, startSecs:challenge.timeControl.startSecs, bonusSecs:challenge.timeControl.bonusSecs});
+        {
+            var colorStr:String = challenge.color == null? null : challenge.color.getName();
+            socket.emit('openchallenge_info', {challenger:challenge.issuer, startSecs:challenge.startSecs, bonusSecs:challenge.bonusSecs, color: colorStr});
+        }
         else if (games.exists(data.challenger))
         {
             var game = games.get(data.challenger);
@@ -39,13 +43,14 @@ class OpenChallengeManager
 
     public static function createChallenge(socket:SocketHandler, data) 
     {
-        openChallenges[data.caller_login] = {issuer: data.caller_login, timeControl: {startSecs:data.startSecs, bonusSecs:data.bonusSecs}};
+        var callerColor:Null<Color> = data.color == null? null : Color.createByName(data.color);
+        openChallenges[data.caller_login] = {issuer: data.caller_login, startSecs:data.startSecs, bonusSecs:data.bonusSecs, color: callerColor};
     }
 
     public static function acceptChallenge(socket:SocketHandler, data) 
     {
         var callee:String = data.callee_login;
-        if (loggedPlayers.exists(data.caller_login))
+        if (openChallenges.exists(data.caller_login) && loggedPlayers.exists(data.caller_login))
         {
             if (callee.startsWith("guest_"))
                 if (loggedPlayers.exists(callee))
@@ -65,11 +70,16 @@ class OpenChallengeManager
             loggedPlayers[callee].calledPlayers = [];
             loggedPlayers[data.caller_login].ustate = InGame;
             loggedPlayers[callee].ustate = InGame;
-            var tc = openChallenges[data.caller_login].timeControl;
+            var params = openChallenges[data.caller_login];
             openChallenges.remove(data.caller_login);
-            GameManager.startGame(callee, data.caller_login, tc.startSecs, tc.bonusSecs);
+            GameManager.startGame(callee, data.caller_login, params.startSecs, params.bonusSecs, params.color);
         }
         else 
             socket.emit('caller_unavailable', {caller: data.caller_login});
     }    
+
+    public static function cancelChallenge(caller:SocketHandler, data)
+    {
+        openChallenges.remove(data.caller_login);
+    }
 }
