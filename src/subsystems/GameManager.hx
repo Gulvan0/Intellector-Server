@@ -43,10 +43,11 @@ class GameManager
         if (game == null)
             return;
 
-        if (game.whiteLogin == socket.login)
-            endGame(Resignation(Black), game);
+        var winnerByResignationColor = game.whiteLogin == socket.login? Black : White;
+        if (game.turn < 3)
+            endGame(Abort, game);
         else 
-            endGame(Resignation(White), game);
+            endGame(Resignation(winnerByResignationColor), game);
     }
 
     public static function onMessage(socket:SocketHandler, data) 
@@ -54,6 +55,9 @@ class GameManager
         var game = games[data.issuer_login];
         if (game == null)
             return;
+
+        var issuerChar = game.whiteLogin == data.issuer_login? "w" : "b";
+        game.log += '#C|$issuerChar/${data.message};\n';
 
         var opponent = loggedPlayers.get(game.getOpponent(data.issuer_login));
         if (opponent != null)
@@ -142,13 +146,25 @@ class GameManager
     {
         var winnerStr = switch result 
         {
-            case Mate(winner): winner.getName().toLowerCase();
-            case Breakthrough(winner): winner.getName().toLowerCase();
-            case Resignation(winner): winner.getName().toLowerCase();
-            case Timeout(winner): winner.getName().toLowerCase();
-            case Abandon(winner): winner.getName().toLowerCase();
-            default: "";
-        }
+            case Mate(winner): winner == White? "w" : "b";
+            case Breakthrough(winner): winner == White? "w" : "b";
+            case Resignation(winner): winner == White? "w" : "b";
+            case Timeout(winner): winner == White? "w" : "b";
+            case Abandon(winner): winner == White? "w" : "b";
+            default: "d";
+        };
+        var reasonStr = switch result 
+        {
+            case Mate(winner): "mat";
+            case Breakthrough(winner): "bre";
+            case Resignation(winner): "res";
+            case Timeout(winner): "tim";
+            case Abandon(winner): "aba";
+            case ThreefoldRepetition: "rep";
+            case HundredMoveRule: "100";
+            case DrawAgreement: "agr";
+            case Abort: "abo";
+        };
         var resultsData = {winner_color: winnerStr, reason: result.getName().toLowerCase()};
 
         for (login in [game.whiteLogin, game.blackLogin])
@@ -163,7 +179,7 @@ class GameManager
         }
         gamesByID.remove(game.id);
 
-        game.log += winnerStr != ""? winnerStr : "draw";
+        game.log += "#R|" + winnerStr + "/" + reasonStr;
         Data.overwrite('games/${game.id}.txt', game.log);
     }
 

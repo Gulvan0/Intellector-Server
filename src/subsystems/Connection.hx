@@ -32,16 +32,23 @@ class Connection
 
         var game = games[disconnectedLogin];
         var opponent = game.whiteLogin == disconnectedLogin? game.blackLogin : game.whiteLogin;
+        var disconnectedLetter = game.whiteLogin == disconnectedLogin? "w" : "b";
+
+        game.log += '#E|dcn/$disconnectedLetter\n';
+
         if (!loggedPlayers.exists(opponent))
             game.launchTerminateTimer();
         else 
             loggedPlayers.get(opponent).emit("opponent_disconnected", {});
     }
 
-    public static function onPlayerReconnectedToGame(socket:SocketHandler, game:Game) 
+    public static function onPlayerReconnectedToGame(socket:SocketHandler, game:Game, ?eventName:String = 'ongoing_game') 
     {
         socket.ustate = InGame;
-        socket.emit('ongoing_game', game.getActualData('white'));
+        socket.emit(eventName, game.getActualData('white'));
+
+        var reconnectedLetter = game.whiteLogin == socket.login? "w" : "b";
+        game.log += '#E|rcn/$reconnectedLetter\n';
                 
         var opponent:String = game.getOpponent(socket.login);
         if (loggedPlayers.exists(opponent))

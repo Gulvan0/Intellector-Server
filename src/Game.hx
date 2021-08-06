@@ -30,6 +30,7 @@ enum MatchResult
     ThreefoldRepetition;
     HundredMoveRule;
     DrawAgreement;
+    Abort;
 }
 
 typedef Figure = {type:FigureType, color:Color};
@@ -282,7 +283,7 @@ class Game
         this.whiteLogin = whiteLogin;
         this.blackLogin = blackLogin;
         whiteTurn = true;
-        log = '$whiteLogin : $blackLogin;\n';
+        log = '#P|$whiteLogin:$blackLogin;\n';
         turn = 1;
         startSecs = secStart;
         secsLeftWhite = secStart;

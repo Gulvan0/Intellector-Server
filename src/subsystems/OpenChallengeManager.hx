@@ -34,8 +34,9 @@ class OpenChallengeManager
         {
             var game = games.get(data.challenger);
             if (games.get(socket.login) == game)
-                socket.ustate = InGame;
-            socket.emit('openchallenge_ongoing', game.getActualData('white'));
+                Connection.onPlayerReconnectedToGame(socket, game, 'openchallenge_own_ongoing');
+            else 
+                Spectation.spectate(socket, {watched_login: data.challenger});
         }
         else
             socket.emit('openchallenge_notfound', {});

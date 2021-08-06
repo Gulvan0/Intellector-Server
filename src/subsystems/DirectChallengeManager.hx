@@ -32,7 +32,7 @@ class DirectChallengeManager
             caller.emit('callout_success', {callee: data.callee_login});
             caller.calledPlayers.push(data.callee_login);
             caller.calloutParams[data.callee_login] = {startSecs: data.secsStart, bonusSecs:data.secsBonus, color: callerColor};
-            callee.emit('incoming_challenge', {caller: data.caller_login, startSecs: data.secsStart, bonusSecs:data.secsBonus, color: callerColor});
+            callee.emit('incoming_challenge', {caller: data.caller_login, startSecs: data.secsStart, bonusSecs:data.secsBonus, color: data.color});
         }
     }
 

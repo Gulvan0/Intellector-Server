@@ -53,6 +53,8 @@ class Proposals
 
         if (pendingOfferer == null)
         {
+            var letter = type == Draw? "d" : "t";
+            game.log += "#E|" + letter + "of\n";
             game.pendingOfferer[type] = socket.login;
             forwardEvent(game.getOpponent(socket.login), type, Offer);
         }
@@ -65,6 +67,9 @@ class Proposals
         var game:Game = games.get(socket.login);
         if (game == null)
             return;
+
+        var letter = type == Draw? "d" : "t";
+        game.log += "#E|" + letter + "ca\n";
 
         game.pendingOfferer[type] = null;
         forwardEvent(game.getOpponent(socket.login), type, Cancel);
@@ -85,6 +90,9 @@ class Proposals
         if (game == null || !game.pendingOfferer.exists(type))
             return;
 
+        var letter = type == Draw? "d" : "t";
+        game.log += "#E|" + letter + "de\n";
+
         game.pendingOfferer[type] = null;
         forwardEvent(game.getOpponent(socket.login), type, Decline);
     }
@@ -96,6 +104,9 @@ class Proposals
         var offererLogin = game.pendingOfferer.get(type);
         if (offererLogin == null)
             return;
+
+        var letter = type == Draw? "d" : "t";
+        game.log += "#E|" + letter + "ac\n";
 
         forwardEvent(offererLogin, type, Accept);
 

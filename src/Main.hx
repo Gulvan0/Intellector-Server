@@ -115,9 +115,9 @@ class Main
         {
             var game = gamesByID[id];
             if (game.hasPlayer(socket.login))
-                Connection.onPlayerReconnectedToGame(socket, game);
-            else 
-                socket.emit('ongoing_game', game.getActualData('white'));
+                Connection.onPlayerReconnectedToGame(socket, game, 'gamestate_own_ongoing');
+            else
+                Spectation.spectate(socket, {watched_login: game.whiteLogin});
         }
         else if (Data.logExists(id))
             socket.emit('gamestate_over', {log: Data.getLog(id)});
