@@ -53,15 +53,29 @@ class GameManager
     public static function onMessage(socket:SocketHandler, data) 
     {
         var game = games[data.issuer_login];
-        if (game == null)
-            return;
+        if (game != null)
+        {
+            var issuerChar = game.whiteLogin == data.issuer_login? "w" : "b";
+            game.log += '#C|$issuerChar/${data.message};\n';
+    
+            var opponent = loggedPlayers.get(game.getOpponent(data.issuer_login));
+            if (opponent != null)
+                opponent.emit('message', data);
 
-        var issuerChar = game.whiteLogin == data.issuer_login? "w" : "b";
-        game.log += '#C|$issuerChar/${data.message};\n';
+            for (spec in game.whiteSpectators.concat(game.blackSpectators))
+                if (spec != null)
+                    spec.emit('message', data);
+        }
+        else
+        {
+            game = Spectation.getSpectatorsGame(data.issuer_login);
+            if (game == null)
+                return;
 
-        var opponent = loggedPlayers.get(game.getOpponent(data.issuer_login));
-        if (opponent != null)
-            opponent.emit('message', data);
+            for (spec in game.whiteSpectators.concat(game.blackSpectators))
+                if (spec != null && spec.login != data.issuer_login)
+                    spec.emit('spectator_message', data);
+        }
     }
 
     public static function startGame(calleeLogin:String, callerLogin:String, startSecs:Int, bonusSecs:Int, callerColor:Null<Color>) 
@@ -104,15 +118,17 @@ class GameManager
         if (game == null)
             return;
 
-        game.move(data.fromI, data.fromJ, data.toI, data.toJ, data.morphInto == null? null : FigureType.createByName(data.morphInto));
+        var result:Null<MatchResult> = game.move(data.fromI, data.fromJ, data.toI, data.toJ, data.morphInto == null? null : FigureType.createByName(data.morphInto));
 
         var timedata = {whiteSeconds: game.secsLeftWhite, blackSeconds: game.secsLeftBlack};
 
         var whiteSocket = loggedPlayers.get(game.whiteLogin);
         var blackSocket = loggedPlayers.get(game.blackLogin);
+        var spectators = game.whiteSpectators.concat(game.blackSpectators);
 
-        for (spec in game.whiteSpectators.concat(game.blackSpectators))
-            spec.emit('time_correction', timedata);
+        for (spec in spectators)
+            if (spec != null)
+                spec.emit('time_correction', timedata);
 
         if (whiteSocket != null)
         {
@@ -128,10 +144,12 @@ class GameManager
                 blackSocket.emit('move', data);
         }
 
-        for (spec in game.whiteSpectators)
-            spec.emit('move', data);
-        for (spec in game.blackSpectators)
-            spec.emit('move', data);
+        for (spec in spectators)
+            if (spec != null)
+                spec.emit('move', data);
+
+        if (result != null)
+            endGame(result, game);
     }
 
     public static function onTimeoutCheck(socket:SocketHandler, data) 
@@ -166,6 +184,10 @@ class GameManager
             case Abort: "abo";
         };
         var resultsData = {winner_color: winnerStr, reason: result.getName().toLowerCase()};
+
+        for (spec in game.whiteSpectators.concat(game.blackSpectators))
+            if (spec != null)
+                spec.emit('game_ended', resultsData);
 
         for (login in [game.whiteLogin, game.blackLogin])
         {

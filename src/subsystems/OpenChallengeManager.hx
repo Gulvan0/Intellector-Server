@@ -33,9 +33,11 @@ class OpenChallengeManager
         else if (games.exists(data.challenger))
         {
             var game = games.get(data.challenger);
-            if (games.get(socket.login) == game)
+            if (socket.login == null)
+                socket.emit('openchallenge_notfound', {});
+            else if (games.get(socket.login) == game)
                 Connection.onPlayerReconnectedToGame(socket, game, 'openchallenge_own_ongoing');
-            else 
+            else
                 Spectation.spectate(socket, {watched_login: data.challenger});
         }
         else

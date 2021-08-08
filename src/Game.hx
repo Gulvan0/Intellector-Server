@@ -3,6 +3,7 @@ package;
 import subsystems.GameManager;
 import subsystems.Proposals.ProposalType;
 import haxe.Timer;
+using StringTools;
 
 enum FigureType
 {
@@ -100,10 +101,22 @@ class Game
         }
 
         var logLines = log.split(";");
-        log = logLines.slice(0, logLines.length - cnt - 1).join(";") + ";\n";
+        logLines.pop();
+        var movesErased = 0;
+        var index = logLines.length - 1;
+        while (movesErased < cnt && index >= 0)
+        {
+            if (logLines[index].trim().charAt(0) != "#")
+            {
+                logLines.splice(index, 1);
+                movesErased++;
+            }
+            index--;
+        }
+        log = logLines.join(";") + ";\n";
     }
 
-    public function move(fromI, fromJ, toI, toJ, ?morphInto:FigureType)
+    public function move(fromI, fromJ, toI, toJ, ?morphInto:FigureType):Null<MatchResult>
     {
         if (terminator != null)
         {
@@ -159,13 +172,15 @@ class Game
             positionCount[sPos] = ++samePosCount;
 
         if (samePosCount == 3)
-            GameManager.endGame(ThreefoldRepetition, this);
+            return ThreefoldRepetition;
         else if (mate)
-            GameManager.endGame(Mate(from.color), this);
+            return Mate(from.color);
         else if (breakthrough)
-            GameManager.endGame(Breakthrough(from.color), this);
+            return Breakthrough(from.color);
         else if (silentMovesCount == 100)
-            GameManager.endGame(HundredMoveRule, this);
+            return HundredMoveRule;
+        else 
+            return null;
     }
 
     public function updateTimeLeft()

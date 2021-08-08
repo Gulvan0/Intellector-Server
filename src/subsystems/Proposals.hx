@@ -54,9 +54,14 @@ class Proposals
         if (pendingOfferer == null)
         {
             var letter = type == Draw? "d" : "t";
-            game.log += "#E|" + letter + "of\n";
+            game.log += "#E|" + letter + "of;\n";
             game.pendingOfferer[type] = socket.login;
+
             forwardEvent(game.getOpponent(socket.login), type, Offer);
+
+            for (spec in game.whiteSpectators.concat(game.blackSpectators))
+                if (spec != null)
+                    spec.emit(eventName(type, Offer), {});
         }
         else if (pendingOfferer != socket.login)
             acceptProposal(game, type);
@@ -69,10 +74,14 @@ class Proposals
             return;
 
         var letter = type == Draw? "d" : "t";
-        game.log += "#E|" + letter + "ca\n";
+        game.log += "#E|" + letter + "ca;\n";
 
         game.pendingOfferer[type] = null;
         forwardEvent(game.getOpponent(socket.login), type, Cancel);
+
+        for (spec in game.whiteSpectators.concat(game.blackSpectators))
+            if (spec != null)
+                spec.emit(eventName(type, Cancel), {});
     }
 
     public static function accept(socket:SocketHandler, type:ProposalType) 
@@ -91,10 +100,14 @@ class Proposals
             return;
 
         var letter = type == Draw? "d" : "t";
-        game.log += "#E|" + letter + "de\n";
+        game.log += "#E|" + letter + "de;\n";
 
         game.pendingOfferer[type] = null;
         forwardEvent(game.getOpponent(socket.login), type, Decline);
+
+        for (spec in game.whiteSpectators.concat(game.blackSpectators))
+            if (spec != null)
+                spec.emit(eventName(type, Decline), {});
     }
 
     //----------------------------------------------------------------------------------------------------------------------
@@ -106,9 +119,13 @@ class Proposals
             return;
 
         var letter = type == Draw? "d" : "t";
-        game.log += "#E|" + letter + "ac\n";
+        game.log += "#E|" + letter + "ac;\n";
 
         forwardEvent(offererLogin, type, Accept);
+
+        for (spec in game.whiteSpectators.concat(game.blackSpectators))
+            if (spec != null)
+                spec.emit(eventName(type, Accept), {});
 
         switch type 
         {

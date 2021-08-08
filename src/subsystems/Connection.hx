@@ -1,5 +1,6 @@
 package subsystems;
 
+import Game.Color;
 import Main.Challenge;
 using Lambda;
 
@@ -33,26 +34,36 @@ class Connection
         var game = games[disconnectedLogin];
         var opponent = game.whiteLogin == disconnectedLogin? game.blackLogin : game.whiteLogin;
         var disconnectedLetter = game.whiteLogin == disconnectedLogin? "w" : "b";
+        var disconnectedColor = game.whiteLogin == disconnectedLogin? White : Black;
 
-        game.log += '#E|dcn/$disconnectedLetter\n';
+        game.log += '#E|dcn/$disconnectedLetter;\n';
 
         if (!loggedPlayers.exists(opponent))
             game.launchTerminateTimer();
         else 
             loggedPlayers.get(opponent).emit("opponent_disconnected", {});
+
+        for (spec in game.whiteSpectators.concat(game.blackSpectators))
+            if (spec != null)
+                spec.emit("opponent_disconnected", {color: disconnectedColor.getName()});
     }
 
     public static function onPlayerReconnectedToGame(socket:SocketHandler, game:Game, ?eventName:String = 'ongoing_game') 
     {
+        var reconnectedLetter = game.whiteLogin == socket.login? "w" : "b";
+        var reconnectedColor = game.whiteLogin == socket.login? White : Black;
+        game.log += '#E|rcn/$reconnectedLetter;\n';
+
         socket.ustate = InGame;
         socket.emit(eventName, game.getActualData('white'));
-
-        var reconnectedLetter = game.whiteLogin == socket.login? "w" : "b";
-        game.log += '#E|rcn/$reconnectedLetter\n';
                 
         var opponent:String = game.getOpponent(socket.login);
         if (loggedPlayers.exists(opponent))
             loggedPlayers.get(opponent).emit("opponent_reconnected", {});
+
+        for (spec in game.whiteSpectators.concat(game.blackSpectators))
+            if (spec != null)
+                spec.emit("opponent_reconnected", {color: reconnectedColor.getName()});
 
         for (type => offerer in game.pendingOfferer)
             if (offerer == opponent)

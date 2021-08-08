@@ -15,6 +15,14 @@ class Spectation
         gamesByID = gamesByIDMap;
     }
 
+    public static function getSpectatorsGame(specLogin:String):Null<Game> 
+    {
+        if (spectators.exists(specLogin))
+            return gamesByID.get(spectators[specLogin]);
+        else 
+            return null;
+    }
+
     public static function spectate(socket:SocketHandler, data) 
     {
         if (loggedPlayers.exists(data.watched_login))
@@ -38,6 +46,10 @@ class Spectation
                     if (playerSocket != null)
                         playerSocket.emit('new_spectator', {login: socket.login});
                 }
+                
+                for (spec in game.whiteSpectators.concat(game.blackSpectators))
+                    if (spec != null)
+                        spec.emit('new_spectator', {login: socket.login});
             }
             else 
                 socket.emit('watched_notingame', {watched_login: data.watched_login});
@@ -61,6 +73,9 @@ class Spectation
                     loggedPlayers[game.whiteLogin].emit('spectator_left', {login: socket.login});
                 if (loggedPlayers.exists(game.blackLogin))
                     loggedPlayers[game.blackLogin].emit('spectator_left', {login: socket.login});
+                for (spec in game.whiteSpectators.concat(game.blackSpectators))
+                    if (spec != null)
+                        spec.emit('spectator_left', {login: socket.login});
             }
 
             spectators.remove(socket.login);
