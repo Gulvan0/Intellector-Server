@@ -38,6 +38,9 @@ class DirectChallengeManager
 
     public static function acceptChallenge(callee:SocketHandler, data)
     {
+        if (callee == null)
+            return;
+        
         var caller = loggedPlayers.get(data.caller_login);
         if (caller == null)
             callee.emit('caller_unavailable', {caller: caller.login});

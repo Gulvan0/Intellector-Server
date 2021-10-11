@@ -104,9 +104,7 @@ class Main
             case 'takeback_decline':
                 Proposals.decline(sender, Takeback);
             case 'get_player_games':
-                #if prod
-                Librarian.getGamesByPlayer(sender, data.login);
-                #end
+                Librarian.getGamesByPlayer(sender, data.login, data.pageSize, data.after);
             default:
                 trace("Unexpected event: " + eventName);
         }

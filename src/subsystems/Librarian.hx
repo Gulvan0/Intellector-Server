@@ -1,25 +1,39 @@
 package subsystems;
 
+import haxe.Json;
 import sys.io.Process;
 using StringTools;
 
+typedef GameOverview = 
+{
+    var id:Int;
+    var whiteLogin:String;
+    var blackLogin:String;
+    var winnerColorLetter:String;
+    var outcomeCode:String;
+}
+
 class Librarian 
 {
-    public static function getGamesByPlayer(socket:SocketHandler, login:String)
+    public static function getGamesByPlayer(socket:SocketHandler, login:String, pageSize:Int, after:Int)
     {
-        var answer:String = "";
-        var process = new Process("bash", ["grepall.sh", login]);
-        var output = process.stdout.readAll().toString();
-        for (line in output.split("."))
-        {
-            var trimmed = line.trim();
-            if (trimmed.length < 1)
-                continue;
+        var playersRegexp:EReg = ~/#P\|(.*?):(.*?);/;
+        var resultRegexp:EReg = ~/#R\|([wbd])\/(...)/;
 
-            var playerInfo = new Process("bash", ["grepgame.sh", trimmed, "P"]).stdout.readAll().toString().substr(3);
-            var resultInfo = new Process("bash", ["grepgame.sh", trimmed, "R"]).stdout.readAll().toString().substr(3);
-            answer += trimmed + "#" + resultInfo + "#" + playerInfo + "\n";
+        var gamelist:Array<GameOverview> = [];
+        for (gameID in Data.getPlayerdata(login).games.slice(after, after + pageSize))
+        {
+            var log:String = Data.getLog(gameID);
+            playersRegexp.match(log);
+            resultRegexp.match(log);
+            gamelist.push({
+                id: gameID,
+                whiteLogin: playersRegexp.matched(1),
+                blackLogin: playersRegexp.matched(2),
+                winnerColorLetter: resultRegexp.matched(1),
+                outcomeCode: resultRegexp.matched(2)
+            });
         }
-        socket.emit('games_list', answer);
+        socket.emit('games_list', Json.stringify(gamelist));
     }    
 }

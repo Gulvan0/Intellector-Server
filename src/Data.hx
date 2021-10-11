@@ -1,8 +1,17 @@
 package;
 
+import haxe.Json;
 import sys.FileSystem;
 using StringTools;
 import sys.io.File;
+
+typedef Playerdata = 
+{
+    var passwordMD5:String;
+    var games:Array<Int>;
+    var studies:Array<Int>;
+    var puzzles:Array<Int>;
+}
 
 class Data
 {
@@ -13,6 +22,23 @@ class Data
         var logPath:String = folder + date_time[0] + ".txt";
         var line:String = date_time[1] + " " + entry + "\n";
         append(logPath, line);
+    }
+
+    public static function writeGameLog(gameID:Int, log:String) 
+    {
+        Data.overwrite('games/${gameID}.txt',log);
+    }
+
+    public static function writePlayerdata(login:String, playerdata:Playerdata) 
+    {
+        overwrite(playerdataPath(login), Json.stringify(playerdata, null, "    "));    
+    }
+
+    public static function editPlayerdata(login:String, mutator:Playerdata->Playerdata) 
+    {
+        var pd = getPlayerdata(login);
+        pd = mutator(pd);
+        writePlayerdata(login, pd);
     }
 
     public static function read(path:String):String
@@ -34,7 +60,12 @@ class Data
 
     public static function logExists(gameId:Int):Bool
     {
-        return FileSystem.exists(convertPath(logPath(gameId)));
+        return FileSystem.exists(logPath(gameId));
+    }
+
+    public static function playerdataExists(login:String) 
+    {
+        return FileSystem.exists(playerdataPath(login));
     }
 
     public static function getLog(gameId:Int):String
@@ -42,9 +73,19 @@ class Data
         return read(logPath(gameId));
     }
 
+    public static function getPlayerdata(login:String):Playerdata
+    {
+        return Json.parse(read(playerdataPath(login)));
+    }
+
     private static function logPath(gameId:Int) 
     {
-        return 'games/$gameId.txt';    
+        return convertPath('games/$gameId.txt');    
+    }
+
+    private static function playerdataPath(login:String) 
+    {
+        return convertPath('playerdata/$login.json');    
     }
 
     private static function convertPath(s:String):String

@@ -1,5 +1,6 @@
 package subsystems;
 
+import Data.Playerdata;
 import Game.Color;
 import Game.MatchResult;
 
@@ -202,7 +203,15 @@ class GameManager
         gamesByID.remove(game.id);
 
         game.log += "#R|" + winnerStr + "/" + reasonStr;
-        Data.overwrite('games/${game.id}.txt', game.log);
+
+        var addGameToHistory:Playerdata->Playerdata = pd -> {
+            pd.games.push(game.id);
+            return pd;
+        };
+
+        Data.writeGameLog(game.id, game.log);
+        Data.editPlayerdata(game.whiteLogin, addGameToHistory);
+        Data.editPlayerdata(game.blackLogin, addGameToHistory);
     }
 
 }
