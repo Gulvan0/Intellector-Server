@@ -1,5 +1,6 @@
 package;
 
+import subsystems.Librarian.StudyData;
 import haxe.Json;
 import sys.FileSystem;
 using StringTools;
@@ -11,6 +12,12 @@ typedef Playerdata =
     var games:Array<Int>;
     var studies:Array<Int>;
     var puzzles:Array<Int>;
+}
+
+enum Segment
+{
+    Games;
+    Studies;
 }
 
 class Data
@@ -26,12 +33,17 @@ class Data
 
     public static function writeGameLog(gameID:Int, log:String) 
     {
-        Data.overwrite('games/${gameID}.txt',log);
+        Data.overwrite(logPath(gameID),log);
     }
 
     public static function writePlayerdata(login:String, playerdata:Playerdata) 
     {
         overwrite(playerdataPath(login), Json.stringify(playerdata, null, "    "));    
+    }
+
+    public static function writeStudy(id:Int, data:StudyData) 
+    {
+        overwrite(studyPath(id), Json.stringify(data, null, "    "));    
     }
 
     public static function editPlayerdata(login:String, mutator:Playerdata->Playerdata) 
@@ -41,14 +53,28 @@ class Data
         writePlayerdata(login, pd);
     }
 
-    public static function read(path:String):String
+    public static function read(absPath:String):String
     {
-        return File.getContent(convertPath(path));
+        return File.getContent(absPath);
     }
 
-    public static function overwrite(path:String, content:String)
+    public static function getCurrID(segment:Segment):Int 
     {
-        File.saveContent(convertPath(path), content);
+        var dir:String = switch segment 
+        {
+            case Games: 'games/';
+            case Studies: 'studies/';
+        };
+        var absPath = convertPath(dir + "currid.txt");
+        var currID = Std.parseInt(Data.read(absPath));
+        currID++;
+        Data.overwrite(absPath, '$currID');
+        return currID;
+    }
+
+    public static function overwrite(absPath:String, content:String)
+    {
+        File.saveContent(absPath, content);
     }
 
     public static function append(path:String, content:String)
@@ -63,6 +89,11 @@ class Data
         return FileSystem.exists(logPath(gameId));
     }
 
+    public static function studyExists(id:Int):Bool
+    {
+        return FileSystem.exists(studyPath(id));
+    }
+
     public static function playerdataExists(login:String) 
     {
         return FileSystem.exists(playerdataPath(login));
@@ -73,6 +104,11 @@ class Data
         return read(logPath(gameId));
     }
 
+    public static function getStudy(id:Int):StudyData
+    {
+        return Json.parse(read(studyPath(id)));
+    }
+
     public static function getPlayerdata(login:String):Playerdata
     {
         return Json.parse(read(playerdataPath(login)));
@@ -81,6 +117,11 @@ class Data
     private static function logPath(gameId:Int) 
     {
         return convertPath('games/$gameId.txt');    
+    }
+
+    private static function studyPath(id:Int) 
+    {
+        return convertPath('studies/$id.txt');    
     }
 
     private static function playerdataPath(login:String) 

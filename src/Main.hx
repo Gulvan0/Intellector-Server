@@ -105,6 +105,12 @@ class Main
                 Proposals.decline(sender, Takeback);
             case 'get_player_games':
                 Librarian.getGamesByPlayer(sender, data.login, data.pageSize, data.after);
+            case 'get_player_studies':
+                Librarian.getStudiesByPlayer(sender, data.login, data.pageSize, data.after);
+            case 'set_study':
+                Librarian.setStudy(sender, sender.login, data.name, data.variantStr, data.overwriteID);
+            case 'player_exists':
+                sender.emit('player_exists_answer', Data.playerdataExists(data.login));
             default:
                 trace("Unexpected event: " + eventName);
         }

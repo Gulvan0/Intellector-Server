@@ -95,7 +95,7 @@ class SocketHandler extends WebSocketHandler
 
     private function lowerLogin(eventName, data) 
     {
-        if (['login', 'register', 'get_player_games'].has(eventName))
+        if (['login', 'register', 'get_player_games', 'get_player_studies', 'set_study', 'player_exists'].has(eventName))
             data.login = cast(data.login, String).toLowerCase();
         else if (['callout', 'accept_challenge', 'cancel_callout', 'decline_challenge', 'accept_open_challenge'].has(eventName))
         {
@@ -117,7 +117,7 @@ class SocketHandler extends WebSocketHandler
         return switch ustate 
         {
             case NotLogged: ['login', 'register', 'get_game', 'get_challenge', 'accept_open_challenge'].has(eventName);
-            case MainMenu: ['callout', 'accept_challenge', 'message', 'get_player_games', 'decline_challenge', 'cancel_callout', 'open_callout', 'cancel_open_callout', 'get_game', 'get_challenge', 'accept_open_challenge', 'spectate', 'stop_spectate'].has(eventName);
+            case MainMenu: ['callout', 'accept_challenge', 'player_exists', 'message', 'get_player_games', 'get_player_studies', 'set_study', 'decline_challenge', 'cancel_callout', 'open_callout', 'cancel_open_callout', 'get_game', 'get_challenge', 'accept_open_challenge', 'spectate', 'stop_spectate'].has(eventName);
             case InGame: ['move', 'request_timeout_check', 'message', 'resign', 'draw_offer', 'draw_cancel', 'draw_accept', 'draw_decline', 'takeback_offer', 'takeback_cancel', 'takeback_accept', 'takeback_decline'].has(eventName);
         }
     }

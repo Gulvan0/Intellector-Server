@@ -16,24 +16,15 @@ typedef MoveData =
 
 class GameManager
 {
-    public static var currID(get, null):Int;
     private static var loggedPlayers:Map<String, SocketHandler>;
     private static var games:Map<String, Game>; 
     private static var gamesByID:Map<Int, Game>;
 
     public static function init(loggedPlayersMap:Map<String, SocketHandler>, gamesMap:Map<String, Game>, gamesByIDMap:Map<Int, Game>) 
     {
-        currID = Std.parseInt(Data.read("currid.txt"));
         loggedPlayers = loggedPlayersMap;   
         games = gamesMap;
         gamesByID = gamesByIDMap;
-    }
-
-    public static function get_currID() 
-    {
-        currID++;
-        Data.overwrite("currid.txt", '$currID');
-        return currID;
     }
 
     //----------------------------------------------------------------------------------------------------------------------------------------
@@ -205,7 +196,7 @@ class GameManager
         game.log += "#R|" + winnerStr + "/" + reasonStr;
 
         var addGameToHistory:Playerdata->Playerdata = pd -> {
-            pd.games.push(game.id);
+            pd.games = [game.id].concat(pd.games);
             return pd;
         };
 

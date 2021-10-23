@@ -294,7 +294,7 @@ class Game
 
     public function new(whiteLogin, blackLogin, secStart:Int, secBonus:Int) 
     {
-        id = GameManager.currID;
+        id = Data.getCurrID(Games);
         this.whiteLogin = whiteLogin;
         this.blackLogin = blackLogin;
         whiteTurn = true;
