@@ -24,6 +24,7 @@ typedef StudyData =
     var name:String;
     var author:String;
     var variantStr:String;
+    var startingSIP:String;
 }
 
 class Librarian 
@@ -75,33 +76,35 @@ class Librarian
         socket.emit('studies_list', Json.stringify(studylist));
     }  
 
-    public static function setStudy(socket:SocketHandler, login:String, name:String, variantStr:String, overwriteID:Null<Int>)
+    public static function setStudy(socket:SocketHandler, login:String, name:String, variantStr:String, startingSIP:String, overwriteID:Null<Int>)
     {
         if (!Data.playerdataExists(login))
             return;
 
         if (overwriteID == null)
-            createStudy(login, name, variantStr);
+            createStudy(login, name, variantStr, startingSIP);
         else if (Data.studyExists(overwriteID))
         {
             var studyData:StudyData = Data.getStudy(overwriteID);
             var newStudyData:StudyData = {
                 name: name,
                 author: login,
-                variantStr: variantStr
+                variantStr: variantStr,
+                startingSIP: startingSIP
             };
             if (studyData.author == login)
                 Data.writeStudy(overwriteID, newStudyData);
         }
     }
 
-    private static function createStudy(login:String, name:String, variantStr:String) 
+    private static function createStudy(login:String, name:String, variantStr:String, startingSIP:String) 
     {
         var currID:Int = Data.getCurrID(Studies);
         var data:StudyData = {
             name: name,
             author: login,
-            variantStr: variantStr
+            variantStr: variantStr,
+            startingSIP: startingSIP
         };
         Data.writeStudy(currID, data);
         Data.editPlayerdata(login, pd -> {
