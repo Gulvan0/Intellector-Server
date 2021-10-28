@@ -42,6 +42,34 @@ class GameManager
             endGame(Resignation(winnerByResignationColor), game);
     }
 
+    public static function addTime(issuer:SocketHandler) 
+    {
+        var game = games.get(issuer.login);
+        if (game == null)
+            return;
+        if (game.whiteLogin == issuer.login)
+            game.secsLeftBlack += 15;
+        else 
+            game.secsLeftWhite += 15;
+        game.updateTimeLeft();
+
+        var timedata = {whiteSeconds: game.secsLeftWhite, blackSeconds: game.secsLeftBlack};
+
+        var whiteSocket = loggedPlayers.get(game.whiteLogin);
+        var blackSocket = loggedPlayers.get(game.blackLogin);
+        var spectators = game.whiteSpectators.concat(game.blackSpectators);
+
+        for (spec in spectators)
+            if (spec != null)
+                spec.emit('time_correction', timedata);
+
+        if (whiteSocket != null)
+            whiteSocket.emit('time_correction', timedata);
+        if (blackSocket != null)
+            blackSocket.emit('time_correction', timedata);
+
+    }
+
     public static function onMessage(socket:SocketHandler, data) 
     {
         var game = games[data.issuer_login];
@@ -96,6 +124,16 @@ class GameManager
         games[whiteLogin] = game;
         games[blackLogin] = game;
         gamesByID[game.id] = game;
+
+        var addGameToHistory:Playerdata->Playerdata = pd -> {
+            pd.games = [game.id].concat(pd.games);
+            return pd;
+        };
+
+        if (Data.playerdataExists(whiteLogin))
+            Data.editPlayerdata(whiteLogin, addGameToHistory);
+        if (Data.playerdataExists(blackLogin))
+            Data.editPlayerdata(blackLogin, addGameToHistory);
 
         if (loggedPlayers.exists(whiteLogin))
             loggedPlayers[whiteLogin].emit('game_started', {enemy: blackLogin, colour: 'white', match_id: game.id, startSecs: startSecs, bonusSecs: bonusSecs});
@@ -195,14 +233,7 @@ class GameManager
 
         game.log += "#R|" + winnerStr + "/" + reasonStr;
 
-        var addGameToHistory:Playerdata->Playerdata = pd -> {
-            pd.games = [game.id].concat(pd.games);
-            return pd;
-        };
-
         Data.writeGameLog(game.id, game.log);
-        Data.editPlayerdata(game.whiteLogin, addGameToHistory);
-        Data.editPlayerdata(game.blackLogin, addGameToHistory);
     }
 
 }

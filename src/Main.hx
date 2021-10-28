@@ -1,3 +1,4 @@
+import sys.FileSystem;
 import Game.Color;
 import subsystems.*;
 import sys.io.File;
@@ -46,6 +47,7 @@ class Main
         var server = new WebSocketServer<SocketHandler>(hostname, 5000, 100);
         #end
 
+        Data.appendResultToAbortedGames();
         server.start();
     }
 
@@ -111,6 +113,8 @@ class Main
                 Librarian.setStudy(sender, sender.login, data.name, data.variantStr, data.startingSIP, data.overwriteID);
             case 'player_exists':
                 sender.emit('player_exists_answer', Data.playerdataExists(data.login));
+            case 'add_time':
+                GameManager.addTime(sender);
             default:
                 trace("Unexpected event: " + eventName);
         }

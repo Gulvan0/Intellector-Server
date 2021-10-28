@@ -114,6 +114,7 @@ class Game
             index--;
         }
         log = logLines.join(";") + ";\n";
+        Data.writeGameLog(id, log);
     }
 
     public function move(fromI, fromJ, toI, toJ, ?morphInto:FigureType):Null<MatchResult>
@@ -151,6 +152,7 @@ class Game
             log += '$fromI$fromJ$toI$toJ${morphInto.getName()};\n';
         else 
             log += '$fromI$fromJ$toI$toJ;\n';
+        Data.writeGameLog(id, log);
 
         if (turn > 2)
         {
@@ -228,8 +230,6 @@ class Game
             requestedColor: color, 
             whiteLogin: whiteLogin, 
             blackLogin: blackLogin, 
-            startSecs: startSecs,
-            bonusSecs: secsPerTurn, 
             whiteSeconds: secsLeftWhite, 
             blackSeconds: secsLeftBlack, 
             position: serializePosition(),
@@ -298,7 +298,8 @@ class Game
         this.whiteLogin = whiteLogin;
         this.blackLogin = blackLogin;
         whiteTurn = true;
-        log = '#P|$whiteLogin:$blackLogin;\n';
+        log = '#P|$whiteLogin:$blackLogin;\n#T|$secStart/$secBonus;\n';
+        Data.writeGameLog(id, log);
         turn = 1;
         startSecs = secStart;
         secsLeftWhite = secStart;

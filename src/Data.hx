@@ -99,6 +99,19 @@ class Data
         return FileSystem.exists(playerdataPath(login));
     }
 
+    public static function appendResultToAbortedGames() 
+    {
+        var id = Std.parseInt(Data.read(convertPath("games/currid.txt")));
+        while (id > 50)
+        {
+            var log:String = Data.read(convertPath('games/$id.txt'));
+            if (StringTools.contains(log, "#R|"))
+                break;
+            else 
+                Data.writeGameLog(id, log + "#R|d/abo");
+        }
+    }
+
     public static function getLog(gameId:Int):String
     {
         return read(logPath(gameId));
