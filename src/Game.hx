@@ -49,8 +49,8 @@ class Game
     public var lastActualTimestamp:Float;
     public var startSecs:Int;
     public var secsPerTurn:Int;
-    public var secsLeftWhite:Int;
-    public var secsLeftBlack:Int;
+    public var secsLeftWhite:Float;
+    public var secsLeftBlack:Float;
 
     private var positionCount:Map<String, Int> = [];
     private var silentMovesCount:Int = 0;
@@ -125,6 +125,16 @@ class Game
             terminator = null;
         }
 
+        if (turn > 2)
+        {
+            var endedByTimeout:Bool = updateTimeLeft();
+            if (endedByTimeout)
+                return null;
+            incrementTime();
+        }
+        else if (turn == 2)
+            lastActualTimestamp = Date.now().getTime();
+
         var from = field[fromJ][fromI];
         var to = field[toJ][toI];
 
@@ -154,14 +164,6 @@ class Game
             log += '$fromI$fromJ$toI$toJ;\n';
         Data.writeGameLog(id, log);
 
-        if (turn > 2)
-        {
-            updateTimeLeft();
-            incrementTime();
-        }
-        else if (turn == 2)
-            lastActualTimestamp = Date.now().getTime();
-
         whiteTurn = !whiteTurn;
         turn++;
         moveHistory.push([new HexTransform(fromI, fromJ, from, field[fromJ][fromI]), new HexTransform(toI, toJ, to, field[toJ][toI])]);
@@ -185,13 +187,14 @@ class Game
             return null;
     }
 
-    public function updateTimeLeft()
+    /**Returns true if a timeout has happened, false otherwise**/
+    public function updateTimeLeft():Bool
     {
         if (turn <= 2)
-            return;
+            return false;
         
         var ts = Date.now().getTime();
-        var secondsElapsed = Math.round((ts - lastActualTimestamp) / 1000);
+        var secondsElapsed = (ts - lastActualTimestamp) / 1000;
         if (whiteTurn)
             secsLeftWhite -= secondsElapsed;
         else 
@@ -199,9 +202,17 @@ class Game
         lastActualTimestamp = ts;
 
         if (secsLeftWhite <= 0)
+        {
             GameManager.endGame(Timeout(Black), this);
+            return true;
+        }
         else if (secsLeftBlack <= 0)
+        {
             GameManager.endGame(Timeout(White), this);
+            return true;
+        }
+        else 
+            return false;
     }
 
     private function incrementTime()
@@ -214,7 +225,7 @@ class Game
 
     public function launchTerminateTimer() 
     {
-        terminator = new Timer(Math.ceil(Math.min(secsLeftWhite, secsLeftBlack)) + 5);
+        terminator = new Timer(Math.round(Math.min(secsLeftWhite, secsLeftBlack) * 1000) + 5);
         terminator.run = () -> {
             terminator.stop();
             terminator = null;
