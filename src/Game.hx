@@ -233,9 +233,18 @@ class Game
         };
     }
 
+    public function getCurrentTimeWaster():String
+    {
+        var timeWasterSide:String = "";
+        if (turn >= 3)
+            timeWasterSide = whiteTurn? "w" : "b";
+        return timeWasterSide;
+    }
+
     public function getActualData(color:String) 
     {
         updateTimeLeft();
+
         return {
             match_id: id, 
             requestedColor: color, 
@@ -243,6 +252,8 @@ class Game
             blackLogin: blackLogin, 
             whiteSeconds: secsLeftWhite, 
             blackSeconds: secsLeftBlack, 
+            timestamp: lastActualTimestamp,
+            pingSubtractionSide: getCurrentTimeWaster(),
             position: serializePosition(),
             currentLog: log
         };

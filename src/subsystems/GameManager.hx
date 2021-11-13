@@ -53,7 +53,7 @@ class GameManager
             game.secsLeftWhite += 15;
         game.updateTimeLeft();
 
-        var timedata = {whiteSeconds: game.secsLeftWhite, blackSeconds: game.secsLeftBlack};
+        var timedata = {whiteSeconds: game.secsLeftWhite, blackSeconds: game.secsLeftBlack, timestamp: game.lastActualTimestamp, pingSubtractionSide: game.getCurrentTimeWaster()};
 
         var whiteSocket = loggedPlayers.get(game.whiteLogin);
         var blackSocket = loggedPlayers.get(game.blackLogin);
@@ -150,7 +150,7 @@ class GameManager
 
         var result:Null<MatchResult> = game.move(data.fromI, data.fromJ, data.toI, data.toJ, data.morphInto == null? null : FigureType.createByName(data.morphInto));
 
-        var timedata = {whiteSeconds: game.secsLeftWhite, blackSeconds: game.secsLeftBlack};
+        var timedata = {whiteSeconds: game.secsLeftWhite, blackSeconds: game.secsLeftBlack, timestamp: game.lastActualTimestamp, pingSubtractionSide: game.getCurrentTimeWaster()};
 
         var whiteSocket = loggedPlayers.get(game.whiteLogin);
         var blackSocket = loggedPlayers.get(game.blackLogin);
