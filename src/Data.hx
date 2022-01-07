@@ -105,10 +105,18 @@ class Data
         while (id > 50)
         {
             var log:String = Data.read(convertPath('games/$id.txt'));
+            trace("ID: " + id);
+            trace("Log: " + log);
             if (StringTools.contains(log, "#R|"))
+            {
+                trace("Contains");
                 break;
-            else 
+            }
+            else
+            {
                 Data.writeGameLog(id, log + "#R|d/abo");
+                trace("Not contains, new log: " + Data.read(convertPath('games/$id.txt')));
+            }
         }
     }
 

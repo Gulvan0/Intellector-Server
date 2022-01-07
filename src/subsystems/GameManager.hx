@@ -29,6 +29,11 @@ class GameManager
 
     //----------------------------------------------------------------------------------------------------------------------------------------
 
+    public static function getGameByLogin(login:String):Null<Game> 
+    {
+        return games.get(login);    
+    }
+
     public static function onResign(socket:SocketHandler) 
     {
         var game = games[socket.login];

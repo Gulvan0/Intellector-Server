@@ -41,7 +41,12 @@ class Librarian
         var resultRegexp:EReg = ~/#R\|([wbd])\/(...)/;
 
         var gamelist:Array<GameOverview> = [];
-        for (gameID in Data.getPlayerdata(login).games.slice(after, after + pageSize))
+        var allGameIDs:Array<Int> = Data.getPlayerdata(login).games;
+        var currentGame = GameManager.getGameByLogin(login);
+        if (currentGame != null)
+            allGameIDs.remove(currentGame.id);
+
+        for (gameID in allGameIDs.slice(after, after + pageSize))
         {
             var log:String = Data.getLog(gameID);
             playersRegexp.match(log);
