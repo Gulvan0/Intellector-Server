@@ -49,15 +49,17 @@ class Librarian
         for (gameID in allGameIDs.slice(after, after + pageSize))
         {
             var log:String = Data.getLog(gameID);
-            playersRegexp.match(log);
-            resultRegexp.match(log);
+            var playersMatched:Bool = playersRegexp.match(log); //TODO: Notify on not matched
+            var resultMatched:Bool = resultRegexp.match(log);
             gamelist.push({
                 id: gameID,
-                whiteLogin: playersRegexp.matched(1),
-                blackLogin: playersRegexp.matched(2),
-                winnerColorLetter: resultRegexp.matched(1),
-                outcomeCode: resultRegexp.matched(2)
+                whiteLogin: playersMatched? playersRegexp.matched(1) : "_Unknown",
+                blackLogin: playersMatched? playersRegexp.matched(2) : "_Unknown",
+                winnerColorLetter: resultMatched? resultRegexp.matched(1) : "d",
+                outcomeCode: resultMatched? resultRegexp.matched(2) : "abo"
             });
+            if (!resultMatched)
+                Data.appendResultToAbortedGame(gameID);
         }
         socket.emit('games_list', Json.stringify(gamelist));
     }    

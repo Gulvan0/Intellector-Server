@@ -57,16 +57,14 @@ class SocketHandler extends WebSocketHandler
         calloutParams = new Map();
         onopen = () -> {
             ustate = NotLogged;
-            trace(id + ". OPEN");
             Data.writeLog('logs/connection/', 'null:$id /connected/');
         }
         onclose = () -> {
-            trace(id + ". CLOSE");
             Data.writeLog('logs/connection/', '$login:$id /closed/');
             Connection.handleDisconnect(this);
         }
         onerror = (error) -> {
-            trace(id + ". ERROR: " + error);
+            //TODO: Notify myself
             Data.writeLog('logs/connection/', '$login:$id /error/$error');
             Connection.handleDisconnect(this);
         }
@@ -75,7 +73,7 @@ class SocketHandler extends WebSocketHandler
             switch (message) 
             {
                 case BytesMessage(content):
-                    trace("Unexpected bytes: " + content.readAllAvailableBytes());
+                    trace("Unexpected bytes: " + content.readAllAvailableBytes()); //TODO: Notify myself
                 case StrMessage(content):
                     processEvent(content);
             }
@@ -84,13 +82,34 @@ class SocketHandler extends WebSocketHandler
 
     private function processEvent(message:String) 
     {
-        var event:Event = Json.parse(message);
+        var event:Event;
+
+        try
+        {
+            var event:Event = Json.parse(message);
+        }
+        catch (e)
+        {
+            trace("Unable to parse an event: " + message);
+            return;//TODO: Notify myself
+        }
 
         if (!handlerActive(event.name))
             return;
 
         lowerLogin(event.name, event.data);
-        Main.handleEvent(this, event.name, event.data);
+
+        try
+        {
+            Main.handleEvent(this, event.name, event.data);
+        }
+        catch (e)
+        {
+            trace("Unable to handle an event: " + event.name);
+            trace("Event data: " + event.data);
+            trace("Exception:\n" + e.details());
+            return;//TODO: Notify myself
+        }
     }
 
     private function lowerLogin(eventName, data) 

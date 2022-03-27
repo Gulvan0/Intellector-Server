@@ -197,6 +197,9 @@ class GameManager
 
     public static function endGame(result:MatchResult, game:Game) 
     {
+        if (game.terminator != null)
+            game.terminator.stop();
+        
         var winnerStr = switch result 
         {
             case Mate(winner): winner == White? "w" : "b";
@@ -218,7 +221,7 @@ class GameManager
             case DrawAgreement: "agr";
             case Abort: "abo";
         };
-        var resultsData = {winner_color: winnerStr, reason: result.getName().toLowerCase()};
+        var resultsData = {winner_color: winnerStr, reason: reasonStr};
 
         for (spec in game.whiteSpectators.concat(game.blackSpectators))
             if (spec != null)

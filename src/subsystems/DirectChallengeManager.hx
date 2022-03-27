@@ -43,9 +43,9 @@ class DirectChallengeManager
         
         var caller = loggedPlayers.get(data.caller_login);
         if (caller == null)
-            callee.emit('caller_unavailable', {caller: caller.login});
+            callee.emit('caller_unavailable', {caller: data.caller_login});
         else if (!caller.calledPlayers.has(callee.login))
-            callee.emit('callout_not_found', {caller: caller.login});
+            callee.emit('callout_not_found', {caller: data.caller_login});
         else
         {
             caller.calledPlayers = [];
@@ -53,7 +53,7 @@ class DirectChallengeManager
             caller.ustate = InGame;
             callee.ustate = InGame;
             var params:CalloutParams = caller.calloutParams[callee.login];
-            GameManager.startGame(callee.login, caller.login, params.startSecs, params.bonusSecs, params.color);
+            GameManager.startGame(callee.login, data.caller_login, params.startSecs, params.bonusSecs, params.color);
         }
     }
 

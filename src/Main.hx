@@ -26,7 +26,11 @@ class Main
     private static var gamesByID:Map<Int, Game> = [];
 
 	public static function main() 
-	{    
+	{
+        haxe.Log.trace = (v, ?infos:haxe.PosInfos) -> {
+            Sys.println(Date.now().toString() + ' | ' + Std.string(v));
+        }   
+
         Proposals.init(loggedPlayers, games);
         SignIn.init(loggedPlayers, games);
         Spectation.init(loggedPlayers, games, gamesByID);
@@ -36,7 +40,7 @@ class Main
         DirectChallengeManager.init(loggedPlayers, games);
 
         #if prod
-        Log.mask = Log.INFO | Log.DEBUG;
+        Log.mask = Log.INFO;
         var cert = Certificate.loadFile("/etc/letsencrypt/live/play-intellector.ru/fullchain.pem");
         var key = Key.loadFile("/etc/letsencrypt/live/play-intellector.ru/privkey.pem");
         var hostname:String = '0.0.0.0';
@@ -116,7 +120,7 @@ class Main
             case 'add_time':
                 GameManager.addTime(sender);
             default:
-                trace("Unexpected event: " + eventName);
+                trace("Unexpected event: " + eventName); //TODO: Notify myself
         }
     }
 

@@ -105,19 +105,27 @@ class Data
         while (id > 50)
         {
             var log:String = Data.read(convertPath('games/$id.txt'));
-            trace("ID: " + id);
-            trace("Log: " + log);
             if (StringTools.contains(log, "#R|"))
             {
-                trace("Contains");
+                trace('ID $id: Result data found');
                 break;
             }
             else
             {
+                trace('ID $id: No result');
                 Data.writeGameLog(id, log + "#R|d/abo");
-                trace("Not contains, new log: " + Data.read(convertPath('games/$id.txt')));
+                id--;
             }
         }
+    }
+
+    public static function appendResultToAbortedGame(id:Int) 
+    {
+        var log:String = Data.read(convertPath('games/$id.txt'));
+        if (StringTools.contains(log, "#R|"))
+            trace("Warning: appendResultToAbortedGame() called, but log contains result data"); //TODO: Notify myself
+        else
+            Data.writeGameLog(id, log + "#R|d/abo");
     }
 
     public static function getLog(gameId:Int):String

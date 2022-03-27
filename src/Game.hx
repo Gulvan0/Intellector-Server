@@ -61,7 +61,8 @@ class Game
 
     public var moveHistory:Array<Ply> = [];
 
-    public var terminator:Null<Timer>;
+    public var terminatorActive:Bool = false;
+    public var terminator:Timer;
 
     public function getOpponent(playerLogin:String):String
     {
@@ -119,10 +120,10 @@ class Game
 
     public function move(fromI, fromJ, toI, toJ, ?morphInto:FigureType):Null<MatchResult>
     {
-        if (terminator != null)
+        if (terminatorActive)
         {
             terminator.stop();
-            terminator = null;
+            terminatorActive = false;
         }
 
         if (turn > 2)
@@ -225,12 +226,13 @@ class Game
 
     public function launchTerminateTimer() 
     {
-        terminator = new Timer(Math.round(Math.min(secsLeftWhite, secsLeftBlack) * 1000) + 5);
+        terminator = new Timer(Math.round(Math.min(secsLeftWhite, secsLeftBlack) * 1000) + 5000);
         terminator.run = () -> {
             terminator.stop();
-            terminator = null;
+            terminatorActive = false;
             updateTimeLeft();
         };
+        terminatorActive = true;
     }
 
     public function getCurrentTimeWaster():String
