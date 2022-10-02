@@ -3,3 +3,4 @@
 --hl hl/app.hl
 -main Main
 --library hxWebSockets
+--library argparse
