@@ -13,8 +13,9 @@ class EventTransformer
             case Register(login, password):
                 Register(login.toLowerCase(), password);
             case CreateChallenge(serializedParams):
+                null; //TODO: Change
             case AcceptOpenChallenge(challengeID, guestLogin, guestPassword):
-                AcceptOpenChallenge(challengeID, guestLogin.toLowerCase(), password);
+                AcceptOpenChallenge(challengeID, guestLogin.toLowerCase(), guestPassword);
             case FollowPlayer(login):
                 FollowPlayer(login.toLowerCase());
             case GetMiniProfile(login):

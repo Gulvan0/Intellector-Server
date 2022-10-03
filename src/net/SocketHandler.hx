@@ -1,5 +1,7 @@
 package net;
 
+import entities.User;
+import services.Logger;
 import net.shared.ServerEvent;
 import net.shared.ClientEvent;
 import net.NetworkingError;
@@ -13,40 +15,46 @@ using Lambda;
 
 class SocketHandler extends WebSocketHandler
 {
-
-    /* TODO: Move to entity class, but somehow leave a connection
-    public var ustate:UserState;
-    public var login:String;
-    public var calledPlayers:Array<String>;
-    public var calloutParams:Map<String, CalloutParams>;
-    */
+    private var user:User;
 
     public function emit(event:ServerEvent) 
     {
+        Logger.logOutgoingEvent(event, id, user.login);
         send(Serializer.run(event));
     }
 
     private function onOpen()
     {
-        //TODO: Fill (write log, maybe init or maybe not)
+        Logger.serviceLog("SOCKET", '$id connected');
     }
-
-    //TODO: Find out how to detect short-time disconnection and handle it properly
 
     private function onClosed()
     {
-        //TODO: Fill (write to log, perform termination)
+        Logger.serviceLog("SOCKET", '$id closed');
+        Orchestrator.onPlayerDisconnected(user);
     }
 
     private function onError(e:Dynamic)
     {
-        //TODO: Fill (perform termination)
+        Logger.serviceLog("SOCKET", '$id error');
+        Orchestrator.onPlayerDisconnected(user);
         handleError(ConnectionError(e));
     }
 
     private function handleError(error:NetworkingError)
     {
-        //TODO: Fill (log, tg notification, maybe ignore in some cases)
+        Logger.serviceLog("SOCKET", '$id error');
+        switch error 
+        {
+            case ConnectionError(error):
+                Logger.logError('Connection error:\nUUID: $id\n$error', false);
+            case BytesReceived(bytes):
+                Logger.logError('Unexpected bytes:\n${bytes.toHex()}', false);
+            case DeserializationError(message, exception):
+                Logger.logError('Event deserialization failed:\nOriginal message: $message\n${exception.details()}');
+            case ProcessingError(event, exception):
+                Logger.logError('Error during event processing:\nEvent: $event\n${exception.details()}');
+        }
     }
 
     private function processMessage(message:MessageType)
@@ -76,10 +84,13 @@ class SocketHandler extends WebSocketHandler
 
         try
         {
-            //TODO: call Orchestrator method
+            event = EventTransformer.normalizeLogin(event);
+            Orchestrator.processEvent(event, user);
         }
         catch (e)
+        {
             handleError(ProcessingError(event, e));
+        }
     }
 
     public function new(s:SocketImpl) 
@@ -90,5 +101,7 @@ class SocketHandler extends WebSocketHandler
         this.onclose = onClosed;
         this.onerror = onError;
         this.onmessage = processMessage;
+
+        this.user = new User(this);
     }
 }

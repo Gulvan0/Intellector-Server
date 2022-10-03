@@ -4,7 +4,7 @@ import haxe.Exception;
 import net.shared.ClientEvent;
 import haxe.io.Bytes;
 
-enum NetworkingError //TODO: Add data about user
+enum NetworkingError
 {
     ConnectionError(error:Dynamic);
     BytesReceived(bytes:Bytes);
