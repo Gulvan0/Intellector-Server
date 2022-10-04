@@ -55,7 +55,7 @@ class Storage
 
         var content:String = read(PlayerData(login));
         var jsonData:Dynamic = Json.parse(content);
-        return new StoredUserData(login, jsonData.pastGames, jsonData.studies, jsonData.ongoingCorrespondenceGames);
+        return new StoredUserData(login, jsonData.pastGames, jsonData.studies, jsonData.ongoingCorrespondenceGames, jsonData.friends);
     }
 
     public static function savePlayerData(login:String, playerData:StoredUserData) 
@@ -63,7 +63,8 @@ class Storage
         var content:String = Json.stringify({
             pastGames: playerData.getPastGames(),
             studies: playerData.getStudies(),
-            ongoingCorrespondenceGames: playerData.getOngoingCorrespondenceGames()
+            ongoingCorrespondenceGames: playerData.getOngoingCorrespondenceGames(),
+            friends: playerData.getFriends()
         }, null, "    ");
         overwrite(PlayerData(login), content);
     }

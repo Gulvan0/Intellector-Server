@@ -12,32 +12,14 @@ import services.Logger;
 import entities.User;
 import net.shared.ClientEvent;
 
-class CurrentData
-{
-    public var lastGameID:Int;
-    public var loggedUsersByLogin:Map<String, User> = [];
-    public var ongoingGamesByID:Map<Int, Game> = [];
-    public var ongoingGamesByParticipantLogin:Map<String, Game> = [];
-    public var activeOpenChallengesByOwnerLogin:Map<String, Array<Challenge>> = [];
-    public var pendingDirectChallengesByOwnerLogin:Map<String, Array<Challenge>> = [];
-    public var pendingDirectChallengesByReceiverLogin:Map<String, Array<Challenge>> = [];
-
-    public function new()
-    {
-        lastGameID = Storage.computeLastGameID();
-    }
-}
-
 class Orchestrator
 {
-    public static var data:CurrentData = new CurrentData(); //TODO: Distribute between services, make the data read-only outside of the corresponding service class
-
     public static function onPlayerDisconnected(user:User) //TODO: Short-time disconnection?
     {
         ChallengeManager.handleDisconnection(user);
         GameManager.handleDisconnection(user);
-        if (user.login != null)
-            data.loggedUsersByLogin.remove(user.login);
+        //TODO: other manages should handle that too
+        
         //TODO: Stop spectating or following
     }
 
@@ -57,7 +39,7 @@ class Orchestrator
         switch event 
         {
             case Login(login, password):
-                onLogin(author, login, password);
+                //LoginManager.onLogin(author, login, password);
             case Register(login, password):
             case LogOut:
             case CreateChallenge(serializedParams):
@@ -97,19 +79,6 @@ class Orchestrator
             case GetOpenChallenges:
             case GetCurrentGames:
         }
-    }
-
-    private static function onLogin(user:User, login:String, password:String) 
-    {
-        if (Auth.isValid(login, password))
-        {
-            user.signIn(login);
-            data.loggedUsersByLogin.set(login, user);
-            //TODO: Handle reconnection
-            user.emit(LoginResult(Success([]))); //TODO: get and send incoming challenges
-        }
-        else 
-            user.emit(LoginResult(Fail));
     }
 
     private static function isEventRelevant(event:ClientEvent, state:UserState) 

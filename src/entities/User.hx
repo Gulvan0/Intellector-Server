@@ -7,12 +7,13 @@ import net.shared.ServerEvent;
 import entities.util.UserState;
 import net.SocketHandler;
 
-class StoredUserData 
+class StoredUserData //TODO: Add ELO data
 {
     private var login:String;
     private var pastGames:Array<Int>;
     private var studies:Array<Int>;
     private var ongoingCorrespondenceGames:Array<Int>;
+    private var friends:Array<String>;
 
     public function getPastGames():Array<Int>
     {
@@ -59,12 +60,33 @@ class StoredUserData
         Storage.savePlayerData(login, this);
     }
 
-    public function new(login:String, ?pastGames:Array<Int>, ?studies:Array<Int>, ?ongoingCorrespondenceGames:Array<Int>) 
+    public function getFriends():Array<String>
+    {
+        return friends.copy();
+    }
+
+    public function addFriend(login:String) 
+    {
+        friends.push(login);
+    }
+
+    public function removeFriend(login:String) 
+    {
+        friends.remove(login);
+    }
+
+    public function hasFriend(login:String):Bool
+    {
+        return friends.contains(login);
+    }
+
+    public function new(login:String, ?pastGames:Array<Int>, ?studies:Array<Int>, ?ongoingCorrespondenceGames:Array<Int>, ?friends:Array<String>) 
     {
         this.login = login;
         this.pastGames = pastGames != null? pastGames : [];
         this.studies = studies != null? studies : [];
         this.ongoingCorrespondenceGames = ongoingCorrespondenceGames != null? ongoingCorrespondenceGames : [];
+        this.friends = friends != null? friends : [];
     }
 }
 
@@ -106,9 +128,10 @@ class User
     public function signIn(login:String) 
     {
         this.login = login;
-        this.ongoingGame = Orchestrator.data.ongoingGamesByParticipantLogin.get(login).id;
+        //TODO: Change (or even move)
+        /*this.ongoingGame = Orchestrator.data.ongoingGamesByParticipantLogin.get(login).id;
         this.pendingIncomingChallenges = Orchestrator.data.pendingDirectChallengesByReceiverLogin.get(login).map(x -> x.id);
-        this.pendingOutgoingChallenges = Orchestrator.data.pendingDirectChallengesByOwnerLogin.get(login).map(x -> x.id);
+        this.pendingOutgoingChallenges = Orchestrator.data.pendingDirectChallengesByOwnerLogin.get(login).map(x -> x.id);*/
         
         this.storedData = Storage.loadPlayerData(login);
     }

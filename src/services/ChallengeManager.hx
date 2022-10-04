@@ -1,13 +1,24 @@
 package services;
 
+import entities.Challenge;
+import net.shared.ChallengeData;
 import entities.Game;
 import entities.User;
 
 class ChallengeManager
 {
-    private static var lastChallengeID:Int;
+    private static var lastChallengeID:Int = 0;
 
-    public static function create() 
+    private static var activeOpenChallengesByOwnerLogin:Map<String, Array<Challenge>> = [];
+    private static var pendingDirectChallengesByOwnerLogin:Map<String, Array<Challenge>> = [];
+    private static var pendingDirectChallengesByReceiverLogin:Map<String, Array<Challenge>> = [];
+    
+    private static var pendingChallengeByID:Map<Int, ChallengeData> = [];
+    private static var gameIDByFormerChallengeID:Map<Int, Int> = [];
+
+    //TODO: Getters
+
+    public static function create(data:ChallengeData) 
     {
         //TODO: Fill
     }

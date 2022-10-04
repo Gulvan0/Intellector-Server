@@ -1,20 +1,7 @@
 package struct;
 
-enum PieceType
-{
-    Progressor;
-    Defensor;
-    Aggressor;
-    Liberator;
-    Dominator;
-    Intellector;
-}
-
-enum PieceColor
-{
-    White;
-    Black;
-}
+import net.shared.PieceColor;
+import net.shared.PieceType;
 
 enum Direction
 {
@@ -145,23 +132,6 @@ class Piece
     public var type:PieceType;
     public var color:PieceColor;
 
-    public static function deserialize(typeLetter:String, exclamationMarkPassed:Bool):Null<Piece>
-    {
-        var color:PieceColor = exclamationMarkPassed? Black : White;
-        var type:PieceType = switch typeLetter 
-        {
-            case "r": Progressor;
-            case "g": Aggressor;
-            case "o": Dominator;
-            case "e": Defensor;
-            case "i": Liberator;
-            case "n": Intellector;
-            default: null;
-        }
-
-        return new Piece(type, color);
-    }
-
     public function new(type:PieceType, color:PieceColor)
     {
         this.type = type;
@@ -177,7 +147,7 @@ class Situation
     public static function deserialize(sip:String):Null<Situation>
     {
         var pieces:Array<Null<Piece>> = [];
-        var turnColor:PieceColor = sip.charAt(0) == 'w'? White : Black;
+        var turnColor:PieceColor = colorByLetter(sip.charAt(0));
 
         var exclamationMarkPassed:Bool = false;
         var ci = 1;
@@ -197,9 +167,11 @@ class Situation
             if (scalarCoord < 0 || scalarCoord >= 59)
                 return null; //Invalid hex location
 
-            var piece:Null<Piece> = Piece.deserialize(sip.charAt(ci + 1), exclamationMarkPassed);
-            if (piece != null)
-                pieces[scalarCoord] = piece;
+            var pieceType:Null<PieceType> = pieceByLetter(sip.charAt(ci + 1));
+            var pieceColor:PieceColor = exclamationMarkPassed? Black : White;
+
+            if (pieceType != null)
+                pieces[scalarCoord] = new Piece(pieceType, pieceColor);
             else
                 return null; //Invalid PieceType code
 
@@ -269,11 +241,6 @@ class Situation
             turnColor = Black;
         else
             turnColor = White;
-    }
-
-    private function opposite(color:PieceColor):PieceColor
-    {
-        return color == White? Black : White;
     }
 
     private function checkHex(scalarCoord:Int, type:PieceType, color:PieceColor):Bool
