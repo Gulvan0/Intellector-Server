@@ -14,13 +14,17 @@ class GameManager
 
     public static function getGameByID() 
     {
-        //(Any game)
+        //TODO: (Any game, even correspondence or past ones)
+    }
+
+    public static function getOngoingGameByParticipantLogin(login:String):Null<Game>
+    {
+        return ongoingGamesByParticipantLogin.get(login);
     }
 
     public static function handleDisconnection(user:User) 
     {
-        if (user.ongoingGame == null) //TODO: Consider the case when an user is a spectator
-            return;
+        //TODO: Also consider the case when an user is a spectator
         
         //TODO: notify spectators and opponent (or launch termination timer if both players disconnected)
         //TODO: append event to game log

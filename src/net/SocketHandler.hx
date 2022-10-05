@@ -1,5 +1,6 @@
 package net;
 
+import services.Auth;
 import entities.User;
 import services.Logger;
 import net.shared.ServerEvent;
@@ -15,6 +16,7 @@ using Lambda;
 
 class SocketHandler extends WebSocketHandler
 {
+    private var isNew:Bool = true;
     private var user:User;
 
     public function emit(event:ServerEvent) 
@@ -28,16 +30,16 @@ class SocketHandler extends WebSocketHandler
         Logger.serviceLog("SOCKET", '$id connected');
     }
 
-    private function onClosed()
+    private function onClosed() //TODO: Check correctness when aborted by server and when onError() is called
     {
         Logger.serviceLog("SOCKET", '$id closed');
-        Orchestrator.onPlayerDisconnected(user);
+        user.onDisconnected();
     }
 
     private function onError(e:Dynamic)
     {
         Logger.serviceLog("SOCKET", '$id error');
-        Orchestrator.onPlayerDisconnected(user);
+        user.onDisconnected();
         handleError(ConnectionError(e));
     }
 
@@ -49,11 +51,11 @@ class SocketHandler extends WebSocketHandler
             case ConnectionError(error):
                 Logger.logError('Connection error:\nUUID: $id\n$error', false);
             case BytesReceived(bytes):
-                Logger.logError('Unexpected bytes:\n${bytes.toHex()}', false);
+                Logger.logError('Unexpected bytes:\nUUID: $id\n${bytes.toHex()}', false);
             case DeserializationError(message, exception):
-                Logger.logError('Event deserialization failed:\nOriginal message: $message\n${exception.details()}');
+                Logger.logError('Event deserialization failed:\nUUID: $id\nOriginal message: $message\n${exception.details()}');
             case ProcessingError(event, exception):
-                Logger.logError('Error during event processing:\nEvent: $event\n${exception.details()}');
+                Logger.logError('Error during event processing:\nUUID: $id\nEvent: $event\n${exception.details()}');
         }
     }
 
@@ -85,11 +87,38 @@ class SocketHandler extends WebSocketHandler
         try
         {
             event = EventTransformer.normalizeLogin(event);
-            Orchestrator.processEvent(event, user);
+            if (isNew)
+                processFirstEvent(event);
+            else
+                Orchestrator.processEvent(event, user);
         }
         catch (e)
         {
             handleError(ProcessingError(event, e));
+        }
+    }
+
+    private function processFirstEvent(event:ClientEvent) 
+    {
+        isNew = false;
+
+        switch event
+        {
+            case RestoreSession(token):
+                var restoredUser:Null<User> = Auth.getUserBySessionToken(token);
+                if (restoredUser != null)
+                {
+                    this.user = restoredUser;
+                    user.onReconnected(this);
+                }
+                else
+                {
+                    this.user = Auth.createSession(this);
+                    Logger.serviceLog("SOCKET", '${user.getLogReference()} attempted to restore a session with a wrong token: $token');
+                }
+            default:
+                this.user = Auth.createSession(this);
+                Orchestrator.processEvent(event, user);
         }
     }
 
@@ -101,7 +130,5 @@ class SocketHandler extends WebSocketHandler
         this.onclose = onClosed;
         this.onerror = onError;
         this.onmessage = processMessage;
-
-        this.user = new User(this);
     }
 }

@@ -16,6 +16,7 @@ class Configuration
     public static var host:String = "localhost";
     public static var port:Int = 5000;
     public static var logMask:Int = 0;
+    public static var printLog:Bool = false;
     public static var maxConnections:Int = 1000;
     public static var sleepAmount:Float = 0.5;
 
@@ -40,12 +41,15 @@ class Configuration
 
     public static function load() 
     {
+        //TODO: Load from config first, only then overwrite with options retrieved from argv
+        
         var parser:ArgParser = new ArgParser();
         parser.addArgument({flags: ["--host", "-h"], numArgs: 1, optional: true, help: "Server host"});
         parser.addArgument({flags: ["--port", "-p"], numArgs: 1, optional: true, help: "Server port"});
         parser.addArgument({flags: ["-i"], help: "Include INFO-level messages in the stdout"});
         parser.addArgument({flags: ["-m"], help: "Include DATA-level messages in the stdout"});
         parser.addArgument({flags: ["-d"], help: "Include DEBUG-level messages in the stdout"});
+        parser.addArgument({flags: ["-l"], help: "Include LOG-level messages in the stdout"});
         parser.addArgument({flags: ["--cert", "-c"], numArgs: 1, optional: true, help: "Path to the SSL certificate (.pem extension)"});
         parser.addArgument({flags: ["--key", "-k"], numArgs: 1, optional: true, help: "Path to the private SSL key"});
         parser.addArgument({flags: ["--maxconn"], numArgs: 1, optional: true, help: "Maximum number of simultaneous connections"});
@@ -72,6 +76,8 @@ class Configuration
             logMask |= Log.DATA;
         if (namespace.exists("d"))
             logMask |= Log.DEBUG;
+
+        printLog = namespace.exists("l");
 
         if (namespace.exists("cert"))
             sslCert = Certificate.loadFile(namespace.get("cert")[0]);

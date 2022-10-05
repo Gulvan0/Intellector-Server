@@ -1,5 +1,10 @@
 package services;
 
+import haxe.Serializer;
+import haxe.Unserializer;
+import net.SocketHandler;
+import entities.User;
+import utils.MathUtils;
 import haxe.crypto.Md5;
 
 class Auth 
@@ -7,6 +12,36 @@ class Auth
     private static inline final serviceName:String = "AUTH";
 
     private static var passwordHashes:Map<String, String>;
+
+    private static var userByToken:Map<String, User> = [];
+
+    public static function createSession(connection:SocketHandler):User
+    {
+        var token:String = generateSessionToken();
+        var user:User = new User(connection, token);
+        userByToken.set(token, user);
+        Logger.serviceLog(serviceName, 'Session created for ${user.getLogReference()}: $token');
+        return user;
+    }
+
+    public static function detachSession(token:String) 
+    {
+        userByToken.remove(token);
+        Logger.serviceLog(serviceName, 'Session detached by timeout: $token');
+    }
+
+    public static function getUserBySessionToken(token:String):Null<User>
+    {
+        return userByToken.get(token);
+    }
+
+    private static function generateSessionToken():String
+    {
+        var token:String = "";
+        for (i in 0...25)
+            token += String.fromCharCode(MathUtils.randomInt(33, 126));
+        return token;
+    }
 
     public static function isValid(login:String, password:String):Bool 
     {
@@ -18,12 +53,55 @@ class Auth
             return false;
     }
 
-    public static function loadHashes(hashes:Map<String, String>) 
+    public static function addCredentials(login:String, password:String) 
     {
+        passwordHashes[login] = encodePassword(password);
+        savePasswords();
+    }
+
+    public static function userExists(login:String):Bool 
+    {
+        return passwordHashes.exists(login);
+    }
+
+    private static function savePasswords() 
+    {
+        try 
+        {
+            Storage.overwrite(PasswordHashes, Serializer.run(passwordHashes));
+        }
+        catch (e)
+        {
+            Logger.logError('Failed to save the map containing the password hashes:\n$e');
+        }
+    }
+
+    public static function loadPasswords() 
+    {
+        var contents:String = Storage.read(PasswordHashes);
+        if (contents == "")
+        {
+            Logger.serviceLog(serviceName, 'Warning: no password file found, initializing with empty map');
+            passwordHashes = [];
+            savePasswords();
+            return;
+        }
+
         if (passwordHashes != null)
+        {
             Logger.logError("Attempted to load password hashes, but the map has already been initialized before");
-        else
-            passwordHashes = hashes;
+            return;
+        }
+
+        try 
+        {
+            passwordHashes = Unserializer.run(contents);
+        }
+        catch (e)
+        {
+            Logger.logError('Failed to deserialize the map containing the password hashes:\n$e');
+            return;
+        }
     }
     
     private static function encodePassword(password:String):String

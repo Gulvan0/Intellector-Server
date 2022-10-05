@@ -1,3 +1,4 @@
+import sys.thread.Thread;
 import net.SocketHandler;
 import haxe.Serializer;
 import hx.ws.WebSocketSecureServer;
@@ -12,12 +13,8 @@ class Main
 
 	public static function main() 
 	{
-        Serializer.USE_ENUM_INDEX = true;
-        Configuration.load();
-
-        Log.mask = Configuration.logMask;
-
         Routines.onStartup();
+        
         server = Configuration.constructServer();
         server.start();
     }

@@ -1,8 +1,9 @@
 package services;
 
+import haxe.io.Path;
+import stored.PlayerData;
 import sys.FileSystem;
 import haxe.Json;
-import entities.User.StoredUserData;
 import integration.Telegram;
 import sys.io.File;
 
@@ -21,6 +22,8 @@ enum DataFile
     StudyData(id:Int);
     Log(type:LogType);
     PasswordHashes;
+    ServerConfig;
+    ServerData;
 }
 
 class Storage 
@@ -43,11 +46,11 @@ class Storage
             return read(GameData(id));
     }
     
-    public static function loadPlayerData(login:String):StoredUserData
+    public static function loadPlayerData(login:String):PlayerData
     {
         if (!exists(PlayerData(login)))
         {
-            var data = new StoredUserData(login);
+            var data:PlayerData = stored.PlayerData.createForNewPlayer(login);
             savePlayerData(login, data);
             Logger.serviceLog("STORAGE", 'Created new data file for player $login');
             return data;
@@ -55,17 +58,12 @@ class Storage
 
         var content:String = read(PlayerData(login));
         var jsonData:Dynamic = Json.parse(content);
-        return new StoredUserData(login, jsonData.pastGames, jsonData.studies, jsonData.ongoingCorrespondenceGames, jsonData.friends);
+        return stored.PlayerData.fromJSON(login, jsonData);
     }
 
-    public static function savePlayerData(login:String, playerData:StoredUserData) 
+    public static function savePlayerData(login:String, playerData:PlayerData) 
     {
-        var content:String = Json.stringify({
-            pastGames: playerData.getPastGames(),
-            studies: playerData.getStudies(),
-            ongoingCorrespondenceGames: playerData.getOngoingCorrespondenceGames(),
-            friends: playerData.getFriends()
-        }, null, "    ");
+        var content:String = Json.stringify(playerData.toJSON(), null, "    ");
         overwrite(PlayerData(login), content);
     }
 
@@ -93,7 +91,7 @@ class Storage
         }
     }
 
-    private static function overwrite(file:DataFile, content:String)
+    public static function overwrite(file:DataFile, content:String)
     {
         var path:String = filePath(file);
         try
@@ -120,19 +118,31 @@ class Storage
             Logger.logError('Failed to append to $path:\n${e.details()}');
         }
     }
+
+    public static function repairGameLogs() 
+    {
+        //TODO: Fill
+    }
+
+    public static function createMissingFiles() 
+    {
+        //TODO: Fill
+    }
     
     private static function filePath(file:DataFile):String 
     {
-        return switch file 
+        return Path.directory(Sys.programPath()) + switch file 
         {
-            case PlayerData(login): './player/$login.json';
-            case GameData(id): './game/$id.txt';
-            case StudyData(id): './study/$id.txt';
-            case Log(Event): './logs/events.txt';
-            case Log(Error): './logs/errors.txt';
-            case Log(Full): './logs/full.txt';
-            case Log(Antifraud): './logs/antifraud.txt';
-            case PasswordHashes: './other/passwords.txt';
+            case PlayerData(login): '/player/$login.json';
+            case GameData(id): '/game/$id.txt';
+            case StudyData(id): '/study/$id.txt';
+            case Log(Event): '/logs/events.txt';
+            case Log(Error): '/logs/errors.txt';
+            case Log(Full): '/logs/full.txt';
+            case Log(Antifraud): '/logs/antifraud.txt';
+            case PasswordHashes: '/other/passwords.txt';
+            case ServerConfig: '/config.yaml';
+            case ServerData: '/other/serverdata.json';
         }
     }
 }

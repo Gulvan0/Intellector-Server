@@ -1,6 +1,6 @@
 package struct;
 
-import struct.Situation.PieceColor;
+import net.shared.PieceColor;
 
 enum ChallengeType
 {

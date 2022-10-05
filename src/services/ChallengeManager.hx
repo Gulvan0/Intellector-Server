@@ -9,14 +9,29 @@ class ChallengeManager
 {
     private static var lastChallengeID:Int = 0;
 
-    private static var activeOpenChallengesByOwnerLogin:Map<String, Array<Challenge>> = [];
-    private static var pendingDirectChallengesByOwnerLogin:Map<String, Array<Challenge>> = [];
+    private static var pendingChallengesByOwnerLogin:Map<String, Array<Challenge>> = [];
     private static var pendingDirectChallengesByReceiverLogin:Map<String, Array<Challenge>> = [];
     
     private static var pendingChallengeByID:Map<Int, ChallengeData> = [];
     private static var gameIDByFormerChallengeID:Map<Int, Int> = [];
 
     //TODO: Getters
+
+    public static function getAllIncomingChallengesByReceiverLogin(login:String):Array<ChallengeData>
+    {
+        var challengeInfos:Array<ChallengeData> = [];
+        var challenges:Array<Challenge> = pendingDirectChallengesByReceiverLogin.get(login);
+
+        for (challenge in challenges)
+        {
+            var info:ChallengeData = new ChallengeData();
+            info.id = challenge.id;
+            //TODO: Fill other info fields
+            challengeInfos.push(info);
+        }
+        
+        return challengeInfos;
+    }
 
     public static function create(data:ChallengeData) 
     {
@@ -37,18 +52,29 @@ class ChallengeManager
     {
         //TODO: Fill
     }
+
+    private static function cancelAllOutgoingChallenges(user:User) 
+    {
+        if (user.login == null)
+            return;
+
+        var challengeList:Null<Array<Challenge>> = pendingChallengesByOwnerLogin.get(user.login);
+
+        if (challengeList == null)
+            return;
+
+        for (challenge in challengeList)
+            cancel(challenge.id);
+    }
     
     public static function handleDisconnection(user:User) 
     {
-        if (user.pendingOutgoingChallenges == null)
-            return;
-
-        for (id in user.pendingOutgoingChallenges)
-            cancel(id);
+        cancelAllOutgoingChallenges(user);
     }
     
     public static function handleGameStart(game:Game) 
     {
-        //TODO: Fill
+        cancelAllOutgoingChallenges(game.whiteUser);
+        cancelAllOutgoingChallenges(game.blackUser);
     }
 }

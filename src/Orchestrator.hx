@@ -1,5 +1,6 @@
 package;
 
+import services.LoginManager;
 import net.shared.SignInResult;
 import services.Auth;
 import services.GameManager;
@@ -14,15 +15,6 @@ import net.shared.ClientEvent;
 
 class Orchestrator
 {
-    public static function onPlayerDisconnected(user:User) //TODO: Short-time disconnection?
-    {
-        ChallengeManager.handleDisconnection(user);
-        GameManager.handleDisconnection(user);
-        //TODO: other manages should handle that too
-        
-        //TODO: Stop spectating or following
-    }
-
     public static function processEvent(event:ClientEvent, author:User) 
     {
         var authorID:String = author.connection.id;
@@ -39,8 +31,11 @@ class Orchestrator
         switch event 
         {
             case Login(login, password):
-                //LoginManager.onLogin(author, login, password);
+                LoginManager.login(author, login, password);
             case Register(login, password):
+                LoginManager.register(author, login, password);
+            case RestoreSession(token):
+                Logger.logError('Error: trying to process RestoreSession event inside the Orchestrator method. Token: $token');
             case LogOut:
             case CreateChallenge(serializedParams):
             case CancelChallenge(challengeID):
@@ -87,6 +82,7 @@ class Orchestrator
         {
             case Login(login, password): [NotLogged];
             case Register(login, password): [NotLogged];
+            case RestoreSession(token): [];
             case LogOut: [Browsing, InGame];
             case CreateChallenge(serializedParams): [Browsing];
             case CancelChallenge(challengeID): [Browsing]; 

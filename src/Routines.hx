@@ -1,5 +1,6 @@
 package;
 
+import haxe.Serializer;
 import services.Auth;
 import services.Logger;
 import haxe.Unserializer;
@@ -9,29 +10,15 @@ class Routines
 {
     public static function onStartup() 
     {
-        //TODO: Fix broken logs, if any
-        loadPasswords();
+        Serializer.USE_ENUM_INDEX = true;
+        
+        Storage.createMissingFiles();
+        Configuration.load();
+
+        hx.ws.Log.mask = Configuration.logMask;
+        Storage.repairGameLogs();
+        Auth.loadPasswords();
     }
 
     //TODO: Regular processes
-
-    private static function loadPasswords() 
-    {
-        var contents:String = Storage.read(PasswordHashes);
-        if (contents == "")
-            return;
-
-        var map:Map<String, String> = [];
-        try 
-        {
-            Unserializer.run(contents);
-        }
-        catch (e)
-        {
-            Logger.logError('Failed to deserialize the map containing the password hashes:\n$e');
-            return;
-        }
-        
-        Auth.loadHashes(map);
-    }
 }
