@@ -1,24 +1,27 @@
 package services;
 
-import entities.User;
+import entities.UserSession;
 
 class LoginManager 
 {
-    private static var loggedUserByLogin:Map<String, User> = [];
+    private static var loggedUserByLogin:Map<String, UserSession> = [];
 
-    public static function login(user:User, login:String, password:String) 
+    public static function login(user:UserSession, login:String, password:String) 
     {
         if (Auth.isValid(login, password))
         {
-            user.onLoggedIn(login);
+            if (loggedUserByLogin.exists(login))
+                loggedUserByLogin.get(login).abortConnection(true);
+
             loggedUserByLogin.set(login, user);
+            user.onLoggedIn(login);
             user.emit(LoginResult(Success(ChallengeManager.getAllIncomingChallengesByReceiverLogin(login))));
         }
         else 
             user.emit(LoginResult(Fail));
     }
 
-    public static function register(user:User, login:String, password:String) 
+    public static function register(user:UserSession, login:String, password:String) 
     {
         if (Auth.userExists(login))
         {
@@ -31,18 +34,22 @@ class LoginManager
             user.emit(RegisterResult(Fail));
     }
 
-    public static function logout(login:String) 
+    public static function logout(user:UserSession)
     {
-        loggedUserByLogin.remove(login);
+        if (user.login == null)
+            return;
+
+        loggedUserByLogin.remove(user.login);
+        user.onLoggedOut();
     }
 
-    public static function handleDisconnection(user:User) 
+    public static function handleDisconnection(user:UserSession) 
     {
         if (user.login != null)
-            logout(user.login);
+            logout(user);
     }
 
-    public static function handleReconnection(user:User) 
+    public static function handleReconnection(user:UserSession) 
     {
         if (user.login != null)
             loggedUserByLogin.set(user.login, user);

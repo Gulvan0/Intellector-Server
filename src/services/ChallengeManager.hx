@@ -1,9 +1,10 @@
 package services;
 
+import net.shared.PieceColor;
 import entities.Challenge;
 import net.shared.ChallengeData;
 import entities.Game;
-import entities.User;
+import entities.UserSession;
 
 class ChallengeManager
 {
@@ -53,7 +54,7 @@ class ChallengeManager
         //TODO: Fill
     }
 
-    private static function cancelAllOutgoingChallenges(user:User) 
+    private static function cancelAllOutgoingChallenges(user:UserSession)
     {
         if (user.login == null)
             return;
@@ -67,14 +68,18 @@ class ChallengeManager
             cancel(challenge.id);
     }
     
-    public static function handleDisconnection(user:User) 
+    public static function handleDisconnection(user:UserSession) 
     {
         cancelAllOutgoingChallenges(user);
     }
     
     public static function handleGameStart(game:Game) 
     {
-        cancelAllOutgoingChallenges(game.whiteUser);
-        cancelAllOutgoingChallenges(game.blackUser);
+        for (color in PieceColor.createAll())
+        {
+            var session:Null<UserSession> = game.getPlayerSession(color);
+            if (session != null)
+                cancelAllOutgoingChallenges(session);
+        }
     }
 }

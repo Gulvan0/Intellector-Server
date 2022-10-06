@@ -1,7 +1,7 @@
 package net;
 
 import services.Auth;
-import entities.User;
+import entities.UserSession;
 import services.Logger;
 import net.shared.ServerEvent;
 import net.shared.ClientEvent;
@@ -17,7 +17,7 @@ using Lambda;
 class SocketHandler extends WebSocketHandler
 {
     private var isNew:Bool = true;
-    private var user:User;
+    private var user:UserSession;
 
     public function emit(event:ServerEvent) 
     {
@@ -105,7 +105,7 @@ class SocketHandler extends WebSocketHandler
         switch event
         {
             case RestoreSession(token):
-                var restoredUser:Null<User> = Auth.getUserBySessionToken(token);
+                var restoredUser:Null<UserSession> = Auth.getUserBySessionToken(token);
                 if (restoredUser != null)
                 {
                     this.user = restoredUser;

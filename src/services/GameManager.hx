@@ -1,14 +1,13 @@
 package services;
 
 import entities.Game;
-import entities.User;
+import entities.UserSession;
 
 class GameManager 
 {
     private static var lastGameID:Int = Storage.computeLastGameID();
     private static var ongoingGamesByID:Map<Int, Game> = [];
     private static var ongoingGamesByParticipantLogin:Map<String, Game> = [];
-    private static var ongoingGamesBySpectatorLogin:Map<String, Game> = [];
 
     //TODO: Add getters
 
@@ -22,7 +21,7 @@ class GameManager
         return ongoingGamesByParticipantLogin.get(login);
     }
 
-    public static function handleDisconnection(user:User) 
+    public static function handleDisconnection(user:UserSession)
     {
         //TODO: Also consider the case when an user is a spectator
         

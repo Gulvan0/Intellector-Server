@@ -1,21 +1,14 @@
 package;
 
 import services.LoginManager;
-import net.shared.SignInResult;
-import services.Auth;
-import services.GameManager;
-import services.ChallengeManager;
-import services.Storage;
-import entities.Challenge;
-import entities.Game;
 import entities.util.UserState;
 import services.Logger;
-import entities.User;
+import entities.UserSession;
 import net.shared.ClientEvent;
 
 class Orchestrator
 {
-    public static function processEvent(event:ClientEvent, author:User) 
+    public static function processEvent(event:ClientEvent, author:UserSession)
     {
         var authorID:String = author.connection.id;
         var authorState:UserState = author.getState();
@@ -37,6 +30,7 @@ class Orchestrator
             case RestoreSession(token):
                 Logger.logError('Error: trying to process RestoreSession event inside the Orchestrator method. Token: $token');
             case LogOut:
+                LoginManager.logout(author);
             case CreateChallenge(serializedParams):
             case CancelChallenge(challengeID):
             case AcceptOpenChallenge(challengeID, guestLogin, guestPassword):

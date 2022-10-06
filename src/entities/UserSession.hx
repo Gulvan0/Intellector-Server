@@ -13,7 +13,7 @@ import net.shared.ServerEvent;
 import entities.util.UserState;
 import net.SocketHandler;
 
-class User
+class UserSession
 {
     public var connection:Null<SocketHandler>;
     public var login:Null<String>;
@@ -97,6 +97,7 @@ class User
 
     private function onReconnectionTimeOut() 
     {
+        //TODO: Ask managers to execute handleSessionDestruction
         reconnectionTimer = null;
         Auth.detachSession(reconnectionToken);
     }

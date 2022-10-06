@@ -3,7 +3,7 @@ package services;
 import haxe.Serializer;
 import haxe.Unserializer;
 import net.SocketHandler;
-import entities.User;
+import entities.UserSession;
 import utils.MathUtils;
 import haxe.crypto.Md5;
 
@@ -13,12 +13,12 @@ class Auth
 
     private static var passwordHashes:Map<String, String>;
 
-    private static var userByToken:Map<String, User> = [];
+    private static var userByToken:Map<String, UserSession> = [];
 
-    public static function createSession(connection:SocketHandler):User
+    public static function createSession(connection:SocketHandler):UserSession
     {
         var token:String = generateSessionToken();
-        var user:User = new User(connection, token);
+        var user:UserSession = new UserSession(connection, token);
         userByToken.set(token, user);
         Logger.serviceLog(serviceName, 'Session created for ${user.getLogReference()}: $token');
         return user;
@@ -30,7 +30,7 @@ class Auth
         Logger.serviceLog(serviceName, 'Session detached by timeout: $token');
     }
 
-    public static function getUserBySessionToken(token:String):Null<User>
+    public static function getUserBySessionToken(token:String):Null<UserSession>
     {
         return userByToken.get(token);
     }

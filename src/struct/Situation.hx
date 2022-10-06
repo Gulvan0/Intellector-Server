@@ -218,6 +218,77 @@ class Situation
         return new Situation(pieces, White);
     }
 
+    public function revertPly(ply:Ply)
+    {
+        if (turnColor == White)
+            turnColor = Black;
+        else
+            turnColor = White;
+
+        switch ply 
+        {
+            case NormalMove(from, to, _):
+                pieces[from] = pieces[to];
+                pieces[to] = null;
+            case NormalCapture(from, to, _, capturedPiece):
+                pieces[from] = pieces[to];
+                pieces[to] = new Piece(capturedPiece, opposite(turnColor));
+            case ChameleonCapture(from, to, _, capturingPiece):
+                pieces[from] = new Piece(capturingPiece, turnColor);
+                pieces[to] = new Piece(pieces[to].type, opposite(turnColor));
+            case Promotion(from, to, _):
+                pieces[from] = new Piece(Progressor, turnColor);
+                pieces[to] = null;
+            case PromotionWithCapture(from, to, capturedPiece, _):
+                pieces[from] = new Piece(Progressor, turnColor);
+                pieces[to] = new Piece(capturedPiece, opposite(turnColor));
+            case Castling(from, to):
+                var tmp:Piece = pieces[from];
+                pieces[from] = pieces[to];
+                pieces[to] = tmp;
+        }
+    }
+
+    public function plyFromValidParams(from:Int, to:Int, morphInto:Null<PieceType>):Ply 
+    {
+        if (pieces[to] != null)
+            if (pieces[from].color == pieces[to].color)
+                return Castling(from, to);
+            else if (morphInto == null)
+                return NormalCapture(from, to, pieces[from].type, pieces[to].type);
+            else if (pieces[from].type == Progressor)
+                return PromotionWithCapture(from, to, pieces[to].type, morphInto);
+            else
+                return ChameleonCapture(from, to, pieces[from].type, pieces[from].type);
+        else if (morphInto != null)
+            return Promotion(from, to, morphInto);
+        else
+            return NormalMove(from, to, pieces[from].type);
+    }
+
+    public function isPlyProgressive(ply:Ply):Bool
+    {
+        switch ply 
+        {
+            case NormalMove(_, _, movingPiece):
+                return movingPiece == Progressor;
+            case NormalCapture(_, _, _, _), ChameleonCapture(_, _, _, _), Promotion(_, _, _), PromotionWithCapture(_, _, _, _):
+                return true;
+            case Castling(_, _):
+                return false;
+        }
+    }
+
+    public function doesLeadToMate(from:Int, to:Int, morphInto:Null<PieceType>):Bool
+    {
+        return pieces[to].color != pieces[from].color && pieces[to].type == Intellector;
+    }
+
+    public function doesLeadToBreakthrough(from:Int, to:Int, morphInto:Null<PieceType>):Bool
+    {
+        return TwoDimCoords.fromScalarCoord(from).isFinal(pieces[from].color) && pieces[from].type == Intellector;
+    }
+
     public function applyMove(from:Int, to:Int, morphInto:Null<PieceType>)
     {
         if (morphInto != null)
