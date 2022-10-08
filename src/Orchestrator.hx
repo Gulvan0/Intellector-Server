@@ -20,6 +20,8 @@ class Orchestrator
             Logger.logError('Skipping irrelevant event ${event.getName()} for author $authorID (state = ${authorState.getName()})');
             return;
         }
+        
+        author.storedData.onMessageReceived();
 
         switch event 
         {
@@ -31,18 +33,21 @@ class Orchestrator
                 Logger.logError('Error: trying to process RestoreSession event inside the Orchestrator method. Token: $token');
             case LogOut:
                 LoginManager.logout(author);
+
             case CreateChallenge(serializedParams):
             case CancelChallenge(challengeID):
             case AcceptOpenChallenge(challengeID, guestLogin, guestPassword):
             case AcceptDirectChallenge(challengeID):
             case DeclineDirectChallenge(challengeID):
+            case GetOpenChallenge(id):
+
+            case FollowPlayer(login):
+            case StopFollowing:
+            case StopSpectating:
+
             case Move(fromI, toI, fromJ, toJ, morphInto):
             case RequestTimeoutCheck:
             case Message(text):
-            case GetOpenChallenge(id):
-            case FollowPlayer(login):
-            case StopSpectating:
-            case StopFollowing:
             case Resign:
             case OfferDraw:
             case CancelDraw:
@@ -52,12 +57,15 @@ class Orchestrator
             case CancelTakeback:
             case AcceptTakeback:
             case DeclineTakeback:
+            case AddTime:
+
             case CreateStudy(info):
             case OverwriteStudy(overwrittenStudyID, info):
             case DeleteStudy(id):
-            case AddTime:
+
             case GetGame(id):
             case GetStudy(id):
+
             case GetMiniProfile(login):
             case GetPlayerProfile(login):
             case AddFriend(login):
@@ -65,6 +73,7 @@ class Orchestrator
             case GetGamesByLogin(login, after, pageSize, filterByTimeControl):
             case GetStudiesByLogin(login, after, pageSize, filterByTags):
             case GetOngoingGamesByLogin(login):
+                
             case GetOpenChallenges:
             case GetCurrentGames:
         }

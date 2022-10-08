@@ -6,8 +6,8 @@ import struct.Direction;
 
 class HexCoords
 {
-    public var i:Int;
-    public var j:Int;
+    public final i:Int;
+    public final j:Int;
 
     public function isFinal(color:PieceColor) 
     {

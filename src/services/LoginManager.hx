@@ -6,6 +6,11 @@ class LoginManager
 {
     private static var loggedUserByLogin:Map<String, UserSession> = [];
 
+    public static function getLoggedUsers():Array<UserSession>
+    {
+        return Lambda.array(loggedUserByLogin);
+    }
+
     public static function login(user:UserSession, login:String, password:String) 
     {
         if (Auth.isValid(login, password))

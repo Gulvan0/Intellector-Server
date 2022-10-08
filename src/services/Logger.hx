@@ -19,7 +19,7 @@ class Logger
         var message:String = '> $senderStr | $eventStr';
         Storage.appendLog(Event, message);
         Storage.appendLog(Full, message);
-        if (Configuration.printLog)
+        if (Config.printLog)
             trace(message);
     }
 
@@ -31,7 +31,7 @@ class Logger
         var message:String = '< $receiverStr | $eventStr';
         Storage.appendLog(Event, message);
         Storage.appendLog(Full, message);
-        if (Configuration.printLog)
+        if (Config.printLog)
             trace(message);
     }
 
@@ -41,7 +41,7 @@ class Logger
             Telegram.notifyAdmin(message);
         Storage.appendLog(Error, message);
         Storage.appendLog(Full, "! " + message);
-        if (Configuration.printLog)
+        if (Config.printLog)
             trace("! " + message);
     }
 
@@ -49,7 +49,7 @@ class Logger
     {
         var message:String = '@ $service | $entry';
         Storage.appendLog(Full, message);
-        if (Configuration.printLog)
+        if (Config.printLog)
             trace(message);
     }
 }

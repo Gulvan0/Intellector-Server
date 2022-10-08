@@ -61,6 +61,27 @@ class Situation
         return new Situation(pieces, turnColor);
     }
 
+    public function getHash():String
+    {
+        var hash:String = "";
+
+        for (t in 0...59)
+        {
+            var coords:HexCoords = HexCoords.fromScalarCoord(t);
+            var piece:Null<Piece> = pieces.get(coords);
+
+            if (piece == null)
+                continue;
+
+            hash += t;
+            hash += letter(piece.type);
+            if (piece.color == Black)
+                hash += "!";
+        }
+
+        return hash;
+    }
+
     public function performPly(from:HexCoords, to:HexCoords, morphInto:Null<PieceType>):PerformPlyResult
     {
         var ply:Ply = Ply.construct(pieces, from, to, morphInto);

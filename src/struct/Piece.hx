@@ -5,8 +5,8 @@ import net.shared.PieceType;
 
 class Piece
 {
-    public var type(default, null):PieceType;
-    public var color(default, null):PieceColor;
+    public final type:PieceType;
+    public final color:PieceColor;
 
     public function new(type:PieceType, color:PieceColor)
     {

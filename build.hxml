@@ -1,6 +1,8 @@
 -cp src
 -D analyzer-optimize
+-D threaded_server
 --hl hl/app.hl
 -main Main
 --library hxWebSockets
 --library argparse
+--library yaml

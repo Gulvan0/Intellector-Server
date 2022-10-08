@@ -1,5 +1,8 @@
 package;
 
+import sys.thread.Thread;
+import integration.Telegram;
+import haxe.Timer;
 import haxe.Serializer;
 import services.Auth;
 import services.Logger;
@@ -13,12 +16,18 @@ class Routines
         Serializer.USE_ENUM_INDEX = true;
         
         Storage.createMissingFiles();
-        Configuration.load();
+        Config.load();
 
-        hx.ws.Log.mask = Configuration.logMask;
+        hx.ws.Log.mask = Config.logMask;
         Storage.repairGameLogs();
         Auth.loadPasswords();
+
+        Thread.createWithEventLoop(initCheckTGTimer);
     }
 
-    //TODO: Regular processes
+    private static function initCheckTGTimer() 
+    {
+        var timer:Timer = new Timer(1000);
+        timer.run = Telegram.checkAdminChat;    
+    }
 }

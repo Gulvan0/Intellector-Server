@@ -1,8 +1,7 @@
-import sys.thread.Thread;
+import integration.Telegram;
+import services.CommandProcessor;
+import integration.Vk;
 import net.SocketHandler;
-import haxe.Serializer;
-import hx.ws.WebSocketSecureServer;
-import hx.ws.Log;
 import hx.ws.WebSocketServer;
 using Lambda;
 using StringTools;
@@ -15,7 +14,10 @@ class Main
 	{
         Routines.onStartup();
         
-        server = Configuration.constructServer();
+        server = Config.constructServer();
         server.start();
+        
+        while (true)
+            CommandProcessor.processCommand(Sys.stdin().readLine(), Sys.println);
     }
 }

@@ -69,7 +69,7 @@ class Storage
 
     public static function appendLog(log:LogType, entry:String) 
     {
-        append(Log(log), '###${Date.now().toString()}###\n$entry\n');
+        append(Log(log), '\n### ${Date.now().toString()} ###\n\n$entry\n');
     }
 
     public static function exists(file:DataFile):Bool
