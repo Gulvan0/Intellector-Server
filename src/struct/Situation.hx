@@ -4,6 +4,8 @@ import struct.Ply;
 import net.shared.Outcome;
 import net.shared.PieceColor;
 import net.shared.PieceType;
+import net.shared.PieceType.letter as pieceLetter;
+import net.shared.PieceColor.letter as colorLetter;
 
 enum PerformPlyResult
 {
@@ -60,6 +62,26 @@ class Situation
 
         return new Situation(pieces, turnColor);
     }
+
+    public function serialize():String
+    {
+		var playerPiecesStr:Map<PieceColor, String> = [White => '', Black => ''];
+
+        for (t in 0...59) 
+        {
+            var coords:HexCoords = HexCoords.fromScalarCoord(t);
+            var piece:Null<Piece> = pieces.get(coords);
+
+            if (piece == null)
+                continue;
+            
+            var pieceStr:String = String.fromCharCode(t + 64) + pieceLetter(piece.type);
+
+            playerPiecesStr[piece.color] += pieceStr;
+        }
+
+        return colorLetter(turnColor) + playerPiecesStr[White] + "!" + playerPiecesStr[Black];
+	}
 
     public function getHash():String
     {

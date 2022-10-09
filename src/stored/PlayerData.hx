@@ -1,5 +1,7 @@
 package stored;
 
+import net.shared.EloValue;
+import net.shared.TimeControlType;
 import services.Storage;
 import haxe.Json;
 
@@ -10,6 +12,8 @@ class PlayerData
     private var studies:Array<Int>;
     private var ongoingCorrespondenceGames:Array<Int>;
     private var friends:Array<String>;
+    private var elo:Map<TimeControlType, EloValue>;
+    private var gamesPlayed:Map<TimeControlType, Int>;
     private var lastMessageTimestamp:Float;
 
     public static function createForNewPlayer(login:String):PlayerData 
@@ -19,7 +23,25 @@ class PlayerData
 
     public static function fromJSON(login:String, json:Dynamic):PlayerData
     {
-        return new PlayerData(login, json.lastMessageTimestamp, json.pastGames, json.studies, json.ongoingCorrespondenceGames, json.friends);
+        var elo:Map<TimeControlType, EloValue> = [];
+        var gamesPlayed:Map<TimeControlType, Int> = [];
+
+        for (timeControl in TimeControlType.createAll())
+        {
+            var fieldName:String = timeControl.getName();
+
+            if (Reflect.hasField(json.elo, fieldName))
+                elo.set(timeControl, deserialize(json.elo));
+            else
+                elo.set(timeControl, None);
+
+            if (Reflect.hasField(json.gamesPlayed, fieldName))
+                gamesPlayed.set(timeControl, Std.parseInt(json.gamesPlayed));
+            else
+                gamesPlayed.set(timeControl, 0);
+        }
+
+        return new PlayerData(login, json.lastMessageTimestamp, json.pastGames, json.studies, json.ongoingCorrespondenceGames, json.friends, elo, gamesPlayed);
     }
 
     public function toJSON():Dynamic
@@ -31,6 +53,16 @@ class PlayerData
             friends: friends,
             lastMessageTimestamp: lastMessageTimestamp
         };
+    }
+
+    public function getPlayedGamesCnt(timeControl:TimeControlType):Int
+    {
+        return gamesPlayed.get(timeControl);
+    }
+
+    public function getELO(timeControl:TimeControlType):EloValue
+    {
+        return elo.get(timeControl);
     }
 
     public function getPastGames():Array<Int>
@@ -48,9 +80,18 @@ class PlayerData
         return ongoingCorrespondenceGames.copy();
     }
 
-    public function addPastGame(id:Int)
+    public function addPastGame(id:Int, timeControl:TimeControlType, ?newElo:EloValue)
     {
         pastGames.push(id);
+
+        if (gamesPlayed.exists(timeControl))
+            gamesPlayed[timeControl]++;
+        else
+            gamesPlayed.set(timeControl, 1);
+
+        if (newElo != null)
+            elo.set(timeControl, newElo);
+
         Storage.savePlayerData(login, this);
     }
 
@@ -109,7 +150,7 @@ class PlayerData
         return Date.fromTime(lastMessageTimestamp);
     }
 
-    private function new(login:String, lastMessageTimestamp:Float, ?pastGames:Array<Int>, ?studies:Array<Int>, ?ongoingCorrespondenceGames:Array<Int>, ?friends:Array<String>) 
+    private function new(login:String, lastMessageTimestamp:Float, ?pastGames:Array<Int>, ?studies:Array<Int>, ?ongoingCorrespondenceGames:Array<Int>, ?friends:Array<String>, ?elo:Map<TimeControlType, EloValue>, ?gamesPlayed:Map<TimeControlType, Int>) 
     {
         this.login = login;
         this.pastGames = pastGames != null? pastGames : [];
@@ -117,6 +158,7 @@ class PlayerData
         this.ongoingCorrespondenceGames = ongoingCorrespondenceGames != null? ongoingCorrespondenceGames : [];
         this.friends = friends != null? friends : [];
         this.lastMessageTimestamp = lastMessageTimestamp;
-        //TODO: Add ELO
+        this.elo = elo != null? elo : [for (timeControl in TimeControlType.createAll()) timeControl => None];
+        this.gamesPlayed = gamesPlayed != null? gamesPlayed : [for (timeControl in TimeControlType.createAll()) timeControl => 0];
     }
 }

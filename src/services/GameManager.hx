@@ -11,9 +11,14 @@ class GameManager
 
     //TODO: Add getters
 
-    public static function getGameByID() 
+    public static function getGameByID(id:Int) 
     {
         //TODO: (Any game, even correspondence or past ones)
+    }
+
+    public static function getOngoingGameByID(id:Int):Null<Game>
+    {
+        return ongoingGamesByID.get(id);
     }
 
     public static function getOngoingGameByParticipantLogin(login:String):Null<Game>

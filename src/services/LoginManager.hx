@@ -6,6 +6,11 @@ class LoginManager
 {
     private static var loggedUserByLogin:Map<String, UserSession> = [];
 
+    public static function getUser(login:String):Null<UserSession>
+    {
+        return loggedUserByLogin.get(login);
+    }
+
     public static function getLoggedUsers():Array<UserSession>
     {
         return Lambda.array(loggedUserByLogin);
