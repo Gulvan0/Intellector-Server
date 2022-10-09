@@ -31,6 +31,11 @@ class Config
     public static var vkToken:Null<String>;
     public static var vkChatID:Null<String>;
 
+    public static var defaultElo:Int = 1200;
+    public static var maxEloLogSlope:Float = 7.0;
+    public static var normalEloLogSlope:Float = 4.0;
+    public static var calibrationGamesCount:Int = 12;
+
     public static function hasSSL():Bool
     {
         return sslCert != null && sslKey != null;
@@ -81,6 +86,23 @@ class Config
 
         if (data.exists("sleep"))
             sleepAmount = data.get("sleep");
+
+        if (data.exists("elo"))
+        {
+            var eloMap:AnyObjectMap = data.get("elo");
+
+            if (eloMap.exists("default"))
+                defaultElo = eloMap.get("default");
+
+            if (eloMap.exists("max-logslope"))
+                maxEloLogSlope = eloMap.get("max-logslope");
+
+            if (eloMap.exists("normal-logslope"))
+                normalEloLogSlope = eloMap.get("normal-logslope");
+
+            if (eloMap.exists("calibration-games"))
+                calibrationGamesCount = eloMap.get("calibration-games");
+        }
 
         if (data.exists("integrations"))
         {
