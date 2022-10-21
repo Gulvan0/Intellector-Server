@@ -1,5 +1,7 @@
 package;
 
+import struct.ChallengeParams;
+import services.ChallengeManager;
 import services.LoginManager;
 import entities.util.UserState;
 import services.Logger;
@@ -35,11 +37,15 @@ class Orchestrator
                 LoginManager.logout(author);
 
             case CreateChallenge(serializedParams):
+                ChallengeManager.create(author, ChallengeParams.deserialize(serializedParams));
             case CancelChallenge(challengeID):
-            case AcceptOpenChallenge(challengeID, guestLogin, guestPassword):
-            case AcceptDirectChallenge(challengeID):
+                ChallengeManager.cancel(author, challengeID);
+            case AcceptChallenge(challengeID):
+                ChallengeManager.accept(author, challengeID);
             case DeclineDirectChallenge(challengeID):
+                ChallengeManager.decline(author, challengeID);
             case GetOpenChallenge(id):
+                ChallengeManager.getOpenChallenge(author, id);
 
             case FollowPlayer(login):
             case StopFollowing:
@@ -58,6 +64,7 @@ class Orchestrator
             case AcceptTakeback:
             case DeclineTakeback:
             case AddTime:
+            case SimpleRematch:
 
             case CreateStudy(info):
             case OverwriteStudy(overwrittenStudyID, info):
@@ -89,9 +96,7 @@ class Orchestrator
             case LogOut: [Browsing, InGame];
             case CreateChallenge(serializedParams): [Browsing];
             case CancelChallenge(challengeID): [Browsing]; 
-            case AcceptOpenChallenge(challengeID, guestLogin, guestPassword) if (guestLogin != null): [NotLogged];
-            case AcceptOpenChallenge(challengeID, guestLogin, guestPassword): [Browsing];
-            case AcceptDirectChallenge(challengeID): [Browsing];
+            case AcceptChallenge(challengeID): [NotLogged, Browsing];
             case DeclineDirectChallenge(challengeID): [Browsing];
             case Move(fromI, toI, fromJ, toJ, morphInto): [InGame];
             case RequestTimeoutCheck: [InGame];
@@ -110,6 +115,7 @@ class Orchestrator
             case AcceptTakeback: [InGame];
             case DeclineTakeback: [InGame];
             case AddTime: [InGame];
+            case SimpleRematch: [Browsing];
             case CreateStudy(info): [Browsing];
             case OverwriteStudy(overwrittenStudyID, info): [Browsing];
             case DeleteStudy(id): [Browsing];

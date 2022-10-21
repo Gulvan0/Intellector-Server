@@ -24,8 +24,8 @@ abstract DefaultCountMap<T>(Map<T, Int>) from Map<T, Int> to Map<T, Int>
             this.remove(key);
     }
 
-    public function new() 
+    public function new(map:Map<T, Int>) 
     {
-        this = new Map<T, Int>();    
+        this = map;    
     }
 }

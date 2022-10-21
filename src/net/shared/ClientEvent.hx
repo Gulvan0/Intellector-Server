@@ -8,9 +8,9 @@ enum ClientEvent
     LogOut;
     CreateChallenge(serializedParams:String);
     CancelChallenge(challengeID:Int);
-    AcceptOpenChallenge(challengeID:Int, guestLogin:Null<String>, guestPassword:Null<String>); 
-    AcceptDirectChallenge(challengeID:Int); 
+    AcceptChallenge(challengeID:Int); 
     DeclineDirectChallenge(challengeID:Int);
+    SimpleRematch;
     Move(fromI:Int, toI:Int, fromJ:Int, toJ:Int, morphInto:Null<PieceType>); 
     RequestTimeoutCheck; 
     Message(text:String); 

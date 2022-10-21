@@ -46,6 +46,14 @@ class UserSession
             return 'Player($login, ${connection.id})';
     }
 
+    public function getInteractionReference():String 
+    {
+        if (login == null)
+            return reconnectionToken;
+        else
+            return login;
+    }
+
     public function emit(event:ServerEvent) 
     {
         if (connection != null)

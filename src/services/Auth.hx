@@ -37,7 +37,7 @@ class Auth
 
     private static function generateSessionToken():String
     {
-        var token:String = "";
+        var token:String = "_";
         for (i in 0...25)
             token += String.fromCharCode(MathUtils.randomInt(33, 126));
         return token;

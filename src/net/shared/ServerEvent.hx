@@ -12,16 +12,17 @@ enum ServerEvent
     CreateChallengeResult(result:SendChallengeResult);
 
     IncomingDirectChallenge(data:ChallengeData);
+    //TODO: DirectChallengeCancelled (server should emit whenever cancelled, client should respond by removing the corresponding entry from the menubar challenge list)
 
     DirectChallengeDeclined(id:Int); //Recipient has declined the challenge. Its 'accepted' counterpart doesn't exist, instead, GameStarted is sent right away
 
-    DirectChallengeCancelled(caller:String); //Answer to accepting direct challenge: it was cancelled before the recipient answered //TODO: Ensure this has lower priority than the following two
-    DirectChallengeCallerOffline(caller:String); //Answer to accepting direct challenge: caller went offline before the recipient answered
-    DirectChallengeCallerInGame(caller:String); //Answer to accepting direct challenge: caller joined a different game before the recipient answered
+    ChallengeCancelledByOwner; //Answer to AcceptChallenge: it was cancelled before the recipient answered
+    ChallengeOwnerOffline(owner:String); //Answer to AcceptChallenge: caller went offline before the recipient answered
+    ChallengeOwnerInGame(owner:String); //Answer to AcceptChallenge: caller joined a different game before the recipient answered
     
     OpenChallengeInfo(data:ChallengeData); //Answer to GetOpenChallenge when it exists with challenge parameters
     OpenChallengeHostPlaying(gameID:Int, timeData:Null<TimeReservesData>, currentLog:String); //Answer to GetOpenChallenge: host already started a game
-    OpenchallengeNotFound; //Answer to GetOpenChallenge when it doesn't exist
+    OpenChallengeNotFound; //Answer to GetOpenChallenge when it doesn't exist
     
     LoginResult(result:SignInResult); //Answer to Login
     RegisterResult(result:SignInResult); //Answer to Register

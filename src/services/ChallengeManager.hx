@@ -13,15 +13,15 @@ class ChallengeManager
 {
     private static var lastChallengeID:Int = 0;
 
-    private static var pendingChallengeIDsByOwnerLogin:DefaultArrayMap<String, Int> = new DefaultArrayMap();
-    private static var pendingDirectChallengeIDsByReceiverLogin:DefaultArrayMap<String, Int> = new DefaultArrayMap();
+    private static var pendingChallengeIDsByOwnerLogin:DefaultArrayMap<String, Int> = new DefaultArrayMap([]);
+    private static var pendingDirectChallengeIDsByReceiverLogin:DefaultArrayMap<String, Int> = new DefaultArrayMap([]);
     
     private static var pendingPublicChallengeByIndicator:Map<String, Challenge> = [];
 
     private static var pendingChallengeByID:Map<Int, Challenge> = [];
-    private static var gameIDByFormerChallengeID:Map<Int, Int> = [];
 
-    //TODO: Getters
+    private static var ownerLoginByFormerChallengeID:Map<Int, String> = [];
+    private static var gameIDByFormerChallengeID:Map<Int, Int> = [];
 
     public static function getAllIncomingChallengesByReceiverLogin(login:String):Array<ChallengeData>
     {
@@ -30,23 +30,55 @@ class ChallengeManager
         var challenges:Array<Challenge> = [for (id in ids) pendingChallengeByID.get(id)];
 
         for (challenge in challenges)
-        {
-            if (challenge == null)
-                continue;
+            if (challenge != null)
+                challengeInfos.push(challenge.toChallengeData());
 
-            var info:ChallengeData = new ChallengeData();
-            info.id = challenge.id;
-            info.serializedParams = challenge.params.serialize();
-            info.ownerLogin = challenge.ownerLogin;
-            info.ownerELO = Storage.loadPlayerData(login).getELO(challenge.params.timeControl.getType());
-            challengeInfos.push(info);
-        }
-        
         return challengeInfos;
+    }
+
+    public static function getOpenChallenge(requestAuthor:UserSession, id:Int) 
+    {
+        Logger.serviceLog('CHALLENGE', '${requestAuthor.getLogReference()} requested info for challenge $id');
+
+        var challenge:Null<Challenge> = pendingChallengeByID.get(id);
+        if (challenge == null)
+        {
+            var gameID:Null<Int> = gameIDByFormerChallengeID.get(id);
+            var game:Null<Game> = gameID != null? GameManager.getOngoingGameByID(gameID) : null;
+            
+            if (game != null)
+            {
+                Logger.serviceLog('CHALLENGE', 'Challenge $id has been fullfilled, the corresponding game is still in progress');
+                requestAuthor.emit(OpenChallengeHostPlaying(gameID, game.getTimeData(), game.getLog()));
+                //TODO: Make requestAuthor a spectator
+            }
+            else
+            {
+                Logger.serviceLog('CHALLENGE', 'Challenge $id does not exist');
+                requestAuthor.emit(OpenChallengeNotFound);
+            }
+        }
+        else if (challenge.isDirect())
+        {
+            Logger.serviceLog('CHALLENGE', 'Challenge $id is direct');
+            requestAuthor.emit(OpenChallengeNotFound);
+        }
+        else if (requestAuthor.login == null && challenge.params.timeControl.getType() == Correspondence)
+        {
+            Logger.serviceLog('CHALLENGE', 'Challenge $id has correspondence time control, but the player requesting it is anonymous');
+            requestAuthor.emit(OpenChallengeNotFound);
+        }
+        else
+        {
+            Logger.serviceLog('CHALLENGE', 'Challenge $id was found successfully');
+            requestAuthor.emit(OpenChallengeInfo(challenge.toChallengeData()));
+        }
     }
 
     public static function create(requestAuthor:UserSession, params:ChallengeParams) 
     {
+        Logger.serviceLog('CHALLENGE', '${requestAuthor.getLogReference()} requested creating a new challenge');
+
         if (requestAuthor.getState() != Browsing)
             return;
 
@@ -56,6 +88,7 @@ class ChallengeManager
                 var compatibleChallenge:Null<Challenge> = pendingPublicChallengeByIndicator.get(compatibleIndicator);
                 if (compatibleChallenge != null)
                 {
+                    Logger.serviceLog('CHALLENGE', 'Found compatible challenge ${compatibleChallenge.id}, accepting it...');
                     pendingPublicChallengeByIndicator.remove(compatibleIndicator);
                     accept(requestAuthor, compatibleChallenge.id);
                     return;
@@ -79,6 +112,7 @@ class ChallengeManager
             default:
         }
 
+        Logger.serviceLog('CHALLENGE', 'Challenge ${challenge.id} has been created by ${challenge.ownerLogin}');
     }
 
     private static function removeChallenge(challenge:Challenge) 
@@ -104,44 +138,77 @@ class ChallengeManager
             return;
 
         removeChallenge(challenge);
-    } 
+
+        Logger.serviceLog('CHALLENGE', 'Challenge ${challenge.id} is cancelled by its owner');
+    }
+
+    private static function fulfillChallenge(challenge:Challenge, ownerSession:UserSession, acceptorSession:UserSession) 
+    {
+        removeChallenge(challenge);
+        
+        var gameID:Int = GameManager.startGame(challenge.params, ownerSession, acceptorSession);
+        gameIDByFormerChallengeID.set(challenge.id, gameID);
+        ownerLoginByFormerChallengeID.set(challenge.id, challenge.ownerLogin);
+        
+        Logger.serviceLog('CHALLENGE', 'Challenge ${challenge.id} has been fulfilled. Acceptor: ${acceptorSession.getLogReference()}. See game $gameID');
+    }
 
     public static function accept(requestAuthor:UserSession, id:Int) 
     {
         var challenge:Null<Challenge> = pendingChallengeByID.get(id);
-        
-        if (requestAuthor.login == null)
-            if (challenge == null || challenge.params.type.match(Direct(_)))
-                return;
-            else
-            {
-                //TODO: Accept open challenge as guest??
-            }
 
-        var ownerSession = LoginManager.getUser(challenge.ownerLogin);
-        var gameID = gameIDByFormerChallengeID.get(id);
-
-        if (challenge != null && ownerSession != null)
+        if (challenge == null)
         {
-            //TODO: Accept challenge
+            var ownerLogin:Null<String> = ownerLoginByFormerChallengeID.get(id);
+            var ownerSession:Null<UserSession> = ownerLogin == null? null : LoginManager.getUser(ownerLogin);
+
+            if (ownerLogin == null)
+                requestAuthor.emit(ChallengeCancelledByOwner);
+            else if (ownerSession == null)
+                requestAuthor.emit(ChallengeOwnerOffline(ownerLogin));
+            else if (ownerSession.getState() == InGame)
+                requestAuthor.emit(ChallengeOwnerInGame(ownerLogin));
+            else
+                requestAuthor.emit(ChallengeCancelledByOwner);
+
+            Logger.serviceLog('CHALLENGE', 'Failed to accept challenge $id: challenge not found');
+            return;
         }
-        else if (challenge != null)
+        
+        var ownerSession = LoginManager.getUser(challenge.ownerLogin);
+
+        if (ownerSession == null)
         {
             removeChallenge(challenge);
-            requestAuthor.emit(OpenchallengeNotFound);
+            requestAuthor.emit(ChallengeOwnerOffline(challenge.ownerLogin));
             Logger.logError('Challenge ${challenge.id} is present, but the owner (${challenge.ownerLogin}) is offline');
         }
-        else if (gameID != null && GameManager.getOngoingGameByID(gameID) != null)
-        {
-            //TODO: Send game data
-        }
-        else
-            requestAuthor.emit(OpenchallengeNotFound); //TODO: Or maybe use other event?
+        else if (requestAuthor.login == null && challenge.isDirect())
+            Logger.serviceLog('CHALLENGE', 'Anonymous user ${requestAuthor.getLogReference()} attempted to accept a direct challenge ${challenge.id}. Refusing');
+        else if (requestAuthor.login == null && challenge.params.timeControl.getType() == Correspondence)
+            Logger.serviceLog('CHALLENGE', 'Anonymous user ${requestAuthor.getLogReference()} attempted to accept a challenge ${challenge.id} having correspondence time control. Refusing');
+        else 
+            fulfillChallenge(challenge, ownerSession, requestAuthor);
     }
 
     public static function decline(requestAuthor:UserSession, id:Int) 
     {
-        //TODO: Fill
+        Logger.serviceLog('CHALLENGE', '${requestAuthor.getLogReference()} attempted to decline challenge $id');
+
+        var challenge:Null<Challenge> = pendingChallengeByID.get(id);
+
+        if (challenge == null)
+        {
+            Logger.serviceLog('CHALLENGE', 'Failed to decline challenge $id: challenge not found');
+            return;
+        }
+
+        removeChallenge(challenge);
+
+        var ownerSession = LoginManager.getUser(challenge.ownerLogin);
+
+        if (ownerSession != null)
+            ownerSession.emit(DirectChallengeDeclined(id));
     }
 
     private static function cancelAllOutgoingChallenges(user:UserSession)

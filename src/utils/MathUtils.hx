@@ -11,4 +11,9 @@ class MathUtils
     {
         return from + Math.floor(Math.random() * (to - from + 1));
     }
+
+    public static function bernoulli(p:Float):Bool 
+    {
+        return Math.random() < p;
+    }
 }

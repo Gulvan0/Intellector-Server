@@ -26,8 +26,8 @@ abstract DefaultArrayMap<K, V>(Map<K, Array<V>>) from Map<K, Array<V>> to Map<K,
         }
     }
 
-    public function new() 
+    public function new(map:Map<K, Array<V>>) 
     {
-        this = new Map<K, Array<V>>();    
+        this = map;   
     }
 }

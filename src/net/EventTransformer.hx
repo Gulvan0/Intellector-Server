@@ -12,8 +12,6 @@ class EventTransformer
                 Login(login.toLowerCase(), password);
             case Register(login, password):
                 Register(login.toLowerCase(), password);
-            case AcceptOpenChallenge(challengeID, guestLogin, guestPassword):
-                AcceptOpenChallenge(challengeID, guestLogin.toLowerCase(), guestPassword);
             case FollowPlayer(login):
                 FollowPlayer(login.toLowerCase());
             case GetMiniProfile(login):

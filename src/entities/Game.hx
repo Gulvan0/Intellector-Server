@@ -17,8 +17,6 @@ class Game
     private var id:Int;
     private var log(default, set):String;
 
-    private var playerLogins:Map<PieceColor, String>;
-
     private var playerSessions:Map<PieceColor, Null<UserSession>>;
     private var spectatorSessions:Array<UserSession> = [];
 
@@ -39,6 +37,11 @@ class Game
     public function getPlayerSession(color:PieceColor):Null<UserSession> 
     {
         return playerSessions.get(color);
+    }
+
+    public function getLog() 
+    {
+        return log;    
     }
 
     private function set_log(value:String):String 
@@ -99,12 +102,15 @@ class Game
         broadcast(SpectatorLeft(session.login));
     }
 
-    private function broadcastTimeData()
+    public function getTimeData():TimeReservesData
     {
         var secsLeft = secondsLeftOnMoveStart[moveNum];
-        var timeData = new TimeReservesData(secsLeft.get(White), secsLeft.get(Black), moveStartTimestamp);
+        return new TimeReservesData(secsLeft.get(White), secsLeft.get(Black), moveStartTimestamp);
+    }
 
-        broadcast(TimeCorrection(timeData));
+    private function broadcastTimeData()
+    {
+        broadcast(TimeCorrection(getTimeData()));
     }
 
     public function checkTime() 
