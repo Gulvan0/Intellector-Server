@@ -1,5 +1,7 @@
 package services;
 
+import entities.CorrespondenceGame;
+import entities.FiniteTimeGame;
 import utils.MathUtils;
 import net.shared.PieceColor;
 import struct.ChallengeParams;
@@ -10,10 +12,25 @@ import entities.UserSession;
 class GameManager 
 {
     private static var lastGameID:Int = Storage.computeLastGameID();
-    private static var ongoingGamesByID:Map<Int, Game> = [];
+    private static var finiteTimeGamesByID:Map<Int, FiniteTimeGame> = [];
     private static var ongoingGamesByParticipantLogin:Map<String, Game> = [];
 
     //TODO: Add getters
+
+    public static function getGameByID(id:Int) 
+    {
+        //TODO: (Any game, even correspondence or past ones)
+    }
+
+    public static function getFiniteTimeGameByID(id:Int):Null<FiniteTimeGame>
+    {
+        return finiteTimeGamesByID.get(id);
+    }
+
+    public static function getOngoingGameByParticipant(login:String):Null<Game>
+    {
+        return ongoingGamesByParticipantLogin.get(login);
+    }
 
     public static function startGame(params:ChallengeParams, ownerSession:UserSession, acceptorSession:UserSession):Int
     {
@@ -29,8 +46,19 @@ class GameManager
         var whiteSession:UserSession = acceptorColor == White? acceptorSession : ownerSession;
         var blackSession:UserSession = acceptorColor == White? ownerSession : acceptorSession;
 
-        var game:Game = new Game(lastGameID, whiteSession, blackSession, params.timeControl, params.customStartingSituation);
-        ongoingGamesByID.set(lastGameID, game);
+        var game:Game;
+
+        if (params.timeControl.getType() == Correspondence)
+        {
+            //TODO: Create new correspondence game
+        }
+        else
+        {
+            var finiteTimeGame:FiniteTimeGame = new FiniteTimeGame(lastGameID, whiteSession, blackSession, params.timeControl, params.customStartingSituation);
+            finiteTimeGamesByID.set(lastGameID, finiteTimeGame);
+            game = finiteTimeGame;
+        }
+
         ongoingGamesByParticipantLogin.set(whiteSession.getInteractionReference(), game);
         ongoingGamesByParticipantLogin.set(blackSession.getInteractionReference(), game);
 
@@ -38,24 +66,15 @@ class GameManager
         whiteSession.emit(GameStarted(lastGameID, currentLog));
         blackSession.emit(GameStarted(lastGameID, currentLog));
 
-        //TODO: Notify followers and make them spectators
+        for (playerLogin in [whiteSession.login, blackSession.login])
+            if (playerLogin != null)
+                for (follower in SpectatorManager.getFollowers(playerLogin))
+                {
+                    follower.emit(GameStarted(lastGameID, currentLog));
+                    game.addSpectator(follower);
+                }
 
         return lastGameID;
-    }
-
-    public static function getGameByID(id:Int) 
-    {
-        //TODO: (Any game, even correspondence or past ones)
-    }
-
-    public static function getOngoingGameByID(id:Int):Null<Game>
-    {
-        return ongoingGamesByID.get(id);
-    }
-
-    public static function getOngoingGameByParticipantLogin(login:String):Null<Game>
-    {
-        return ongoingGamesByParticipantLogin.get(login);
     }
 
     public static function handleDisconnection(user:UserSession)

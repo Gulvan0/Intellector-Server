@@ -44,13 +44,13 @@ class ChallengeManager
         if (challenge == null)
         {
             var gameID:Null<Int> = gameIDByFormerChallengeID.get(id);
-            var game:Null<Game> = gameID != null? GameManager.getOngoingGameByID(gameID) : null;
+            var game:Null<Game> = gameID != null? GameManager.getFiniteTimeGameByID(gameID) : null;
             
             if (game != null)
             {
                 Logger.serviceLog('CHALLENGE', 'Challenge $id has been fullfilled, the corresponding game is still in progress');
                 requestAuthor.emit(OpenChallengeHostPlaying(gameID, game.getTimeData(), game.getLog()));
-                //TODO: Make requestAuthor a spectator
+                game.addSpectator(requestAuthor);
             }
             else
             {

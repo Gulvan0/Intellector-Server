@@ -1,5 +1,6 @@
 package;
 
+import services.GameManager;
 import struct.ChallengeParams;
 import services.ChallengeManager;
 import services.LoginManager;
@@ -52,8 +53,11 @@ class Orchestrator
             case StopSpectating:
 
             case Move(fromI, toI, fromJ, toJ, morphInto):
+                GameManager.getOngoingGameByParticipant(author.login).performPly(fromI, toI, fromJ, toJ, morphInto);
             case RequestTimeoutCheck:
+                //TODO: Rewrite ||| GameManager.getOngoingGameByParticipant(author.login).checkTime();
             case Message(text):
+                GameManager.getOngoingGameByParticipant(author.login).sendMessage(author, text);
             case Resign:
             case OfferDraw:
             case CancelDraw:
@@ -100,7 +104,7 @@ class Orchestrator
             case DeclineDirectChallenge(challengeID): [Browsing];
             case Move(fromI, toI, fromJ, toJ, morphInto): [InGame];
             case RequestTimeoutCheck: [InGame];
-            case Message(text): [InGame];
+            case Message(text): [NotLogged, Browsing, InGame];
             case GetOpenChallenge(id): [NotLogged, Browsing];
             case FollowPlayer(login): [NotLogged, Browsing];
             case StopSpectating: [NotLogged, Browsing];
