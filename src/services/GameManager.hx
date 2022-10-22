@@ -1,5 +1,6 @@
 package services;
 
+import net.shared.Outcome;
 import entities.CorrespondenceGame;
 import entities.FiniteTimeGame;
 import utils.MathUtils;
@@ -75,6 +76,11 @@ class GameManager
                 }
 
         return lastGameID;
+    }
+
+    public static function onGameEnded(id:Int, outcome:Outcome) 
+    {
+        //TODO: Fill
     }
 
     public static function handleDisconnection(user:UserSession)

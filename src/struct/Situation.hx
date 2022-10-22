@@ -19,7 +19,7 @@ enum PerformPlyResult
 class Situation
 {
     private var pieces:PieceArrangement;
-    private var turnColor:PieceColor;
+    public var turnColor(default, null):PieceColor;
 
     public static function defaultStarting():Situation
     {
