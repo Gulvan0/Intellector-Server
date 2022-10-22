@@ -94,7 +94,7 @@ class GameOffers
         hasPendingTakebackRequest = [White => false, Black => false];
     }
 
-    public static function createFromLog(parsedLog:Array<GameLogEntry>) 
+    public static function createFromLog(parsedLog:Array<GameLogEntry>):GameOffers
     {
         var offers:GameOffers = new GameOffers();
 
@@ -121,6 +121,8 @@ class GameOffers
                     offers.declineTakeback(offerReceiverColor);
                 default:
             }
+
+        return offers;
     }
 
     public function new() 

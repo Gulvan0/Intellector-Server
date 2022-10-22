@@ -69,7 +69,7 @@ class GameSessions
             spectatorSessions.remove(session);
     }
 
-    public function new(broadcastConnectionEvents:Bool, whiteSession:UserSession, blackSession:UserSession) 
+    public function new(broadcastConnectionEvents:Bool, whiteSession:Null<UserSession>, blackSession:Null<UserSession>) 
     {
         this.broadcastConnectionEvents = broadcastConnectionEvents;
         this.playerSessions = [White => whiteSession, Black => blackSession];

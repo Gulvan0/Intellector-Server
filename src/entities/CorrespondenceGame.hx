@@ -1,5 +1,10 @@
 package entities;
 
+import entities.util.GameState;
+import entities.util.GameSessions;
+import entities.util.GameOffers;
+import struct.TimeControl;
+import entities.util.GameLog;
 import services.Logger;
 import services.Storage;
 import struct.Situation;
@@ -13,7 +18,10 @@ class CorrespondenceGame extends Game
     {
         var game:CorrespondenceGame = new CorrespondenceGame(id);
         
-        //TODO: Fill
+        game.log = GameLog.createNew(id, whitePlayer, blackPlayer, new TimeControl(0, 0), customStartingSituation);
+        game.offers = new GameOffers();
+        game.sessions = new GameSessions(false, whitePlayer, blackPlayer);
+        game.state = GameState.createNew(customStartingSituation);
 
         return game;
     }
@@ -27,13 +35,16 @@ class CorrespondenceGame extends Game
         if (log == null)
             throw 'Attempted to load correspondence game $id from log, but it does not exist';
 
-        //TODO: Fill
+        game.log = GameLog.load(id);
+        game.offers = GameOffers.createFromLog(game.log.getEntries());
+        game.sessions = new GameSessions(false, null, null);
+        game.state = GameState.createFromLog(game.log.getEntries());
 
         return game;
     }
 
     private function new(id:Int) 
     {
-        this.id = id;
+        super(id);
     }    
 }

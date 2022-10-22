@@ -28,4 +28,9 @@ abstract class Game
     //TODO: Some methods
 
     //TODO: Correspondence spectator notification, handle disconnect/connect - how to implement???
+
+    public function new(id:Int) 
+    {
+        this.id = id;
+    }
 }

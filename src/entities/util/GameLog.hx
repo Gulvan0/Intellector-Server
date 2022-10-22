@@ -18,6 +18,11 @@ class GameLog
         return log;
     }
 
+    public function getEntries():Array<GameLogEntry>
+    {
+        return entries.copy();    
+    }
+
     public function append(entry:GameLogEntry) 
     {
         log = GameLogTranslator.concat(log, entry);
