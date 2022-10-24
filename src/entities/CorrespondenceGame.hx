@@ -16,11 +16,11 @@ import net.shared.PieceType;
 
 class CorrespondenceGame extends Game
 {
-    public static function createNew(id:Int, onEndedCallback:Outcome->Game->Void, whitePlayer:Null<UserSession>, blackPlayer:Null<UserSession>, ?customStartingSituation:Situation):CorrespondenceGame
+    public static function createNew(id:Int, onEndedCallback:Outcome->Game->Void, whitePlayer:Null<UserSession>, blackPlayer:Null<UserSession>, rated:Bool, ?customStartingSituation:Situation):CorrespondenceGame
     {
         var game:CorrespondenceGame = new CorrespondenceGame(id, onEndedCallback);
         
-        game.log = GameLog.createNew(id, whitePlayer, blackPlayer, new TimeControl(0, 0), customStartingSituation);
+        game.log = GameLog.createNew(id, whitePlayer, blackPlayer, new TimeControl(0, 0), rated, customStartingSituation);
         game.offers = new GameOffers(game.endGame.bind(Drawish(DrawAgreement)), game.rollback);
         game.sessions = new GameSessions(false, whitePlayer, blackPlayer);
         game.state = GameState.createNew(customStartingSituation);

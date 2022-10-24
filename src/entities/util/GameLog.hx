@@ -102,7 +102,7 @@ class GameLog
         return log;
     }
 
-    public static function createNew(id:Int, whitePlayer:UserSession, blackPlayer:UserSession, timeControl:TimeControl, ?customStartingSituation:Situation):GameLog 
+    public static function createNew(id:Int, whitePlayer:UserSession, blackPlayer:UserSession, timeControl:TimeControl, rated:Bool, ?customStartingSituation:Situation):GameLog 
     {
         var log:GameLog = new GameLog(id);
 
@@ -117,6 +117,8 @@ class GameLog
             if (whiteElo == null)
                 whiteElo = None;
         }
+        else
+            whiteElo = None;
 
         if (blackPlayer.login != null && blackPlayer.storedData != null)
         {
@@ -124,9 +126,12 @@ class GameLog
             if (blackElo == null)
                 blackElo = None;
         }
+        else
+            blackElo = None;
         
         log.append(Players(whitePlayer.login, blackPlayer.login), false);
-        log.append(Elo(whiteElo, blackElo), false);
+        if (rated)
+            log.append(Elo(whiteElo, blackElo), false);
         log.append(DateTime(Date.now()), false);
         log.append(TimeControl(timeControl), false);
         if (customStartingSituation != null)

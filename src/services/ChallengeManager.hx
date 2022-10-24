@@ -44,13 +44,13 @@ class ChallengeManager
         if (challenge == null)
         {
             var gameID:Null<Int> = gameIDByFormerChallengeID.get(id);
-            var game:Null<Game> = gameID != null? GameManager.getFiniteTimeGameByID(gameID) : null;
+            var game:Null<Game> = gameID != null? GameManager.getOngoing(gameID) : null;
             
             if (game != null)
             {
                 Logger.serviceLog('CHALLENGE', 'Challenge $id has been fullfilled, the corresponding game is still in progress');
-                requestAuthor.emit(OpenChallengeHostPlaying(gameID, game.getTimeData(), game.getLog()));
-                game.addSpectator(requestAuthor);
+                requestAuthor.emit(OpenChallengeHostPlaying(gameID, game.time.getTime(), game.log.get()));
+                GameManager.addSpectator(requestAuthor, gameID, false);
             }
             else
             {
@@ -231,7 +231,7 @@ class ChallengeManager
     {
         for (color in PieceColor.createAll())
         {
-            var session:Null<UserSession> = game.getPlayerSession(color);
+            var session:Null<UserSession> = game.sessions.getPlayerSession(color);
             if (session != null)
                 cancelAllOutgoingChallenges(session);
         }

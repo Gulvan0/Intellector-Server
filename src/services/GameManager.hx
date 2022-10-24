@@ -39,7 +39,7 @@ class GameManager
         return gameID != null? finiteTimeGamesByID.get(gameID) : null;
     }
 
-    private static function getOngoing(id:Int):Null<Game>
+    public static function getOngoing(id:Int):Null<Game>
     {
         if (finiteTimeGamesByID.exists(id))
             return finiteTimeGamesByID.get(id);
@@ -57,7 +57,7 @@ class GameManager
         game.processAction(action, issuer);
     }
 
-    private static function addSpectator(session:UserSession, gameID:Int, sendSpectationData:Bool) 
+    public static function addSpectator(session:UserSession, gameID:Int, sendSpectationData:Bool) 
     {
         var game:Null<Game> = getOngoing(gameID);
 
@@ -147,14 +147,14 @@ class GameManager
 
         if (params.timeControl.isCorrespondence())
         {
-            var game:CorrespondenceGame = CorrespondenceGame.createNew(gameID, onGameEnded, whiteSession, blackSession, params.customStartingSituation);
+            var game:CorrespondenceGame = CorrespondenceGame.createNew(gameID, onGameEnded, whiteSession, blackSession, params.rated, params.customStartingSituation);
             whiteSession.storedData.addOngoingCorrespondenceGame(gameID);
             blackSession.storedData.addOngoingCorrespondenceGame(gameID);
             logPreamble = game.log.get();
         }
         else
         {
-            var game:FiniteTimeGame = new FiniteTimeGame(gameID, onGameEnded, whiteSession, blackSession, params.timeControl, params.customStartingSituation);
+            var game:FiniteTimeGame = new FiniteTimeGame(gameID, onGameEnded, whiteSession, blackSession, params.timeControl, params.rated, params.customStartingSituation);
             finiteTimeGamesByID.set(gameID, game);
             logPreamble = game.log.get();
         }
