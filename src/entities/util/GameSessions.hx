@@ -47,11 +47,17 @@ class GameSessions
             broadcast(SpectatorLeft(session.login));
     }
 
-    public function broadcast(event:ServerEvent)
+    public function broadcast(event:ServerEvent, ?excludedUser:Null<UserSession>)
     {
-        tellPlayer(White, event);
-        tellPlayer(Black, event);
-        announceToSpectators(event);
+        var excludedColor:Null<PieceColor> = excludedUser != null? getPlayerColor(excludedUser) : null;
+
+        for (color in PieceColor.createAll())
+            if (color != excludedColor)
+                tellPlayer(color, event);
+
+        for (session in spectatorSessions)
+            if (session != excludedUser)
+                session.emit(event);
     }
 
     public function announceToSpectators(event:ServerEvent) 
@@ -77,9 +83,11 @@ class GameSessions
             spectatorSessions.remove(session);
     }
 
-    public function new(broadcastConnectionEvents:Bool, whiteSession:Null<UserSession>, blackSession:Null<UserSession>) 
+    public function new(broadcastConnectionEvents:Bool, whiteSession:Null<UserSession>, blackSession:Null<UserSession>, ?existingSpectators:Array<UserSession>) 
     {
         this.broadcastConnectionEvents = broadcastConnectionEvents;
         this.playerSessions = [White => whiteSession, Black => blackSession];
+        if (existingSpectators != null)
+            this.spectatorSessions = existingSpectators;
     }
 }

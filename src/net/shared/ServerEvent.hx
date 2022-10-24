@@ -31,7 +31,6 @@ enum ServerEvent
     InvalidMove; //Sent to the player who attempted to perform an invalid move
     Message(author:Null<String>, message:String); //New in-game player message
     SpectatorMessage(author:Null<String>, message:String); //New in-game spectator message
-    //TODO: Make sure the server responds to Move and AddTime with TimeCorrection. Other TimeCorrection emissions may be removed
     TimeCorrection(timeData:TimeReservesData); //Signals to update the in-game timers. Significant game events (Move, Rollback, GameEnded) also contain the same data which should be processed in the exact same way
     Move(fromI:Int, toI:Int, fromJ:Int, toJ:Int, morphInto:Null<PieceType>, timeData:Null<TimeReservesData>); //A move has been played. Sent both to opponent and to all of the spectators
     Rollback(plysToUndo:Int, timeData:Null<TimeReservesData>); //Signal to undo a number of plys in a current game. Sent to both spectators and players

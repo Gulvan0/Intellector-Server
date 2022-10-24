@@ -1,5 +1,6 @@
 package entities.util;
 
+import net.shared.PieceColor;
 import struct.Situation;
 import net.shared.TimeControlType;
 import net.shared.EloValue;
@@ -12,6 +13,13 @@ class GameLog
     private var gameID:Int;
     private var log:String = "";
     private var entries:Array<GameLogEntry> = []; //Pay special attention to keeping it in sync with the `log` property
+
+    public var playerLogins(default, null):Map<PieceColor, Null<String>>;
+    public var timeControl(default, null):TimeControl;
+    public var ongoing(default, null):Bool = true;
+    public var rated(default, null):Bool;
+    public var elo(default, null):Map<PieceColor, EloValue>;
+    public var msLeftOnOver(default, null):Null<Map<PieceColor, Int>>;
     
     public function get():String
     {
@@ -23,21 +31,6 @@ class GameLog
         return entries.copy();    
     }
 
-    public function isOngoingCorrespondence():Bool
-    {
-        for (entry in entries)
-            switch entry 
-            {
-                case TimeControl(timeControl):
-                    if (!timeControl.isCorrespondence())
-                        return false;
-                case Result(outcome):
-                    return false;
-                default:
-            }
-        return true;
-    }
-
     public function save() 
     {
         Storage.overwrite(GameData(gameID), log);
@@ -47,6 +40,22 @@ class GameLog
     {
         log = GameLogTranslator.concat(log, entry);
         entries.push(entry);
+
+        switch entry 
+        {
+            case Players(whiteLogin, blackLogin):
+                playerLogins = [White => whiteLogin, Black => blackLogin];
+            case Elo(whiteElo, blackElo):
+                rated = true;
+                elo = [White => whiteElo, Black => blackElo];
+            case TimeControl(tc):
+                timeControl = tc;
+            case MsLeft(whiteMs, blackMs):
+                msLeftOnOver = [White => whiteMs, Black => blackMs];
+            case Result(_):
+                ongoing = false;
+            default:
+        }
 
         if (saveToStorage)
             save();
@@ -82,12 +91,13 @@ class GameLog
     {
         var log:GameLog = new GameLog(id);
 
-        log.log = Storage.getGameLog(id);
+        var logStr = Storage.getGameLog(id);
 
-        if (log.log == null)
+        if (logStr == null)
             throw 'Failed to load the log for game $id';
 
-        log.entries = GameLogTranslator.parse(log.log);
+        for (entry in GameLogTranslator.parse(logStr))
+            log.append(entry, false);
 
         return log;
     }

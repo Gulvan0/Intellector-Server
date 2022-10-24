@@ -17,11 +17,16 @@ enum TryPlyResult
 
 class GameState 
 {
-    private var moveNum:Int = 0;
+    public var moveNum(default, null):Int = 0; //TODO: Use for resign/abandon, offer enabling/disabling & time control
     private var currentSituation:Situation;
     private var plyHistory:Array<Ply> = []; //To simplify rollbacks (caused by takebacks, for example)
     private var situationOccurences:DefaultCountMap<String> = new DefaultCountMap([]); //For threefold repetition check
     private var progressiveMoveNums:Array<Int> = []; //For 60-move rule check
+
+    public function turnColor():PieceColor 
+    {
+        return currentSituation.turnColor;
+    }
 
     public function tryPly(from:HexCoords, to:HexCoords, morphInto:Null<PieceType>):TryPlyResult
     {

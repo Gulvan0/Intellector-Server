@@ -1,5 +1,9 @@
 package services;
 
+import struct.Piece;
+import stored.PlayerData;
+import net.shared.TimeControlType;
+import net.shared.EloValue;
 import utils.ds.DefaultArrayMap;
 import net.GameAction;
 import net.shared.Outcome;
@@ -18,6 +22,7 @@ class GameManager
     private static var finiteTimeGamesByID:Map<Int, FiniteTimeGame> = [];
     private static var ongoingGameIDBySpectatorRef:Map<String, Int> = [];
     private static var finiteTimeGameIDByPlayerRef:Map<String, Int> = [];
+    private static var correspondenceGameSpectatorsByGameID:DefaultArrayMap<Int, UserSession> = new DefaultArrayMap([]);
 
     private static var playerFollowersByLogin:DefaultArrayMap<String, UserSession> = new DefaultArrayMap([]);
     private static var followedPlayerLoginByFollowerRef:Map<String, String> = [];
@@ -39,7 +44,7 @@ class GameManager
         if (finiteTimeGamesByID.exists(id))
             return finiteTimeGamesByID.get(id);
         else
-            return CorrespondenceGame.loadFromLog(id);  
+            return CorrespondenceGame.loadFromLog(id, onGameEnded, correspondenceGameSpectatorsByGameID.get(id));  
     }
 
     public static function processAction(gameID:Int, action:GameAction, issuer:UserSession) 
@@ -64,6 +69,9 @@ class GameManager
         game.sessions.addSpectator(session);
         ongoingGameIDBySpectatorRef.set(session.getInteractionReference(), gameID);
 
+        if (game.log.timeControl.isCorrespondence())
+            correspondenceGameSpectatorsByGameID.push(gameID, session);
+
         if (sendSpectationData)
             session.emit(SpectationData(gameID, game.time.getTime(), game.log.get()));
     }
@@ -87,8 +95,14 @@ class GameManager
         if (!ongoingGameIDBySpectatorRef.exists(spectatorRef))
             return;
 
-        var game:Game = getOngoing(ongoingGameIDBySpectatorRef.get(spectatorRef));
+        var gameID:Int = ongoingGameIDBySpectatorRef.get(spectatorRef);
+        var game:Null<Game> = getOngoing(gameID);
+
+        if (game == null)
+            return;
+
         game.sessions.removeSpectator(session);
+        correspondenceGameSpectatorsByGameID.pop(gameID, session);
         ongoingGameIDBySpectatorRef.remove(spectatorRef);
     }
 
@@ -133,12 +147,14 @@ class GameManager
 
         if (params.timeControl.isCorrespondence())
         {
-            var game:CorrespondenceGame = CorrespondenceGame.createNew(gameID, whiteSession, blackSession, params.customStartingSituation);
+            var game:CorrespondenceGame = CorrespondenceGame.createNew(gameID, onGameEnded, whiteSession, blackSession, params.customStartingSituation);
+            whiteSession.storedData.addOngoingCorrespondenceGame(gameID);
+            blackSession.storedData.addOngoingCorrespondenceGame(gameID);
             logPreamble = game.log.get();
         }
         else
         {
-            var game:FiniteTimeGame = new FiniteTimeGame(gameID, whiteSession, blackSession, params.timeControl, params.customStartingSituation);
+            var game:FiniteTimeGame = new FiniteTimeGame(gameID, onGameEnded, whiteSession, blackSession, params.timeControl, params.customStartingSituation);
             finiteTimeGamesByID.set(gameID, game);
             logPreamble = game.log.get();
         }
@@ -157,9 +173,50 @@ class GameManager
         return gameID;
     }
 
-    public static function onGameEnded(id:Int, outcome:Outcome) 
+    private static function onGameEnded(outcome:Outcome, game:Game) 
     {
-        //TODO: Fill
+        var loggedPlayerData:Map<PieceColor, PlayerData> = [];
+        for (color in PieceColor.createAll())
+        {
+            var login:Null<String> = game.log.playerLogins.get(color);
+            if (login != null)
+                loggedPlayerData.set(color, Storage.loadPlayerData(login));
+        }
+
+        var timeControl:TimeControlType = game.log.timeControl.getType();
+
+        var newEloValues:Map<PieceColor, EloValue> = [];
+        if (game.log.rated)
+            for (color => data in loggedPlayerData.keyValueIterator())
+            {
+                var formerElo:EloValue = game.log.elo[color];
+                var formerOpponentElo:EloValue = game.log.elo[opposite(color)];
+                var personalOutcome:PersonalOutcome = toPersonal(outcome, color);
+                var priorPlayedGames:Int = data.getPlayedGamesCnt(timeControl);
+                var newElo:EloValue = EloManager.recalculateElo(formerElo, formerOpponentElo, personalOutcome, priorPlayedGames);
+
+                newEloValues.set(color, newElo);
+            }
+
+        for (color => data in loggedPlayerData.keyValueIterator())
+            data.addPastGame(game.id, timeControl, newEloValues.get(color));
+            
+        var secsLeft:Map<PieceColor, Float> = [];
+
+        if (timeControl == Correspondence)
+        {
+            game.sessions.getPlayerSession(White).storedData.removeOngoingCorrespondenceGame(game.id);
+            game.sessions.getPlayerSession(Black).storedData.removeOngoingCorrespondenceGame(game.id);
+        }
+        else
+        {
+            secsLeft.set(White, game.log.msLeftOnOver[White] / 1000);
+            secsLeft.set(Black, game.log.msLeftOnOver[Black] / 1000);
+        }
+
+        for (playerColor in PieceColor.createAll())
+            game.sessions.tellPlayer(playerColor, GameEnded(outcome, secsLeft.get(White), secsLeft.get(Black), newEloValues.get(playerColor)));
+        game.sessions.announceToSpectators(GameEnded(outcome, secsLeft.get(White), secsLeft.get(Black), null));
     }
 
     public static function handleDisconnection(user:UserSession)

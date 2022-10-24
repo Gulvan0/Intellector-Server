@@ -1,5 +1,6 @@
 package entities;
 
+import services.EloManager;
 import entities.util.GameTime.IGameTime;
 import net.shared.Outcome;
 import net.GameAction;
@@ -22,7 +23,7 @@ using StringTools;
 
 class Game 
 {
-    private var id:Int;
+    public final id:Int;
 
     public var log:GameLog;
     public var offers:GameOffers;
@@ -30,30 +31,78 @@ class Game
     public var state:GameState;
     public var time:IGameTime;
 
-    //TODO: Write to log
-    
-    //TODO: Emit events
+    private var onEndedCallback:Outcome->Game->Void;
+
+    private function onMoveSuccessful(author:UserSession, turnColor:PieceColor, moveNum:Int, from:HexCoords, to:HexCoords, morphInto:Null<PieceType>) 
+    {
+        time.onMoveMade(turnColor, moveNum);
+
+        var timeData = time.getTime();
+        var whiteSecs = timeData != null? Math.round(timeData.whiteSeconds * 1000) : null;
+        var blackSecs = timeData != null? Math.round(timeData.whiteSeconds * 1000) : null;
+
+        log.append(Move(from, to, morphInto, whiteSecs, blackSecs));
+        offers.onMoveMade();
+        sessions.broadcast(Move(from.i, to.i, from.j, to.j, morphInto, timeData), author);
+        if (timeData != null)
+            sessions.tellPlayer(turnColor, TimeCorrection(timeData));
+    }
 
     private function performMove(author:UserSession, fromI:Int, toI:Int, fromJ:Int, toJ:Int, morphInto:Null<PieceType>) 
     {
-        //TODO: Fill
-        //If success: offers.onMoveMade(); time.onMoveMade(); Notify spectators and opponent
+        var turnColor:PieceColor = state.turnColor();
+        var from:HexCoords = new HexCoords(fromI, fromJ);
+        var to:HexCoords = new HexCoords(toI, toJ);
+        var result:TryPlyResult = state.tryPly(from, to, morphInto);
+
+        switch result 
+        {
+            case Performed:
+                onMoveSuccessful(author, turnColor, state.moveNum, from, to, morphInto);
+            case GameEnded(outcome):
+                onMoveSuccessful(author, turnColor, state.moveNum, from, to, morphInto);
+                endGame(outcome);
+            case Failed:
+                sessions.tellPlayer(turnColor, InvalidMove);
+        }
     }
 
     private function sendMessage(author:UserSession, text:String) 
     {
-        //TODO: Fill
+        var authorColor:Null<PieceColor> = sessions.getPlayerColor(author);
+        if (authorColor != null)
+        {
+            log.append(PlayerMessage(authorColor, text));
+            sessions.broadcast(Message(author.login, text), author);
+        }
+        else
+            sessions.broadcast(SpectatorMessage(author.login, text), author);
     }
 
     private function endGame(outcome:Outcome) 
     {
         time.stopTime();
-        //TODO: Fill
+        var finalTime:Null<TimeReservesData> = time.getTime();
+
+        log.append(Result(outcome));
+        if (finalTime != null)
+        {
+            var whiteMsLeft:Int = Math.floor(finalTime.whiteSeconds * 1000);
+            var blackMsLeft:Int = Math.floor(finalTime.blackSeconds * 1000);
+            log.append(MsLeft(whiteMsLeft, blackMsLeft));
+        }
+
+        onEndedCallback(outcome, this);
     }
 
     private function rollback(requestedBy:PieceColor) 
     {
-        //TODO: Fill
+        var moveCnt:Int = requestedBy == state.turnColor()? 2 : 1;
+
+        log.rollback(moveCnt);
+        state.rollback(moveCnt);
+        time.onRollback(moveCnt);
+        sessions.broadcast(Rollback(moveCnt, time.getTime()));
     }
 
     public function processAction(action:GameAction, issuer:UserSession) 
@@ -74,30 +123,48 @@ class Game
             case Resign:
                 endGame(Decisive(Resign, opposite(issuerColor)));
             case OfferDraw:
+                log.append(Event(DrawOffered(issuerColor)));
                 offers.offerDraw(issuerColor);
+                sessions.broadcast(DrawOffered);
             case CancelDraw:
+                log.append(Event(DrawCanceled(issuerColor)));
                 offers.cancelDraw(issuerColor);
+                sessions.broadcast(DrawCancelled);
             case AcceptDraw:
+                log.append(Event(DrawAccepted(issuerColor)));
                 offers.acceptDraw(issuerColor);
+                sessions.broadcast(DrawAccepted);
             case DeclineDraw:
+                log.append(Event(DrawDeclined(issuerColor)));
                 offers.declineDraw(issuerColor);
+                sessions.broadcast(DrawDeclined);
             case OfferTakeback:
+                log.append(Event(TakebackOffered(issuerColor)));
                 offers.offerTakeback(issuerColor);
+                sessions.broadcast(TakebackOffered);
             case CancelTakeback:
+                log.append(Event(TakebackCanceled(issuerColor)));
                 offers.cancelTakeback(issuerColor);
+                sessions.broadcast(TakebackCancelled);
             case AcceptTakeback:
+                log.append(Event(TakebackAccepted(issuerColor)));
                 offers.acceptTakeback(issuerColor);
+                sessions.broadcast(TakebackAccepted);
             case DeclineTakeback:
+                log.append(Event(TakebackDeclined(issuerColor)));
                 offers.declineTakeback(issuerColor);
+                sessions.broadcast(TakebackDeclined);
             case AddTime:
                 time.addTime(opposite(issuerColor));
+                sessions.broadcast(TimeCorrection(time.getTime()));
         }
     }
 
-    //TODO: Correspondence spectator notification, handle disconnect/connect - how to implement???
+    //TODO: handle disconnect/connect (also for spectators and guests)
 
-    public function new(id:Int) 
+    private function new(id:Int, onEndedCallback:Outcome->Game->Void) 
     {
         this.id = id;
+        this.onEndedCallback = onEndedCallback;
     }
 }

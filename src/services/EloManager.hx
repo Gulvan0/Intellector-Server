@@ -1,5 +1,6 @@
 package services;
 
+import net.shared.Outcome.PersonalOutcome;
 import utils.MathUtils;
 import net.shared.EloValue;
 
@@ -15,8 +16,15 @@ class EloManager
         }
     }
 
-    public static function recalculateElo(formerElo:EloValue, formerOpponentElo:EloValue, score:Int, totalPriorGames:Int):EloValue
+    public static function recalculateElo(formerElo:EloValue, formerOpponentElo:EloValue, outcome:PersonalOutcome, totalPriorGames:Int):EloValue
     {
+        var score:Int = switch outcome 
+        {
+            case Win(_): 1;
+            case Loss(_): -1;
+            case Draw(_): 0;
+        }
+
         var calibrationGamesLeft:Int = MathUtils.maxInt(Config.calibrationGamesCount - totalPriorGames, 0); 
         var exp:Float = Config.normalEloLogSlope + (Config.maxEloLogSlope - Config.normalEloLogSlope) * calibrationGamesLeft / Config.calibrationGamesCount;
         var slope:Float = Math.pow(2, exp);

@@ -1,5 +1,6 @@
 package entities;
 
+import net.shared.Outcome;
 import net.GameAction;
 import entities.util.GameTime;
 import entities.util.GameOffers;
@@ -25,9 +26,9 @@ class FiniteTimeGame extends Game
         endGame(Decisive(Timeout, opposite(timedOutColor)));
     }
 
-    public function new(id:Int, whitePlayer:UserSession, blackPlayer:UserSession, timeControl:TimeControl, ?customStartingSituation:Situation)
+    public function new(id:Int, onEndedCallback:Outcome->Game->Void, whitePlayer:UserSession, blackPlayer:UserSession, timeControl:TimeControl, ?customStartingSituation:Situation)
     {
-        super(id);
+        super(id, onEndedCallback);
 
         log = GameLog.createNew(id, whitePlayer, blackPlayer, timeControl, customStartingSituation);
         offers = new GameOffers(endGame.bind(Drawish(DrawAgreement)), rollback);
