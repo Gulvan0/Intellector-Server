@@ -32,4 +32,25 @@ class EventTransformer
                 event;
         }
     }
+
+    public static function asGameAction(event:ClientEvent):Null<GameAction>
+    {
+        return switch event
+        {
+            case Move(_, fromI, toI, fromJ, toJ, morphInto): Move(fromI, toI, fromJ, toJ, morphInto);
+            case RequestTimeoutCheck(_): RequestTimeoutCheck;
+            case Message(_, text): Message(text);
+            case Resign(_): Resign;
+            case OfferDraw(_): OfferDraw;
+            case CancelDraw(_): CancelDraw;
+            case AcceptDraw(_): AcceptDraw;
+            case DeclineDraw(_): DeclineDraw;
+            case OfferTakeback(_): OfferTakeback;
+            case CancelTakeback(_): CancelTakeback;
+            case AcceptTakeback(_): AcceptTakeback;
+            case DeclineTakeback(_): DeclineTakeback;
+            case AddTime(_): AddTime;
+            default: null;
+        }
+    }
 }

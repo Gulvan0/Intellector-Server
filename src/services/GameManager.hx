@@ -1,5 +1,7 @@
 package services;
 
+import utils.ds.DefaultArrayMap;
+import net.GameAction;
 import net.shared.Outcome;
 import entities.CorrespondenceGame;
 import entities.FiniteTimeGame;
@@ -14,28 +16,98 @@ class GameManager
 {
     private static var lastGameID:Int = Storage.computeLastGameID();
     private static var finiteTimeGamesByID:Map<Int, FiniteTimeGame> = [];
-    private static var ongoingGamesByParticipantLogin:Map<String, Game> = [];
+    private static var ongoingGameIDBySpectatorRef:Map<String, Int> = [];
+    private static var finiteTimeGameIDByPlayerRef:Map<String, Int> = [];
 
-    //TODO: Add getters
+    private static var playerFollowersByLogin:DefaultArrayMap<String, UserSession> = new DefaultArrayMap([]);
+    private static var followedPlayerLoginByFollowerRef:Map<String, String> = [];
 
     public static function getGameByID(id:Int) 
     {
         //TODO: (Any game, even correspondence or past ones)
     }
 
-    public static function getFiniteTimeGameByID(id:Int):Null<FiniteTimeGame>
+    public static function getFiniteTimeGameByPlayer(player:UserSession):Null<FiniteTimeGame>
     {
-        return finiteTimeGamesByID.get(id);
+        var playerRef:String = player.getInteractionReference();
+        var gameID:Null<Int> = finiteTimeGameIDByPlayerRef.get(playerRef);
+        return gameID != null? finiteTimeGamesByID.get(gameID) : null;
     }
 
-    public static function getOngoingGameByParticipant(login:String):Null<Game>
+    private static function getOngoing(id:Int):Null<Game>
     {
-        return ongoingGamesByParticipantLogin.get(login);
+        if (finiteTimeGamesByID.exists(id))
+            return finiteTimeGamesByID.get(id);
+        else
+            return CorrespondenceGame.loadFromLog(id);  
+    }
+
+    public static function processAction(gameID:Int, action:GameAction, issuer:UserSession) 
+    {
+        var game:Null<Game> = getOngoing(gameID);
+
+        if (game == null)
+            return;
+
+        game.processAction(action, issuer);
+    }
+
+    private static function addSpectator(session:UserSession, gameID:Int, sendSpectationData:Bool) 
+    {
+        var game:Null<Game> = getOngoing(gameID);
+
+        if (game == null)
+            return;
+
+        stopSpectating(session);
+
+        game.sessions.addSpectator(session);
+        ongoingGameIDBySpectatorRef.set(session.getInteractionReference(), gameID);
+
+        if (sendSpectationData)
+            session.emit(SpectationData(gameID, game.time.getTime(), game.log.get()));
+    }
+
+    public static function addFollower(session:UserSession, followedPlayerLogin:String) 
+    {
+        stopFollowing(session);
+
+        playerFollowersByLogin.push(followedPlayerLogin, session);
+        
+        var followerRef:String = session.getInteractionReference();
+        var currentGameID:Null<Int> = finiteTimeGameIDByPlayerRef.get(followedPlayerLogin);
+        if (currentGameID != null && ongoingGameIDBySpectatorRef.get(followerRef) != currentGameID)
+            addSpectator(session, currentGameID, true);
+    }
+
+    public static function stopSpectating(session:UserSession) 
+    {
+        var spectatorRef:String = session.getInteractionReference();
+
+        if (!ongoingGameIDBySpectatorRef.exists(spectatorRef))
+            return;
+
+        var game:Game = getOngoing(ongoingGameIDBySpectatorRef.get(spectatorRef));
+        game.sessions.removeSpectator(session);
+        ongoingGameIDBySpectatorRef.remove(spectatorRef);
+    }
+
+    public static function stopFollowing(session:UserSession) 
+    {
+        var followerRef:String = session.getInteractionReference();
+
+        if (!followedPlayerLoginByFollowerRef.exists(followerRef))
+            return;
+        
+        playerFollowersByLogin.remove(followedPlayerLoginByFollowerRef.get(followerRef));
+        followedPlayerLoginByFollowerRef.remove(followerRef);
     }
 
     public static function startGame(params:ChallengeParams, ownerSession:UserSession, acceptorSession:UserSession):Int
     {
         lastGameID++;
+
+        var gameID:Int = lastGameID;
 
         var acceptorColor:PieceColor;
 
@@ -49,33 +121,40 @@ class GameManager
 
         var game:Game;
 
-        if (params.timeControl.getType() == Correspondence)
+        stopFollowing(whiteSession);
+        stopSpectating(whiteSession);
+        stopFollowing(blackSession);
+        stopSpectating(blackSession);
+
+        finiteTimeGameIDByPlayerRef.set(whiteSession.getInteractionReference(), gameID);
+        finiteTimeGameIDByPlayerRef.set(blackSession.getInteractionReference(), gameID);
+
+        var logPreamble:String;
+
+        if (params.timeControl.isCorrespondence())
         {
-            //TODO: Create new correspondence game
+            var game:CorrespondenceGame = CorrespondenceGame.createNew(gameID, whiteSession, blackSession, params.customStartingSituation);
+            logPreamble = game.log.get();
         }
         else
         {
-            var finiteTimeGame:FiniteTimeGame = new FiniteTimeGame(lastGameID, whiteSession, blackSession, params.timeControl, params.customStartingSituation);
-            finiteTimeGamesByID.set(lastGameID, finiteTimeGame);
-            game = finiteTimeGame;
+            var game:FiniteTimeGame = new FiniteTimeGame(gameID, whiteSession, blackSession, params.timeControl, params.customStartingSituation);
+            finiteTimeGamesByID.set(gameID, game);
+            logPreamble = game.log.get();
         }
 
-        ongoingGamesByParticipantLogin.set(whiteSession.getInteractionReference(), game);
-        ongoingGamesByParticipantLogin.set(blackSession.getInteractionReference(), game);
-
-        var currentLog:String = game.getLog();
-        whiteSession.emit(GameStarted(lastGameID, currentLog));
-        blackSession.emit(GameStarted(lastGameID, currentLog));
+        whiteSession.emit(GameStarted(gameID, logPreamble));
+        blackSession.emit(GameStarted(gameID, logPreamble));
 
         for (playerLogin in [whiteSession.login, blackSession.login])
             if (playerLogin != null)
-                for (follower in SpectatorManager.getFollowers(playerLogin))
+                for (follower in playerFollowersByLogin.get(playerLogin))
                 {
-                    follower.emit(GameStarted(lastGameID, currentLog));
-                    game.addSpectator(follower);
+                    follower.emit(GameStarted(gameID, logPreamble));
+                    addSpectator(follower, gameID, false);
                 }
 
-        return lastGameID;
+        return gameID;
     }
 
     public static function onGameEnded(id:Int, outcome:Outcome) 

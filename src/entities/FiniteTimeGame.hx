@@ -1,5 +1,6 @@
 package entities;
 
+import net.GameAction;
 import entities.util.GameTime;
 import entities.util.GameOffers;
 import entities.util.GameState;
@@ -19,18 +20,19 @@ using StringTools;
 
 class FiniteTimeGame extends Game 
 {
-    public var time:GameTime;
-
-    //TODO: Fill
+    private function onTimeout(timedOutColor:PieceColor) 
+    {
+        endGame(Decisive(Timeout, opposite(timedOutColor)));
+    }
 
     public function new(id:Int, whitePlayer:UserSession, blackPlayer:UserSession, timeControl:TimeControl, ?customStartingSituation:Situation)
     {
         super(id);
 
         log = GameLog.createNew(id, whitePlayer, blackPlayer, timeControl, customStartingSituation);
-        offers = new GameOffers();
+        offers = new GameOffers(endGame.bind(Drawish(DrawAgreement)), rollback);
         sessions = new GameSessions(true, whitePlayer, blackPlayer);
         state = GameState.createNew(customStartingSituation);
-        time = new GameTime();
+        time = GameTime.active(onTimeout);
     }
 }

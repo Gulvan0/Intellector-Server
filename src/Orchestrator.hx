@@ -1,5 +1,6 @@
 package;
 
+import net.EventTransformer;
 import services.GameManager;
 import struct.ChallengeParams;
 import services.ChallengeManager;
@@ -49,26 +50,14 @@ class Orchestrator
                 ChallengeManager.getOpenChallenge(author, id);
 
             case FollowPlayer(login):
+                GameManager.addFollower(author, login);
             case StopFollowing:
+                GameManager.stopFollowing(author);
             case StopSpectating:
+                GameManager.stopSpectating(author);
 
-            case Move(fromI, toI, fromJ, toJ, morphInto):
-                GameManager.getOngoingGameByParticipant(author.login).performPly(fromI, toI, fromJ, toJ, morphInto);
-            case RequestTimeoutCheck:
-                //TODO: Rewrite ||| GameManager.getOngoingGameByParticipant(author.login).checkTime();
-            case Message(text):
-                GameManager.getOngoingGameByParticipant(author.login).sendMessage(author, text);
-            case Resign:
-            case OfferDraw:
-            case CancelDraw:
-            case AcceptDraw:
-            case DeclineDraw:
-            case OfferTakeback:
-            case CancelTakeback:
-            case AcceptTakeback:
-            case DeclineTakeback:
-            case AddTime:
-            case SimpleRematch:
+            case Move(gameID, _, _, _, _, _) | RequestTimeoutCheck(gameID) | Message(gameID, _) | Resign(gameID) | OfferDraw(gameID) | CancelDraw(gameID) | AcceptDraw(gameID) | DeclineDraw(gameID) | OfferTakeback(gameID) | CancelTakeback(gameID) | AcceptTakeback(gameID) | DeclineTakeback(gameID) | AddTime(gameID) | SimpleRematch(gameID):
+                GameManager.processAction(gameID, EventTransformer.asGameAction(event), author);
 
             case CreateStudy(info):
             case OverwriteStudy(overwrittenStudyID, info):
@@ -94,44 +83,44 @@ class Orchestrator
     {
         var possibleStates:Array<UserState> = switch event 
         {
-            case Login(login, password): [NotLogged];
-            case Register(login, password): [NotLogged];
-            case RestoreSession(token): [];
+            case Login(_, _): [NotLogged];
+            case Register(_, _): [NotLogged];
+            case RestoreSession(_): [];
             case LogOut: [Browsing, InGame];
-            case CreateChallenge(serializedParams): [Browsing];
-            case CancelChallenge(challengeID): [Browsing]; 
-            case AcceptChallenge(challengeID): [NotLogged, Browsing];
-            case DeclineDirectChallenge(challengeID): [Browsing];
-            case Move(fromI, toI, fromJ, toJ, morphInto): [InGame];
-            case RequestTimeoutCheck: [InGame];
-            case Message(text): [NotLogged, Browsing, InGame];
-            case GetOpenChallenge(id): [NotLogged, Browsing];
-            case FollowPlayer(login): [NotLogged, Browsing];
+            case CreateChallenge(_): [Browsing];
+            case CancelChallenge(_): [Browsing]; 
+            case AcceptChallenge(_): [NotLogged, Browsing];
+            case DeclineDirectChallenge(_): [Browsing];
+            case Move(_, _, _, _, _, _): [InGame];
+            case RequestTimeoutCheck(_): [InGame];
+            case Message(_, _): [NotLogged, Browsing, InGame];
+            case GetOpenChallenge(_): [NotLogged, Browsing];
+            case FollowPlayer(_): [NotLogged, Browsing];
             case StopSpectating: [NotLogged, Browsing];
             case StopFollowing: [NotLogged, Browsing];
-            case Resign: [InGame];
-            case OfferDraw: [InGame];
-            case CancelDraw: [InGame];
-            case AcceptDraw: [InGame];
-            case DeclineDraw: [InGame];
-            case OfferTakeback: [InGame];
-            case CancelTakeback: [InGame];
-            case AcceptTakeback: [InGame];
-            case DeclineTakeback: [InGame];
-            case AddTime: [InGame];
-            case SimpleRematch: [Browsing];
-            case CreateStudy(info): [Browsing];
-            case OverwriteStudy(overwrittenStudyID, info): [Browsing];
-            case DeleteStudy(id): [Browsing];
-            case GetGame(id): [NotLogged, Browsing];
-            case GetStudy(id): [NotLogged, Browsing];
-            case GetMiniProfile(login): [NotLogged, Browsing];
-            case GetPlayerProfile(login): [NotLogged, Browsing];
-            case AddFriend(login): [Browsing];
-            case RemoveFriend(login): [Browsing];
-            case GetGamesByLogin(login, after, pageSize, filterByTimeControl): [NotLogged, Browsing];
-            case GetStudiesByLogin(login, after, pageSize, filterByTags): [NotLogged, Browsing];
-            case GetOngoingGamesByLogin(login): [NotLogged, Browsing];
+            case Resign(_): [InGame];
+            case OfferDraw(_): [InGame];
+            case CancelDraw(_): [InGame];
+            case AcceptDraw(_): [InGame];
+            case DeclineDraw(_): [InGame];
+            case OfferTakeback(_): [InGame];
+            case CancelTakeback(_): [InGame];
+            case AcceptTakeback(_): [InGame];
+            case DeclineTakeback(_): [InGame];
+            case AddTime(_): [InGame];
+            case SimpleRematch(_): [Browsing];
+            case CreateStudy(_): [Browsing];
+            case OverwriteStudy(_, _): [Browsing];
+            case DeleteStudy(_): [Browsing];
+            case GetGame(_): [NotLogged, Browsing];
+            case GetStudy(_): [NotLogged, Browsing];
+            case GetMiniProfile(_): [NotLogged, Browsing];
+            case GetPlayerProfile(_): [NotLogged, Browsing];
+            case AddFriend(_): [Browsing];
+            case RemoveFriend(_): [Browsing];
+            case GetGamesByLogin(_, _, _, _): [NotLogged, Browsing];
+            case GetStudiesByLogin(_, _, _, _): [NotLogged, Browsing];
+            case GetOngoingGamesByLogin(_): [NotLogged, Browsing];
             case GetOpenChallenges: [NotLogged, Browsing];
             case GetCurrentGames: [NotLogged, Browsing];
         }

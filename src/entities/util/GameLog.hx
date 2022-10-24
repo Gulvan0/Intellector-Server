@@ -23,12 +23,33 @@ class GameLog
         return entries.copy();    
     }
 
-    public function append(entry:GameLogEntry) 
+    public function isOngoingCorrespondence():Bool
+    {
+        for (entry in entries)
+            switch entry 
+            {
+                case TimeControl(timeControl):
+                    if (!timeControl.isCorrespondence())
+                        return false;
+                case Result(outcome):
+                    return false;
+                default:
+            }
+        return true;
+    }
+
+    public function save() 
+    {
+        Storage.overwrite(GameData(gameID), log);
+    }
+
+    public function append(entry:GameLogEntry, ?saveToStorage:Bool = true) 
     {
         log = GameLogTranslator.concat(log, entry);
         entries.push(entry);
 
-        Storage.overwrite(GameData(gameID), log);
+        if (saveToStorage)
+            save();
     }
 
     public function rollback(moveCnt:Int) 
@@ -94,12 +115,14 @@ class GameLog
                 blackElo = None;
         }
         
-        log.append(Players(whitePlayer.login, blackPlayer.login));
-        log.append(Elo(whiteElo, blackElo));
-        log.append(DateTime(Date.now()));
-        log.append(TimeControl(timeControl));
+        log.append(Players(whitePlayer.login, blackPlayer.login), false);
+        log.append(Elo(whiteElo, blackElo), false);
+        log.append(DateTime(Date.now()), false);
+        log.append(TimeControl(timeControl), false);
         if (customStartingSituation != null)
-            log.append(CustomStartingSituation(customStartingSituation));
+            log.append(CustomStartingSituation(customStartingSituation), false);
+
+        log.save();
 
         return log;
     }

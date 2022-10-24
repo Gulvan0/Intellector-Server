@@ -1,5 +1,8 @@
 package entities;
 
+import entities.util.GameTime;
+import net.shared.TimeReservesData;
+import net.GameAction;
 import entities.util.GameState;
 import entities.util.GameSessions;
 import entities.util.GameOffers;
@@ -12,31 +15,31 @@ import net.shared.PieceType;
 
 class CorrespondenceGame extends Game
 {
-    //TODO: Some methods
-
     public static function createNew(id:Int, whitePlayer:Null<UserSession>, blackPlayer:Null<UserSession>, ?customStartingSituation:Situation):CorrespondenceGame
     {
         var game:CorrespondenceGame = new CorrespondenceGame(id);
         
         game.log = GameLog.createNew(id, whitePlayer, blackPlayer, new TimeControl(0, 0), customStartingSituation);
-        game.offers = new GameOffers();
+        game.offers = new GameOffers(game.endGame.bind(Drawish(DrawAgreement)), game.rollback);
         game.sessions = new GameSessions(false, whitePlayer, blackPlayer);
         game.state = GameState.createNew(customStartingSituation);
 
         return game;
     }
 
-    public static function loadFromLog(id:Int):CorrespondenceGame 
+    public static function loadFromLog(id:Int):Null<CorrespondenceGame> 
     {
+        if (!Storage.exists(GameData(id)))
+            return null;
+
         var game:CorrespondenceGame = new CorrespondenceGame(id);
 
-        var log:String = Storage.getGameLog(id);
-
-        if (log == null)
-            throw 'Attempted to load correspondence game $id from log, but it does not exist';
-
         game.log = GameLog.load(id);
-        game.offers = GameOffers.createFromLog(game.log.getEntries());
+
+        if (!game.log.isOngoingCorrespondence())
+            return null;
+
+        game.offers = GameOffers.createFromLog(game.log.getEntries(), game.endGame.bind(Drawish(DrawAgreement)), game.rollback);
         game.sessions = new GameSessions(false, null, null);
         game.state = GameState.createFromLog(game.log.getEntries());
 
@@ -46,5 +49,7 @@ class CorrespondenceGame extends Game
     private function new(id:Int) 
     {
         super(id);
-    }    
+
+        this.time = GameTime.nil();
+    }
 }

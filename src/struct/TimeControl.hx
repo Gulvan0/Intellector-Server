@@ -29,4 +29,14 @@ class TimeControl
         else 
             return Classic;
 	}
+
+    public function isCorrespondence():Bool
+    {
+		return getType() == Correspondence;
+    }
+    
+    public static function correspondence() 
+    {
+        return new TimeControl(0, 0);
+    }
 }

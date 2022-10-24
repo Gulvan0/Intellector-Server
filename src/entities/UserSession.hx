@@ -30,7 +30,7 @@ class UserSession
             return AwaitingReconnection;
         else if (login == null)
             return NotLogged;
-        else if (GameManager.getOngoingGameByParticipantLogin(login) == null)
+        else if (GameManager.getFiniteTimeGameByPlayer(this) == null)
             return Browsing;
         else
             return InGame;

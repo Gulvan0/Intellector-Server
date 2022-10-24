@@ -94,9 +94,9 @@ class GameOffers
         hasPendingTakebackRequest = [White => false, Black => false];
     }
 
-    public static function createFromLog(parsedLog:Array<GameLogEntry>):GameOffers
+    public static function createFromLog(parsedLog:Array<GameLogEntry>, onDrawAchieved:Void->Void, onRollbackNeeded:PieceColor->Void):GameOffers
     {
-        var offers:GameOffers = new GameOffers();
+        var offers:GameOffers = new GameOffers(onDrawAchieved, onRollbackNeeded);
 
         for (entry in parsedLog)
             switch entry 
@@ -125,8 +125,9 @@ class GameOffers
         return offers;
     }
 
-    public function new() 
+    public function new(onDrawAchieved:Void->Void, onRollbackNeeded:PieceColor->Void) 
     {
-        
+        this.onDrawAchieved = onDrawAchieved;
+        this.onRollbackNeeded = onRollbackNeeded;
     }
 }

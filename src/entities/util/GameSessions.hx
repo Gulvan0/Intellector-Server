@@ -10,6 +10,14 @@ class GameSessions
 
     private var broadcastConnectionEvents:Bool = true;
 
+    public function getPlayerColor(player:UserSession):Null<PieceColor>
+    {
+        for (color in PieceColor.createAll())
+            if (playerSessions.get(color) == player)
+                return color;
+        return null;
+    }
+
     public function getPlayerSession(color:PieceColor):Null<UserSession> 
     {
         return playerSessions.get(color);
