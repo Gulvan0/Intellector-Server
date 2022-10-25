@@ -56,8 +56,11 @@ class Orchestrator
             case StopSpectating:
                 GameManager.stopSpectating(author);
 
-            case Move(gameID, _, _, _, _, _) | RequestTimeoutCheck(gameID) | Message(gameID, _) | Resign(gameID) | OfferDraw(gameID) | CancelDraw(gameID) | AcceptDraw(gameID) | DeclineDraw(gameID) | OfferTakeback(gameID) | CancelTakeback(gameID) | AcceptTakeback(gameID) | DeclineTakeback(gameID) | AddTime(gameID) | SimpleRematch(gameID):
+            case Move(gameID, _, _, _, _, _) | RequestTimeoutCheck(gameID) | Message(gameID, _) | Resign(gameID) | OfferDraw(gameID) | CancelDraw(gameID) | AcceptDraw(gameID) | DeclineDraw(gameID) | OfferTakeback(gameID) | CancelTakeback(gameID) | AcceptTakeback(gameID) | DeclineTakeback(gameID) | AddTime(gameID):
                 GameManager.processAction(gameID, EventTransformer.asGameAction(event), author);
+
+            case SimpleRematch(gameID):
+                GameManager.simpleRematch(author, gameID);
 
             case CreateStudy(info):
             case OverwriteStudy(overwrittenStudyID, info):

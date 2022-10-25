@@ -1,5 +1,6 @@
 package services;
 
+import haxe.Timer;
 import struct.Piece;
 import stored.PlayerData;
 import net.shared.TimeControlType;
@@ -26,6 +27,8 @@ class GameManager
 
     private static var playerFollowersByLogin:DefaultArrayMap<String, UserSession> = new DefaultArrayMap([]);
     private static var followedPlayerLoginByFollowerRef:Map<String, String> = [];
+
+    private static var simpleRematchParamsByGameID:Map<Int, ChallengeParams> = [];
 
     public static function getGameByID(id:Int) 
     {
@@ -180,6 +183,11 @@ class GameManager
                     addSpectator(follower, gameID, false);
                 }
 
+        var srColor:Null<PieceColor> = params.acceptorColor != null? opposite(params.acceptorColor) : null;
+        var srType:ChallengeType = Direct(acceptorSession.getInteractionReference());
+        var srParams:ChallengeParams = new ChallengeParams(params.timeControl, srType, srColor, params.customStartingSituation, params.rated);
+        simpleRematchParamsByGameID.set(gameID, srParams);
+
         return gameID;
     }
 
@@ -227,6 +235,9 @@ class GameManager
         for (playerColor in PieceColor.createAll())
             game.sessions.tellPlayer(playerColor, GameEnded(outcome, secsLeft.get(White), secsLeft.get(Black), newEloValues.get(playerColor)));
         game.sessions.announceToSpectators(GameEnded(outcome, secsLeft.get(White), secsLeft.get(Black), null));
+
+        var tenMinutesInMs:Int = 10 * 60 * 1000;
+        Timer.delay(simpleRematchParamsByGameID.remove.bind(game.id), tenMinutesInMs);
     }
 
     public static function handleDisconnection(user:UserSession)
@@ -262,4 +273,14 @@ class GameManager
         for (gameID in ongoingGameIDByPlayerRef.get(userRef))
             getOngoing(gameID).onGuestPlayerDestroyed(user);
     }        
+
+    public static function simpleRematch(author:UserSession, gameID:Int) 
+    {
+        var params:Null<ChallengeParams> = simpleRematchParamsByGameID.get(gameID);
+
+        if (params != null)
+            ChallengeManager.create(author, params);
+        else
+            author.emit(CreateChallengeResult(RematchExpired));
+    }
 }

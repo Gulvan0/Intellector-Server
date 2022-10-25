@@ -6,7 +6,7 @@ enum ChallengeType
 {
     Public;
     ByLink;
-    Direct(calleeLogin:String);
+    Direct(calleeRef:String);
 }
 
 class ChallengeParams 

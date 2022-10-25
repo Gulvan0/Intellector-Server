@@ -9,12 +9,14 @@ import net.shared.ChallengeData;
 import entities.Game;
 import entities.UserSession;
 
+using utils.ds.ArrayTools;
+
 class ChallengeManager
 {
     private static var lastChallengeID:Int = 0;
 
     private static var pendingChallengeIDsByOwnerLogin:DefaultArrayMap<String, Int> = new DefaultArrayMap([]);
-    private static var pendingDirectChallengeIDsByReceiverLogin:DefaultArrayMap<String, Int> = new DefaultArrayMap([]);
+    private static var pendingDirectChallengeIDsByReceiverRef:DefaultArrayMap<String, Int> = new DefaultArrayMap([]);
     
     private static var pendingPublicChallengeByIndicator:Map<String, Challenge> = [];
 
@@ -26,7 +28,7 @@ class ChallengeManager
     public static function getAllIncomingChallengesByReceiverLogin(login:String):Array<ChallengeData>
     {
         var challengeInfos:Array<ChallengeData> = [];
-        var ids:Array<Int> = pendingDirectChallengeIDsByReceiverLogin.get(login);
+        var ids:Array<Int> = pendingDirectChallengeIDsByReceiverRef.get(login);
         var challenges:Array<Challenge> = [for (id in ids) pendingChallengeByID.get(id)];
 
         for (challenge in challenges)
@@ -70,25 +72,71 @@ class ChallengeManager
         }
     }
 
+    private static function tryMatchmaking(requestAuthor:UserSession, compatibleIndicators:Array<String>):Bool
+    {
+        for (compatibleIndicator in compatibleIndicators)
+        {
+            var compatibleChallenge:Null<Challenge> = pendingPublicChallengeByIndicator.get(compatibleIndicator);
+            if (compatibleChallenge != null)
+            {
+                requestAuthor.emit(CreateChallengeResult(Merged));
+
+                Logger.serviceLog('CHALLENGE', 'Found compatible challenge ${compatibleChallenge.id}, accepting it...');
+                pendingPublicChallengeByIndicator.remove(compatibleIndicator);
+                accept(requestAuthor, compatibleChallenge.id);
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static function performPreliminaryChecks(requestAuthor:UserSession, challengeType:ChallengeType, compatibleIndicators:Array<String>):Bool
+    {
+        if (requestAuthor.getState() != Browsing)
+        {
+            Logger.serviceLog('CHALLENGE', 'Failed to create a challenge by ${requestAuthor.getLogReference()}: user state ${requestAuthor.getState()} != Browsing');
+            requestAuthor.emit(CreateChallengeResult(Impossible));
+            return false;
+        }
+
+        switch challengeType
+        {
+            case Public:
+                var mergedWithOtherChallenge:Bool = tryMatchmaking(requestAuthor, compatibleIndicators);
+                if (mergedWithOtherChallenge)
+                    return false;
+            case Direct(calleeRef):
+                if (requestAuthor.getInteractionReference() == calleeRef)
+                {
+                    Logger.serviceLog('CHALLENGE', 'Failed to create a challenge by ${requestAuthor.getLogReference()}: caller and callee are the same person');
+                    requestAuthor.emit(CreateChallengeResult(ToOneself));
+                    return false;
+                }
+                else if (!Auth.isGuest(calleeRef) && !Auth.userExists(calleeRef))
+                {
+                    Logger.serviceLog('CHALLENGE', 'Failed to create a challenge by ${requestAuthor.getLogReference()}: callee not found');
+                    requestAuthor.emit(CreateChallengeResult(PlayerNotFound));
+                    return false;
+                }
+                else if (pendingChallengeIDsByOwnerLogin.get(requestAuthor.login).intersects(pendingDirectChallengeIDsByReceiverRef.get(calleeRef)))
+                {
+                    Logger.serviceLog('CHALLENGE', 'Failed to create a challenge by ${requestAuthor.getLogReference()}: another challenge with the same caller and callee already exists');
+                    requestAuthor.emit(CreateChallengeResult(AlreadyExists));
+                    return false;
+                }
+            default:
+        }
+
+        return true;
+    }
+
     public static function create(requestAuthor:UserSession, params:ChallengeParams) 
     {
         Logger.serviceLog('CHALLENGE', '${requestAuthor.getLogReference()} requested creating a new challenge');
 
-        if (requestAuthor.getState() != Browsing)
+        var creationNeeded:Bool = performPreliminaryChecks(requestAuthor, params.type, params.compatibleIndicators());
+        if (!creationNeeded)
             return;
-
-        if (params.type == Public)
-            for (compatibleIndicator in params.compatibleIndicators())
-            {
-                var compatibleChallenge:Null<Challenge> = pendingPublicChallengeByIndicator.get(compatibleIndicator);
-                if (compatibleChallenge != null)
-                {
-                    Logger.serviceLog('CHALLENGE', 'Found compatible challenge ${compatibleChallenge.id}, accepting it...');
-                    pendingPublicChallengeByIndicator.remove(compatibleIndicator);
-                    accept(requestAuthor, compatibleChallenge.id);
-                    return;
-                }
-            }
         
         lastChallengeID++;
 
@@ -102,11 +150,18 @@ class ChallengeManager
         {
             case Public:
                 pendingPublicChallengeByIndicator.set(params.compatibilityIndicator(), challenge);
-            case Direct(calleeLogin):
-                pendingDirectChallengeIDsByReceiverLogin.push(calleeLogin, challenge.id);
+            case Direct(calleeRef):
+                pendingDirectChallengeIDsByReceiverRef.push(calleeRef, challenge.id);
             default:
         }
 
+        var challengeData:ChallengeData = new ChallengeData();
+        challengeData.id = lastChallengeID;
+        challengeData.ownerELO = requestAuthor.storedData.getELO(params.timeControl.getType());
+        challengeData.ownerLogin = requestAuthor.login;
+        challengeData.serializedParams = params.serialize();
+        requestAuthor.emit(CreateChallengeResult(Success(challengeData)));
+        
         Logger.serviceLog('CHALLENGE', 'Challenge ${challenge.id} has been created by ${challenge.ownerLogin}');
     }
 
@@ -119,8 +174,8 @@ class ChallengeManager
         {
             case Public:
                 pendingPublicChallengeByIndicator.remove(challenge.params.compatibilityIndicator());
-            case Direct(calleeLogin):
-                pendingDirectChallengeIDsByReceiverLogin.pop(calleeLogin, challenge.id);
+            case Direct(calleeRef):
+                pendingDirectChallengeIDsByReceiverRef.pop(calleeRef, challenge.id);
             default:
         }
     }

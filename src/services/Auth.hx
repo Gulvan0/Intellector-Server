@@ -43,6 +43,11 @@ class Auth
         return token;
     }
 
+    public static function isGuest(userRef:String) 
+    {
+        return userRef.charAt(0) == '_';    
+    }
+
     public static function isValid(login:String, password:String):Bool 
     {
         var hash:String = encodePassword(password);
