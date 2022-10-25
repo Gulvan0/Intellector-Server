@@ -1,5 +1,6 @@
 package;
 
+import services.Storage;
 import net.EventTransformer;
 import services.GameManager;
 import struct.ChallengeParams;
@@ -70,9 +71,15 @@ class Orchestrator
             case GetStudy(id):
 
             case GetMiniProfile(login):
+                author.emit(MiniProfile(Storage.loadPlayerData(login).toMiniProfileData(author.login)));
             case GetPlayerProfile(login):
+                author.emit(PlayerProfile(Storage.loadPlayerData(login).toProfileData(author.login)));
+
             case AddFriend(login):
+                author.storedData.addFriend(login);
             case RemoveFriend(login):
+                author.storedData.removeFriend(login);
+
             case GetGamesByLogin(login, after, pageSize, filterByTimeControl):
             case GetStudiesByLogin(login, after, pageSize, filterByTags):
             case GetOngoingGamesByLogin(login):

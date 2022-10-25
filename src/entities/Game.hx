@@ -1,5 +1,6 @@
 package entities;
 
+import net.shared.GameInfo;
 import net.shared.TimeReservesData;
 import services.EloManager;
 import entities.util.GameTime.IGameTime;
@@ -208,6 +209,14 @@ class Game
             return;
 
         endGame(Decisive(Abandon, opposite(playerColor)));
+    }
+
+    public function getInfo():GameInfo
+    {
+        var info:GameInfo = new GameInfo();
+        info.id = id;
+        info.log = log.get();
+        return info;
     }
 
     private function new(id:Int, onEndedCallback:Outcome->Game->Void) 
