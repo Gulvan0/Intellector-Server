@@ -35,6 +35,15 @@ class Logger
             trace(message);
     }
 
+    public static function addAntifraudEntry(playerLogin:String, valueName:String, oldValue:Float, newValue:Float) 
+    {
+        var message:String = '$valueName $playerLogin: $oldValue -> $newValue (${newValue - oldValue})';
+        Storage.appendLog(Antifraud, message);
+        Storage.appendLog(Full, "$ " + message);
+        if (Config.printLog)
+            trace("$ " + message);
+    }
+
     public static function logError(message:String, ?notifyAdmin:Bool = true) 
     {
         if (notifyAdmin)

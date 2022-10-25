@@ -219,6 +219,9 @@ class GameManager
                 var newElo:EloValue = EloManager.recalculateElo(formerElo, formerOpponentElo, personalOutcome, priorPlayedGames);
 
                 newEloValues.set(color, newElo);
+
+                var login:String = game.log.playerLogins.get(color);
+                Logger.addAntifraudEntry(login, "ELO_" + timeControl.getName(), EloManager.getNumericalElo(formerElo), EloManager.getNumericalElo(newElo));
             }
 
         for (color => data in loggedPlayerData.keyValueIterator())
