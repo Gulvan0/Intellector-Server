@@ -145,7 +145,15 @@ class Storage
 
     public static function createMissingFiles() 
     {
-        //TODO: Fill
+        for (logType in LogType.createAll())
+            if (!exists(Log(logType)))
+                overwrite(Log(logType), "");
+
+        if (!exists(ServerConfig))
+            overwrite(ServerConfig, "");
+
+        if (!exists(ServerData))
+            overwrite(ServerData, Json.stringify({lastGameID: 0, lastStudyID: 0, lastRepairedLogID: 0}, null, "    "));
     }
 
     public static function getServerDataField(fieldName:String):Int 
