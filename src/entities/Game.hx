@@ -168,7 +168,47 @@ class Game
         }
     }
 
-    //TODO: handle disconnect/connect (also for spectators and guests)
+    public function handlePlayerDisconnection(user:UserSession) 
+    {
+        var playerColor = sessions.getPlayerColor(user);
+
+        if (playerColor == null)
+            return;
+
+        log.append(Event(PlayerDisconnected(playerColor)));
+        sessions.broadcast(PlayerDisconnected(playerColor));
+    }
+
+    public function handleSpectatorDisconnection(user:UserSession) 
+    {
+        sessions.broadcast(SpectatorLeft(user.login));
+    }
+
+    public function handlePlayerReconnection(user:UserSession) 
+    {
+        var playerColor = sessions.getPlayerColor(user);
+
+        if (playerColor == null)
+            return;
+
+        log.append(Event(PlayerReconnected(playerColor)));
+        sessions.broadcast(PlayerReconnected(playerColor));
+    }
+
+    public function handleSpectatorReconnection(user:UserSession) 
+    {
+        sessions.broadcast(NewSpectator(user.login));
+    }
+
+    public function onGuestPlayerDestroyed(user:UserSession) 
+    {
+        var playerColor = sessions.getPlayerColor(user);
+
+        if (playerColor == null)
+            return;
+
+        endGame(Decisive(Abandon, opposite(playerColor)));
+    }
 
     private function new(id:Int, onEndedCallback:Outcome->Game->Void) 
     {

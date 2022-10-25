@@ -63,11 +63,6 @@ class ChallengeManager
             Logger.serviceLog('CHALLENGE', 'Challenge $id is direct');
             requestAuthor.emit(OpenChallengeNotFound);
         }
-        else if (requestAuthor.login == null && challenge.params.timeControl.getType() == Correspondence)
-        {
-            Logger.serviceLog('CHALLENGE', 'Challenge $id has correspondence time control, but the player requesting it is anonymous');
-            requestAuthor.emit(OpenChallengeNotFound);
-        }
         else
         {
             Logger.serviceLog('CHALLENGE', 'Challenge $id was found successfully');
@@ -183,10 +178,6 @@ class ChallengeManager
             requestAuthor.emit(ChallengeOwnerOffline(challenge.ownerLogin));
             Logger.logError('Challenge ${challenge.id} is present, but the owner (${challenge.ownerLogin}) is offline');
         }
-        else if (requestAuthor.login == null && challenge.isDirect())
-            Logger.serviceLog('CHALLENGE', 'Anonymous user ${requestAuthor.getLogReference()} attempted to accept a direct challenge ${challenge.id}. Refusing');
-        else if (requestAuthor.login == null && challenge.params.timeControl.getType() == Correspondence)
-            Logger.serviceLog('CHALLENGE', 'Anonymous user ${requestAuthor.getLogReference()} attempted to accept a challenge ${challenge.id} having correspondence time control. Refusing');
         else 
             fulfillChallenge(challenge, ownerSession, requestAuthor);
     }

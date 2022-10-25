@@ -21,7 +21,7 @@ class GameManager
     private static var lastGameID:Int = Storage.computeLastGameID();
     private static var finiteTimeGamesByID:Map<Int, FiniteTimeGame> = [];
     private static var ongoingGameIDBySpectatorRef:Map<String, Int> = [];
-    private static var finiteTimeGameIDByPlayerRef:Map<String, Int> = [];
+    private static var ongoingGameIDByPlayerRef:DefaultArrayMap<String, Int> = new DefaultArrayMap([]);
     private static var correspondenceGameSpectatorsByGameID:DefaultArrayMap<Int, UserSession> = new DefaultArrayMap([]);
 
     private static var playerFollowersByLogin:DefaultArrayMap<String, UserSession> = new DefaultArrayMap([]);
@@ -35,8 +35,16 @@ class GameManager
     public static function getFiniteTimeGameByPlayer(player:UserSession):Null<FiniteTimeGame>
     {
         var playerRef:String = player.getInteractionReference();
-        var gameID:Null<Int> = finiteTimeGameIDByPlayerRef.get(playerRef);
-        return gameID != null? finiteTimeGamesByID.get(gameID) : null;
+        var gameIDs:Array<Int> = ongoingGameIDByPlayerRef.get(playerRef);
+
+        for (gameID in gameIDs)
+        {
+            var finiteTimeGame:Null<FiniteTimeGame> = finiteTimeGamesByID.get(gameID);
+            if (finiteTimeGame != null)
+                return finiteTimeGame;
+        }
+            
+        return null;
     }
 
     public static function getOngoing(id:Int):Null<Game>
@@ -83,9 +91,13 @@ class GameManager
         playerFollowersByLogin.push(followedPlayerLogin, session);
         
         var followerRef:String = session.getInteractionReference();
-        var currentGameID:Null<Int> = finiteTimeGameIDByPlayerRef.get(followedPlayerLogin);
-        if (currentGameID != null && ongoingGameIDBySpectatorRef.get(followerRef) != currentGameID)
-            addSpectator(session, currentGameID, true);
+        var currentGameIDs:Array<Int> = ongoingGameIDByPlayerRef.get(followedPlayerLogin);
+        for (currentGameID in currentGameIDs)
+            if (ongoingGameIDBySpectatorRef.get(followerRef) != currentGameID && finiteTimeGamesByID.exists(currentGameID))
+            {
+                addSpectator(session, currentGameID, true);
+                break;
+            }
     }
 
     public static function stopSpectating(session:UserSession) 
@@ -133,15 +145,13 @@ class GameManager
         var whiteSession:UserSession = acceptorColor == White? acceptorSession : ownerSession;
         var blackSession:UserSession = acceptorColor == White? ownerSession : acceptorSession;
 
-        var game:Game;
-
         stopFollowing(whiteSession);
         stopSpectating(whiteSession);
         stopFollowing(blackSession);
         stopSpectating(blackSession);
 
-        finiteTimeGameIDByPlayerRef.set(whiteSession.getInteractionReference(), gameID);
-        finiteTimeGameIDByPlayerRef.set(blackSession.getInteractionReference(), gameID);
+        ongoingGameIDByPlayerRef.push(whiteSession.getInteractionReference(), gameID);
+        ongoingGameIDByPlayerRef.push(blackSession.getInteractionReference(), gameID);
 
         var logPreamble:String;
 
@@ -221,9 +231,35 @@ class GameManager
 
     public static function handleDisconnection(user:UserSession)
     {
-        //TODO: Also consider the case when an user is a spectator
+        var userRef:String = user.getLogReference();
         
-        //TODO: notify spectators and opponent (or launch termination timer if both players disconnected)
-        //TODO: append event to game log
-    }    
+        var spectatedGameID = ongoingGameIDBySpectatorRef.get(userRef);
+        if (spectatedGameID != null)
+            getOngoing(spectatedGameID).handleSpectatorDisconnection(user);
+        else 
+            for (gameID in ongoingGameIDByPlayerRef.get(userRef))
+                getOngoing(gameID).handlePlayerDisconnection(user);
+    }  
+
+    public static function handleReconnection(user:UserSession)
+    {
+        var userRef:String = user.getLogReference();
+       
+        var spectatedGameID = ongoingGameIDBySpectatorRef.get(userRef);
+        if (spectatedGameID != null)
+            getOngoing(spectatedGameID).handleSpectatorReconnection(user);
+        else 
+            for (gameID in ongoingGameIDByPlayerRef.get(userRef))
+                getOngoing(gameID).handlePlayerReconnection(user);
+    }
+
+    public static function handleSessionDestruction(user:UserSession)
+    {
+        if (user.login != null)
+            return;
+
+        var userRef:String = user.getLogReference();
+        for (gameID in ongoingGameIDByPlayerRef.get(userRef))
+            getOngoing(gameID).onGuestPlayerDestroyed(user);
+    }        
 }
