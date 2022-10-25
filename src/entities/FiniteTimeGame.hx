@@ -34,6 +34,6 @@ class FiniteTimeGame extends Game
         offers = new GameOffers(endGame.bind(Drawish(DrawAgreement)), rollback);
         sessions = new GameSessions(true, whitePlayer, blackPlayer);
         state = GameState.createNew(customStartingSituation);
-        time = GameTime.active(onTimeout);
+        time = GameTime.active(timeControl, onTimeout);
     }
 }

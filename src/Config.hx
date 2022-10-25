@@ -36,6 +36,8 @@ class Config
     public static var normalEloLogSlope:Float = 4.0;
     public static var calibrationGamesCount:Int = 12;
 
+    public static var secsAddedManually:Int = 15;
+
     public static function hasSSL():Bool
     {
         return sslCert != null && sslKey != null;
@@ -102,6 +104,14 @@ class Config
 
             if (eloMap.exists("calibration-games"))
                 calibrationGamesCount = eloMap.get("calibration-games");
+        }
+
+        if (data.exists("rules"))
+        {
+            var rulesMap:AnyObjectMap = data.get("rules");
+
+            if (rulesMap.exists("secs-added-manually"))
+                secsAddedManually = rulesMap.get("secs-added-manually");
         }
 
         if (data.exists("integrations"))

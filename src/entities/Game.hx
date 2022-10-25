@@ -1,5 +1,6 @@
 package entities;
 
+import net.shared.TimeReservesData;
 import services.EloManager;
 import entities.util.GameTime.IGameTime;
 import net.shared.Outcome;
@@ -33,19 +34,26 @@ class Game
 
     private var onEndedCallback:Outcome->Game->Void;
 
+    public function getTime():Null<TimeReservesData> 
+    {
+        return time.getTime(state.turnColor(), state.moveNum);
+    }
+
     private function onMoveSuccessful(author:UserSession, turnColor:PieceColor, moveNum:Int, from:HexCoords, to:HexCoords, morphInto:Null<PieceType>) 
     {
         time.onMoveMade(turnColor, moveNum);
 
-        var timeData = time.getTime();
-        var whiteSecs = timeData != null? Math.round(timeData.whiteSeconds * 1000) : null;
-        var blackSecs = timeData != null? Math.round(timeData.whiteSeconds * 1000) : null;
+        var msAtMoveStart = time.getMsAtMoveStart();
+        var whiteMs = msAtMoveStart != null? msAtMoveStart.get(White) : null;
+        var blackMs = msAtMoveStart != null? msAtMoveStart.get(Black) : null;
 
-        log.append(Move(from, to, morphInto, whiteSecs, blackSecs));
+        var actualTimeData = getTime();
+
+        log.append(Move(from, to, morphInto, whiteMs, blackMs));
         offers.onMoveMade();
-        sessions.broadcast(Move(from.i, to.i, from.j, to.j, morphInto, timeData), author);
-        if (timeData != null)
-            sessions.tellPlayer(turnColor, TimeCorrection(timeData));
+        sessions.broadcast(Move(from.i, to.i, from.j, to.j, morphInto, actualTimeData), author);
+        if (actualTimeData != null)
+            sessions.tellPlayer(turnColor, TimeCorrection(actualTimeData));
     }
 
     private function performMove(author:UserSession, fromI:Int, toI:Int, fromJ:Int, toJ:Int, morphInto:Null<PieceType>) 
@@ -58,9 +66,9 @@ class Game
         switch result 
         {
             case Performed:
-                onMoveSuccessful(author, turnColor, state.moveNum, from, to, morphInto);
+                onMoveSuccessful(author, turnColor, state.moveNum - 1, from, to, morphInto);
             case GameEnded(outcome):
-                onMoveSuccessful(author, turnColor, state.moveNum, from, to, morphInto);
+                onMoveSuccessful(author, turnColor, state.moveNum - 1, from, to, morphInto);
                 endGame(outcome);
             case Failed:
                 sessions.tellPlayer(turnColor, InvalidMove);
@@ -81,8 +89,8 @@ class Game
 
     private function endGame(outcome:Outcome) 
     {
-        time.stopTime();
-        var finalTime:Null<TimeReservesData> = time.getTime();
+        time.stopTime(state.turnColor(), state.moveNum);
+        var finalTime:Null<TimeReservesData> = getTime();
 
         log.append(Result(outcome));
         if (finalTime != null)
@@ -101,8 +109,8 @@ class Game
 
         log.rollback(moveCnt);
         state.rollback(moveCnt);
-        time.onRollback(moveCnt);
-        sessions.broadcast(Rollback(moveCnt, time.getTime()));
+        time.onRollback(moveCnt, state.turnColor(), state.moveNum);
+        sessions.broadcast(Rollback(moveCnt, getTime()));
     }
 
     public function processAction(action:GameAction, issuer:UserSession) 
@@ -117,7 +125,7 @@ class Game
             case Move(fromI, toI, fromJ, toJ, morphInto):
                 performMove(issuer, fromI, toI, fromJ, toJ, morphInto);
             case RequestTimeoutCheck:
-                time.checkTime();
+                time.checkTime(state.turnColor(), state.moveNum);
             case Message(text):
                 sendMessage(issuer, text);
             case Resign:
@@ -155,8 +163,8 @@ class Game
                 offers.declineTakeback(issuerColor);
                 sessions.broadcast(TakebackDeclined);
             case AddTime:
-                time.addTime(opposite(issuerColor));
-                sessions.broadcast(TimeCorrection(time.getTime()));
+                time.addTime(opposite(issuerColor), state.turnColor(), state.moveNum);
+                sessions.broadcast(TimeCorrection(getTime()));
         }
     }
 

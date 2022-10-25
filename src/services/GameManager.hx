@@ -73,7 +73,7 @@ class GameManager
             correspondenceGameSpectatorsByGameID.push(gameID, session);
 
         if (sendSpectationData)
-            session.emit(SpectationData(gameID, game.time.getTime(), game.log.get()));
+            session.emit(SpectationData(gameID, game.getTime(), game.log.get()));
     }
 
     public static function addFollower(session:UserSession, followedPlayerLogin:String) 

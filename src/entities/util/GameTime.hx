@@ -1,35 +1,40 @@
 package entities.util;
 
+import struct.TimeControl;
 import net.shared.TimeReservesData;
 import haxe.Timer;
 import net.shared.PieceColor;
 
+using utils.ds.ArrayTools;
+
 interface IGameTime 
 {
-    public function checkTime():Void;
-    public function stopTime():Void;
-    public function addTime(color:PieceColor):Void;
+    public function checkTime(turnColor:PieceColor, moveNum:Int):Void;
+    public function stopTime(turnColor:PieceColor, moveNum:Int):Void;
+    public function addTime(color:PieceColor, turnColor:PieceColor, moveNum:Int):Void;
     public function onMoveMade(movedPlayerColor:PieceColor, moveNum:Int):Void;
-    public function onRollback(moveCnt:Int):Void;
-    public function onPlayerDisconnected(color:PieceColor):Void;
-    public function onPlayerReconnected(color:PieceColor):Void;
-    public function getTime():Null<TimeReservesData>;
+    public function onRollback(moveCnt:Int, newTurnColor:PieceColor, newMoveNum:Int):Void;
+    public function getTime(turnColor:PieceColor, moveNum:Int):Null<TimeReservesData>;
+    public function getMsAtMoveStart():Null<Map<PieceColor, Int>>;
 }
 
 private class Nil implements IGameTime
 {
     public function onMoveMade(movedPlayerColor:PieceColor, moveNum:Int) {} 
-    public function onRollback(moveCnt:Int) {} 
-    public function checkTime() {} 
-    public function stopTime() {} 
-    public function onPlayerDisconnected(color:PieceColor) {}
-    public function onPlayerReconnected(color:PieceColor) {} 
-    public function addTime(color:PieceColor) {}
+    public function onRollback(moveCnt:Int, newTurnColor:PieceColor, newMoveNum:Int) {} 
+    public function checkTime(turnColor:PieceColor, moveNum:Int) {} 
+    public function stopTime(turnColor:PieceColor, moveNum:Int) {} 
+    public function addTime(color:PieceColor, turnColor:PieceColor, moveNum:Int) {}
 
-    public function getTime():Null<TimeReservesData> 
+    public function getTime(turnColor:PieceColor, moveNum:Int):Null<TimeReservesData> 
     {
         return null;
     } 
+
+    public function getMsAtMoveStart():Null<Map<PieceColor, Int>>
+    {
+        return null;
+    }
 
     public function new() 
     {
@@ -39,63 +44,100 @@ private class Nil implements IGameTime
 
 class GameTime implements IGameTime
 {
+    private var timeControl:TimeControl;
     private var secondsLeftOnMoveStart:Array<Map<PieceColor, Float>> = [];
     private var moveStartTimestamp:Float;
+
+    private var finalTimeLeft:Null<TimeReservesData> = null;
 
     private var timeoutTerminationTimer:Null<Timer> = null;
     
     private var onTimeout:PieceColor->Void;
 
-    public function onMoveMade(movedPlayerColor:PieceColor, moveNum:Int) 
+    public function getMsAtMoveStart():Null<Map<PieceColor, Int>>
     {
-        var msPassed:Float = moveNum <= 2? 0 : Date.now().getTime() - moveStartTimestamp;
-        var secsLeft:Float = secondsLeftOnMoveStart[secondsLeftOnMoveStart.length - 1][movedPlayerColor] - msPassed * 1000;
-        var secsLeftOpponent:Float = secondsLeftOnMoveStart[secondsLeftOnMoveStart.length - 1][opposite(movedPlayerColor)];
-
-        if (secsLeft > 0)
-        {
-            secondsLeftOnMoveStart.push([movedPlayerColor => secsLeft, opposite(movedPlayerColor) => secsLeftOpponent]);
-            moveStartTimestamp = Date.now().getTime();
-        }
-        else
-            onTimeout(movedPlayerColor);
+        var timeMap = secondsLeftOnMoveStart.last();
+        return [White => Math.round(timeMap[White] * 1000), Black => Math.round(timeMap[Black] * 1000)];
     }
 
-    public function onRollback(moveCnt:Int) 
+    public function onMoveMade(turnColor:PieceColor, moveNum:Int) 
+    {
+        var timeData:TimeReservesData = getTime(turnColor, moveNum);
+        var timeMap = timeData.secsLeftMap();
+
+        if (timeMap[turnColor] > 0)
+        {
+            timeMap[turnColor] += timeControl.incrementSecs;
+            secondsLeftOnMoveStart.push(timeMap);
+            moveStartTimestamp = timeData.timestamp;
+
+            restartTimer(opposite(turnColor), moveNum + 1, Math.round(timeMap[opposite(turnColor)] * 1000));
+        }
+        else
+            onTimeout(turnColor);
+    }
+
+    private function stopTimer() 
+    {
+        if (timeoutTerminationTimer != null)
+            timeoutTerminationTimer.stop();
+    }
+
+    private function restartTimer(turnColor:PieceColor, moveNum:Int, playerMsLeft:Float) 
+    {
+        stopTimer();
+        if (moveNum >= 2)
+            timeoutTerminationTimer = Timer.delay(checkTime.bind(turnColor, moveNum), Math.ceil(playerMsLeft) + 100);
+    }
+
+    public function onRollback(moveCnt:Int, newTurnColor:PieceColor, newMoveNum:Int) 
     {
         secondsLeftOnMoveStart = secondsLeftOnMoveStart.slice(0, -moveCnt);
         moveStartTimestamp = Date.now().getTime();
+        restartTimer(newTurnColor, newMoveNum, getMsAtMoveStart()[newTurnColor]);
     }
 
-    public function getTime():Null<TimeReservesData> 
+    public function getTime(turnColor:PieceColor, moveNum:Int):Null<TimeReservesData> 
     {
-        //TODO: Fill
-        return null;
+        if (finalTimeLeft != null)
+        {
+            finalTimeLeft.timestamp = Date.now().getTime();
+            return finalTimeLeft;
+        }
+
+        var timestamp:Float = Date.now().getTime();
+        var msPassed:Float = moveNum < 2? 0 : timestamp - moveStartTimestamp;
+
+        var secsLeft:Map<PieceColor, Float> = secondsLeftOnMoveStart.last();
+        var secsLeftWhite:Float = secsLeft[turnColor] - msPassed * 1000;
+        var secsLeftBlack:Float = secsLeft[opposite(turnColor)];
+
+        return new TimeReservesData(secsLeftWhite, secsLeftBlack, timestamp);
     } 
 
-    public function checkTime() 
+    public function checkTime(turnColor:PieceColor, moveNum:Int) 
     {
-        //TODO: Fill
+        var timeMap = getTime(turnColor, moveNum).secsLeftMap();
+
+        for (color in PieceColor.createAll())
+            if (timeMap[color] <= 0)
+            {
+                onTimeout(color);
+                return;
+            }
     }
 
-    public function stopTime() 
+    public function stopTime(turnColor:PieceColor, moveNum:Int) 
     {
-        //TODO: Fill
+        finalTimeLeft = getTime(turnColor, moveNum);
+        stopTimer();
     }
 
-    public function onPlayerDisconnected(color:PieceColor) 
+    public function addTime(color:PieceColor, turnColor:PieceColor, moveNum:Int) 
     {
-        //TODO: Fill
-    }
-
-    public function onPlayerReconnected(color:PieceColor) 
-    {
-        //TODO: Fill
-    }
-
-    public function addTime(color:PieceColor) 
-    {
-        //TODO: Fill
+        secondsLeftOnMoveStart.last()[color] += Config.secsAddedManually;
+        if (color == turnColor)
+            restartTimer(turnColor, moveNum, getTime(turnColor, moveNum).secsLeftMap()[turnColor]);
     }
 
     public static function nil():IGameTime
@@ -103,13 +145,16 @@ class GameTime implements IGameTime
         return new Nil();
     }
 
-    public static function active(onTimeout:PieceColor->Void):IGameTime
+    public static function active(timeControl:TimeControl, onTimeout:PieceColor->Void):IGameTime
     {
-        return new GameTime(onTimeout);
+        return new GameTime(timeControl, onTimeout);
     }
 
-    private function new(onTimeout:PieceColor->Void) 
+    private function new(timeControl:TimeControl, onTimeout:PieceColor->Void) 
     {
         this.onTimeout = onTimeout;
+        this.timeControl = timeControl;
+        secondsLeftOnMoveStart.push([White => timeControl.startSecs, Black => timeControl.startSecs]);
+        moveStartTimestamp = Date.now().getTime();
     }
 }

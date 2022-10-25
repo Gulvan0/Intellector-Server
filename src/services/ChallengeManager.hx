@@ -49,7 +49,7 @@ class ChallengeManager
             if (game != null)
             {
                 Logger.serviceLog('CHALLENGE', 'Challenge $id has been fullfilled, the corresponding game is still in progress');
-                requestAuthor.emit(OpenChallengeHostPlaying(gameID, game.time.getTime(), game.log.get()));
+                requestAuthor.emit(OpenChallengeHostPlaying(gameID, game.getTime(), game.log.get()));
                 GameManager.addSpectator(requestAuthor, gameID, false);
             }
             else
