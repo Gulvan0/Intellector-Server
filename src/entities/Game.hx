@@ -130,8 +130,13 @@ class Game
             case Message(text):
                 sendMessage(issuer, text);
             case Resign:
-                endGame(Decisive(Resign, opposite(issuerColor)));
+                if (state.moveNum >= 2)
+                    endGame(Decisive(Resign, opposite(issuerColor)));
+                else
+                    endGame(Drawish(Abort));
             case OfferDraw:
+                if (state.moveNum < 2)
+                    return;
                 log.append(Event(DrawOffered(issuerColor)));
                 offers.offerDraw(issuerColor);
                 sessions.broadcast(DrawOffered);
@@ -148,6 +153,8 @@ class Game
                 offers.declineDraw(issuerColor);
                 sessions.broadcast(DrawDeclined);
             case OfferTakeback:
+                if (state.moveNum == 0 || (state.moveNum == 1 && state.turnColor() == issuerColor))
+                    return;
                 log.append(Event(TakebackOffered(issuerColor)));
                 offers.offerTakeback(issuerColor);
                 sessions.broadcast(TakebackOffered);

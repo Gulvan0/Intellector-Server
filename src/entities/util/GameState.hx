@@ -17,7 +17,7 @@ enum TryPlyResult
 
 class GameState 
 {
-    public var moveNum(default, null):Int = 0; //TODO: Use for resign/abandon, offer enabling/disabling
+    public var moveNum(default, null):Int = 0;
     private var currentSituation:Situation;
     private var plyHistory:Array<Ply> = []; //To simplify rollbacks (caused by takebacks, for example)
     private var situationOccurences:DefaultCountMap<String> = new DefaultCountMap([]); //For threefold repetition check

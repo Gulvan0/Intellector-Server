@@ -209,7 +209,7 @@ class GameManager
         var timeControl:TimeControlType = game.log.timeControl.getType();
 
         var newEloValues:Map<PieceColor, EloValue> = [];
-        if (game.log.rated)
+        if (game.log.rated && !outcome.match(Drawish(Abort)))
             for (color => data in loggedPlayerData.keyValueIterator())
             {
                 var formerElo:EloValue = game.log.elo[color];
