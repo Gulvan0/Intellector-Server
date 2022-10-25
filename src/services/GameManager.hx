@@ -19,7 +19,7 @@ import entities.UserSession;
 
 class GameManager 
 {
-    private static var lastGameID:Int = Storage.computeLastGameID();
+    private static var lastGameID:Int = Storage.getServerDataField("lastGameID");
     private static var finiteTimeGamesByID:Map<Int, FiniteTimeGame> = [];
     private static var ongoingGameIDBySpectatorRef:Map<String, Int> = [];
     private static var ongoingGameIDByPlayerRef:DefaultArrayMap<String, Int> = new DefaultArrayMap([]);
@@ -29,6 +29,11 @@ class GameManager
     private static var followedPlayerLoginByFollowerRef:Map<String, String> = [];
 
     private static var simpleRematchParamsByGameID:Map<Int, ChallengeParams> = [];
+
+    public static function getLastGameID():Int
+    {
+        return lastGameID;
+    }
 
     public static function getGameByID(id:Int) 
     {

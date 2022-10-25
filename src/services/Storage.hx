@@ -1,11 +1,14 @@
 package services;
 
+import entities.util.GameLogTranslator;
 import haxe.io.Path;
 import stored.PlayerData;
 import sys.FileSystem;
 import haxe.Json;
 import integration.Telegram;
 import sys.io.File;
+
+using StringTools;
 
 enum LogType
 {
@@ -121,12 +124,47 @@ class Storage
 
     public static function repairGameLogs() 
     {
-        //TODO: Fill
+        var maxRepairedLogID:Int = GameManager.getLastGameID();
+        var gameID:Int = maxRepairedLogID;
+
+        while (gameID > getServerDataField("lastRepairedLogID"))
+        {
+            var log:String = getGameLog(gameID);
+
+            if (!log.contains("#R|"))
+            {
+                log = GameLogTranslator.concat(log, Result(Drawish(Abort)));
+                overwrite(GameData(gameID), log);
+            }
+
+            gameID--;
+        }
+
+        setServerDataField("lastRepairedLogID", maxRepairedLogID);
     }
 
     public static function createMissingFiles() 
     {
         //TODO: Fill
+    }
+
+    public static function getServerDataField(fieldName:String):Int 
+    {
+        var data:Dynamic = Json.parse(read(ServerData));
+
+        if (!Reflect.hasField(data, fieldName))
+            throw 'Serverdata field not found: $fieldName';
+
+        return cast(Reflect.field(data, fieldName), Int);
+    }
+
+    public static function setServerDataField(fieldName:String, value:Int)
+    {
+        var data:Dynamic = Json.parse(read(ServerData));
+
+        Reflect.setField(data, fieldName, value);
+
+        overwrite(ServerData, Json.stringify(data, null, "    "));
     }
     
     private static function filePath(file:DataFile):String 
