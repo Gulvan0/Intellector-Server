@@ -13,6 +13,18 @@ class TimeControl
         this.incrementSecs = incrementSecs;
     }
 
+    public function toString(ru:Bool):String 
+    {
+        if (isCorrespondence())
+            return ru? 'По переписке' : 'Correspondence';
+        else if (startSecs % 60 == 0)
+            return '${startSecs/60}+$incrementSecs';
+        else if (startSecs > 60)
+            return '${Math.floor(startSecs/60)}m${startSecs % 60}s+$incrementSecs';
+        else
+            return '${startSecs % 60}s+$incrementSecs';
+    }
+
     public function getType():TimeControlType 
     {
 		var determinant:Int = startSecs + 40 * incrementSecs;

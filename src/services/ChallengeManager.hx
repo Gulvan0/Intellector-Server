@@ -1,5 +1,7 @@
 package services;
 
+import integration.Vk;
+import integration.Discord;
 import utils.ds.DefaultArrayMap;
 import stored.PlayerData;
 import struct.ChallengeParams;
@@ -169,6 +171,9 @@ class ChallengeManager
 
         switch params.type 
         {
+            case Public:
+                Discord.onPublicChallengeCreated(lastChallengeID, challengeData.ownerLogin, params);
+                Vk.onPublicChallengeCreated(lastChallengeID, challengeData.ownerLogin, params);
             case Direct(calleeRef):
                 var callee:Null<UserSession> = Auth.getUserByInteractionReference(calleeRef);
                 if (callee != null)
