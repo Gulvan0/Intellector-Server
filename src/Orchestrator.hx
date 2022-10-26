@@ -1,5 +1,6 @@
 package;
 
+import services.Auth;
 import entities.Game;
 import services.StudyManager;
 import net.shared.StudyInfo;
@@ -56,7 +57,10 @@ class Orchestrator
                 ChallengeManager.getOpenChallenge(author, id);
 
             case FollowPlayer(login):
-                GameManager.addFollower(author, login);
+                if (Auth.userExists(login))
+                    GameManager.addFollower(author, login);
+                else
+                    author.emit(PlayerNotFound); //TODO: Is it processed by client?
             case StopFollowing:
                 GameManager.stopFollowing(author);
             case StopSpectating:
@@ -102,25 +106,57 @@ class Orchestrator
                     author.emit(SingleStudy(info));
 
             case GetMiniProfile(login):
-                author.emit(MiniProfile(Storage.loadPlayerData(login).toMiniProfileData(author.login)));
+                if (Auth.userExists(login))
+                    author.emit(MiniProfile(Storage.loadPlayerData(login).toMiniProfileData(author.login)));
+                else
+                    author.emit(PlayerNotFound); //TODO: Is it processed by client?
             case GetPlayerProfile(login):
-                author.emit(PlayerProfile(Storage.loadPlayerData(login).toProfileData(author.login)));
+                if (Auth.userExists(login))
+                    author.emit(PlayerProfile(Storage.loadPlayerData(login).toProfileData(author.login)));
+                else
+                    author.emit(PlayerNotFound);
 
             case AddFriend(login):
-                author.storedData.addFriend(login);
+                if (Auth.userExists(login))
+                    author.storedData.addFriend(login);
+                else
+                    author.emit(PlayerNotFound);
             case RemoveFriend(login):
-                author.storedData.removeFriend(login);
+                if (Auth.userExists(login))
+                    author.storedData.removeFriend(login);
+                else
+                    author.emit(PlayerNotFound);
 
             case GetGamesByLogin(login, after, pageSize, filterByTimeControl):
+                if (!Auth.userExists(login))
+                {
+                    author.emit(PlayerNotFound);
+                    return;
+                }
+
                 var data:PlayerData = Storage.loadPlayerData(login);
                 var games:Array<GameInfo> = data.getPastGames(after, pageSize, filterByTimeControl);
                 var hasNext:Bool = data.getPlayedGamesCnt(filterByTimeControl) > after + pageSize;
                 author.emit(Games(games, hasNext));
+
             case GetStudiesByLogin(login, after, pageSize, filterByTags):
+                if (!Auth.userExists(login))
+                {
+                    author.emit(PlayerNotFound);
+                    return;
+                }
+
                 var data:PlayerData = Storage.loadPlayerData(login);
                 var studies = data.getStudies(after, pageSize, filterByTags);
                 author.emit(Studies(studies.map, studies.hasNext));
+
             case GetOngoingGamesByLogin(login):
+                if (!Auth.userExists(login))
+                {
+                    author.emit(PlayerNotFound);
+                    return;
+                }
+
                 var data:PlayerData = Storage.loadPlayerData(login);
                 var games:Array<GameInfo> = data.getOngoingGames();
                 author.emit(Games(games, false));
