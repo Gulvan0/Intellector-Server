@@ -166,6 +166,15 @@ class ChallengeManager
         challengeData.ownerLogin = requestAuthor.login;
         challengeData.serializedParams = params.serialize();
         requestAuthor.emit(CreateChallengeResult(Success(challengeData)));
+
+        switch params.type 
+        {
+            case Direct(calleeRef):
+                var callee:Null<UserSession> = Auth.getUserByInteractionReference(calleeRef);
+                if (callee != null)
+                    callee.emit(IncomingDirectChallenge(challengeData));
+            default:
+        }
         
         Logger.serviceLog('CHALLENGE', 'Challenge ${challenge.id} has been created by ${challenge.ownerLogin}');
     }
@@ -181,6 +190,9 @@ class ChallengeManager
                 pendingPublicChallengeByIndicator.remove(challenge.params.compatibilityIndicator());
             case Direct(calleeRef):
                 pendingDirectChallengeIDsByReceiverRef.pop(calleeRef, challenge.id);
+                var callee:Null<UserSession> = Auth.getUserByInteractionReference(calleeRef);
+                if (callee != null)
+                    callee.emit(DirectChallengeCancelled(challenge.id));
             default:
         }
     }

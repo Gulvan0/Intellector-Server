@@ -139,37 +139,37 @@ class Game
                     return;
                 log.append(Event(DrawOffered(issuerColor)));
                 offers.offerDraw(issuerColor);
-                sessions.broadcast(DrawOffered);
+                sessions.broadcast(DrawOffered, issuer);
             case CancelDraw:
                 log.append(Event(DrawCanceled(issuerColor)));
                 offers.cancelDraw(issuerColor);
-                sessions.broadcast(DrawCancelled);
+                sessions.broadcast(DrawCancelled, issuer);
             case AcceptDraw:
                 log.append(Event(DrawAccepted(issuerColor)));
                 offers.acceptDraw(issuerColor);
-                sessions.broadcast(DrawAccepted);
+                sessions.broadcast(DrawAccepted, issuer);
             case DeclineDraw:
                 log.append(Event(DrawDeclined(issuerColor)));
                 offers.declineDraw(issuerColor);
-                sessions.broadcast(DrawDeclined);
+                sessions.broadcast(DrawDeclined, issuer);
             case OfferTakeback:
                 if (state.moveNum == 0 || (state.moveNum == 1 && state.turnColor() == issuerColor))
                     return;
                 log.append(Event(TakebackOffered(issuerColor)));
                 offers.offerTakeback(issuerColor);
-                sessions.broadcast(TakebackOffered);
+                sessions.broadcast(TakebackOffered, issuer);
             case CancelTakeback:
                 log.append(Event(TakebackCanceled(issuerColor)));
                 offers.cancelTakeback(issuerColor);
-                sessions.broadcast(TakebackCancelled);
+                sessions.broadcast(TakebackCancelled, issuer);
             case AcceptTakeback:
                 log.append(Event(TakebackAccepted(issuerColor)));
                 offers.acceptTakeback(issuerColor);
-                sessions.broadcast(TakebackAccepted);
+                sessions.broadcast(TakebackAccepted, issuer);
             case DeclineTakeback:
                 log.append(Event(TakebackDeclined(issuerColor)));
                 offers.declineTakeback(issuerColor);
-                sessions.broadcast(TakebackDeclined);
+                sessions.broadcast(TakebackDeclined, issuer);
             case AddTime:
                 time.addTime(opposite(issuerColor), state.turnColor(), state.moveNum);
                 sessions.broadcast(TimeCorrection(getTime()));

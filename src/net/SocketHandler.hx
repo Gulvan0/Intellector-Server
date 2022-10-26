@@ -109,11 +109,13 @@ class SocketHandler extends WebSocketHandler
                 if (restoredUser != null)
                 {
                     this.user = restoredUser;
-                    user.onReconnected(this);
+                    var missedEvents = user.onReconnected(this);
+                    emit(RestoreSessionResult(Restored(missedEvents)));
                 }
                 else
                 {
                     this.user = Auth.createSession(this);
+                    emit(RestoreSessionResult(NotRestored));
                     Logger.serviceLog("SOCKET", '${user.getLogReference()} attempted to restore a session with a wrong token: $token');
                 }
             default:

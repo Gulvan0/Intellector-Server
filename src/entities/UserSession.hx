@@ -84,7 +84,7 @@ class UserSession
         reconnectionTimer = Timer.delay(onReconnectionTimeOut, fiveMinutes);
     }
 
-    public function onReconnected(connection:SocketHandler)
+    public function onReconnected(connection:SocketHandler):Array<ServerEvent>
     {
         if (reconnectionTimer != null)
             reconnectionTimer.stop();
@@ -95,12 +95,10 @@ class UserSession
         LoginManager.handleReconnection(this);
         //TODO: handleReconnection (for all other relevant managers)
 
-        var missedEvent:Null<ServerEvent> = missedEvents.shift();
-        while (missedEvent != null)
-        {
-            emit(missedEvent);
-            missedEvent = missedEvents.shift();
-        }
+        var returnedEvents = missedEvents;
+        missedEvents = [];
+
+        return returnedEvents;
     }
 
     private function onReconnectionTimeOut() 

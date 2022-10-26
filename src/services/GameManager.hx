@@ -81,30 +81,40 @@ class GameManager
 
     public static function addSpectator(session:UserSession, gameID:Int, sendSpectationData:Bool) 
     {
+        var spectatorRef:String = session.getInteractionReference();
+
         var game:Null<Game> = getOngoing(gameID);
 
         if (game == null)
             return;
 
-        stopSpectating(session);
+        if (ongoingGameIDBySpectatorRef.get(spectatorRef) != gameID)
+        {
+            stopSpectating(session);
+    
+            game.sessions.addSpectator(session);
+            ongoingGameIDBySpectatorRef.set(spectatorRef, gameID);
 
-        game.sessions.addSpectator(session);
-        ongoingGameIDBySpectatorRef.set(session.getInteractionReference(), gameID);
+            if (game.log.timeControl.isCorrespondence())
+                correspondenceGameSpectatorsByGameID.push(gameID, session);
 
-        if (game.log.timeControl.isCorrespondence())
-            correspondenceGameSpectatorsByGameID.push(gameID, session);
-
-        if (sendSpectationData)
-            session.emit(SpectationData(gameID, game.getTime(), game.log.get()));
+            if (sendSpectationData)
+                session.emit(SpectationData(gameID, game.getTime(), game.log.get()));
+        }
     }
 
     public static function addFollower(session:UserSession, followedPlayerLogin:String) 
     {
+        var followerRef:String = session.getInteractionReference();
+
+        if (followedPlayerLogin == followedPlayerLoginByFollowerRef.get(followerRef))
+            return;
+
         stopFollowing(session);
 
         playerFollowersByLogin.push(followedPlayerLogin, session);
+        followedPlayerLoginByFollowerRef.set(followerRef, followedPlayerLogin);
         
-        var followerRef:String = session.getInteractionReference();
         var currentGameIDs:Array<Int> = ongoingGameIDByPlayerRef.get(followedPlayerLogin);
         for (currentGameID in currentGameIDs)
             if (ongoingGameIDBySpectatorRef.get(followerRef) != currentGameID && finiteTimeGamesByID.exists(currentGameID))

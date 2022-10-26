@@ -3,7 +3,7 @@ package net.shared;
 enum ServerEvent
 {
     GameStarted(gameID:Int, logPreamble:String); //Sent when a game with one of the players being the user starts. Signals the app to navigate to the game screen. One of the answers to AcceptDirectChallenge. Also follows the DirectChallengeSent event unless DirectChallengeDeclined was emitted.
-    SpectationData(gameID:Int, timeData:Null<TimeReservesData>, currentLog:String); //Answer to Spectate. All the match details required may be derived from the currentLog arg. Signals the app to navigate to the game screen. 
+    SpectationData(gameID:Int, timeData:Null<TimeReservesData>, currentLog:String); //Sent to a spectator joining the game. All the match details required may be derived from the currentLog arg. Signals the app to navigate to the game screen. 
     
     GameIsOver(log:String); //Answer to GetGame: game has ended and now can be revisited
     GameIsOngoing(timeData:Null<TimeReservesData>, currentLog:String); //Answer to GetGame: game is in process. Player should either spectate or reconnect based on whether the log contains their login
@@ -12,7 +12,7 @@ enum ServerEvent
     CreateChallengeResult(result:SendChallengeResult);
 
     IncomingDirectChallenge(data:ChallengeData);
-    //TODO: DirectChallengeCancelled (server should emit whenever cancelled, client should respond by removing the corresponding entry from the menubar challenge list)
+    DirectChallengeCancelled(id:Int);
 
     DirectChallengeDeclined(id:Int); //Recipient has declined the challenge. Its 'accepted' counterpart doesn't exist, instead, GameStarted is sent right away
 
@@ -58,9 +58,7 @@ enum ServerEvent
     Games(games:Array<GameInfo>, hasNext:Bool); //Answer to GetGamesByLogin, GetOngoingGamesByLogin
     Studies(studies:Map<Int, StudyInfo>, hasNext:Bool); //Answer to GetStudiesByLogin
 
-    PlayerNotFound; //Answer to Spectate, GetPlayerProfile, GetGamesByLogin, GetOngoingGamesByLogin and GetStudiesByLogin: no such player exists
-    PlayerOffline; //Answer to Spectate: no game to spectate with a requested player
-    PlayerNotInGame; //Answer to Spectate: no game to spectate with a requested player
+    PlayerNotFound; //Answer to GetPlayerProfile, GetGamesByLogin, GetOngoingGamesByLogin and GetStudiesByLogin: no such player exists
 
     OpenChallenges(data:Array<ChallengeData>); //Answer to GetOpenChallenges
     CurrentGames(data:Array<GameInfo>); //Answer to GetCurrentGames

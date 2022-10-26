@@ -30,6 +30,14 @@ class Auth
         Logger.serviceLog(serviceName, 'Session detached by timeout: $token');
     }
 
+    public static function getUserByInteractionReference(userRef:String):Null<UserSession>
+    {
+        if (isGuest(userRef))
+            return getUserBySessionToken(userRef);
+        else
+            return LoginManager.getUser(userRef);
+    }
+
     public static function getUserBySessionToken(token:String):Null<UserSession>
     {
         return userByToken.get(token);
