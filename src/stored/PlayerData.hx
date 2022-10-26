@@ -20,6 +20,8 @@ import net.shared.TimeControlType;
 import services.Storage;
 import haxe.Json;
 
+using utils.ds.ArrayTools;
+
 class PlayerData
 {
     private var login:String;
@@ -70,7 +72,7 @@ class PlayerData
             data.pastGames[NoneOpt] = data.pastGames[NoneOpt].concat(a); 
         }
 
-        data.pastGames[NoneOpt].sort((x, y) -> x - y);
+        data.pastGames[NoneOpt].sortIntDesc();
 
         data.elo = [];
 

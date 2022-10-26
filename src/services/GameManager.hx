@@ -1,5 +1,6 @@
 package services;
 
+import net.shared.GameInfo;
 import haxe.Timer;
 import struct.Piece;
 import stored.PlayerData;
@@ -38,6 +39,11 @@ class GameManager
     public static function getGameByID(id:Int) 
     {
         //TODO: (Any game, even correspondence or past ones)
+    }
+
+    public static function getCurrentFiniteTimeGames():Array<GameInfo>
+    {
+        return Lambda.map(finiteTimeGamesByID, x -> x.getInfo());
     }
 
     public static function getFiniteTimeGameByPlayer(player:UserSession):Null<FiniteTimeGame>

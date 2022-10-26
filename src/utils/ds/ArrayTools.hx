@@ -14,4 +14,14 @@ class ArrayTools
                 return true;
         return false;
     }
+
+    public static function sortIntAsc(a:Array<Int>)
+    {
+        a.sort((x, y) -> x - y);
+    }
+
+    public static function sortIntDesc(a:Array<Int>)
+    {
+        a.sort((x, y) -> y - x);
+    }
 }

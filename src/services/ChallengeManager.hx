@@ -38,6 +38,11 @@ class ChallengeManager
         return challengeInfos;
     }
 
+    public static function getPublicChallenges():Array<ChallengeData>
+    {
+        return Lambda.map(pendingPublicChallengeByIndicator, x -> x.toChallengeData());
+    }
+
     public static function getOpenChallenge(requestAuthor:UserSession, id:Int) 
     {
         Logger.serviceLog('CHALLENGE', '${requestAuthor.getLogReference()} requested info for challenge $id');

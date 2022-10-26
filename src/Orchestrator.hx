@@ -98,7 +98,9 @@ class Orchestrator
                 author.emit(Games(games, false));
                 
             case GetOpenChallenges:
+                author.emit(OpenChallenges(ChallengeManager.getPublicChallenges()));
             case GetCurrentGames:
+                author.emit(CurrentGames(GameManager.getCurrentFiniteTimeGames()));
         }
     }
 
