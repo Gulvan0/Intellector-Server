@@ -58,6 +58,12 @@ class Storage
         return contentData;
     }
 
+    public static function saveStudyData(id:Int, studyData:StudyData) 
+    {
+        var content:String = Json.stringify(studyData.toJSON(), null, "    ");
+        overwrite(StudyData(id), content);
+    }
+
     private static function removeCachedPlayerdata(login:String) 
     {
         playerdataCache.remove(login);
@@ -112,6 +118,19 @@ class Storage
     public static function exists(file:DataFile):Bool
     {
         return FileSystem.exists(filePath(file));
+    }
+
+    private static function delete(file:DataFile) 
+    {
+        var path:String = filePath(file);
+        try
+        {
+            FileSystem.deleteFile(path);
+        }
+        catch (e)
+        {
+            Logger.logError('Failed to delete $path:\n${e.details()}');
+        }
     }
 
     public static function read(file:DataFile):String

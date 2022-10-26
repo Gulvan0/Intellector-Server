@@ -1,5 +1,6 @@
 package;
 
+import services.StudyManager;
 import net.shared.StudyInfo;
 import net.shared.GameInfo;
 import stored.PlayerData;
@@ -67,11 +68,19 @@ class Orchestrator
                 GameManager.simpleRematch(author, gameID);
 
             case CreateStudy(info):
+                StudyManager.create(author, info);
             case OverwriteStudy(overwrittenStudyID, info):
+                StudyManager.overwrite(author, overwrittenStudyID, info);
             case DeleteStudy(id):
+                StudyManager.delete(author, id);
 
             case GetGame(id):
             case GetStudy(id):
+                var info = StudyManager.get(id);
+                if (info == null)
+                    author.emit(StudyNotFound);
+                else
+                    author.emit(SingleStudy(info));
 
             case GetMiniProfile(login):
                 author.emit(MiniProfile(Storage.loadPlayerData(login).toMiniProfileData(author.login)));
