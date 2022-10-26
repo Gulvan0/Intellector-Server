@@ -1,5 +1,9 @@
 package stored;
 
+import sys.ssl.Context.Config;
+import services.EloManager;
+import haxe.ds.Option;
+import haxe.ds.Option.None as NoneOpt;
 import net.shared.UserRole;
 import net.shared.StudyInfo;
 import entities.FiniteTimeGame;
@@ -19,78 +23,90 @@ import haxe.Json;
 class PlayerData
 {
     private var login:String;
-    private var roles:Array<UserRole>;
-    private var pastGames:Array<Int>;
+    private var lastMessageTimestamp:Float;
+    private var pastGames:Map<Option<TimeControlType>, Array<Int>>;
+    private var elo:Map<TimeControlType, EloValue>;
     private var studies:Array<Int>;
     private var ongoingCorrespondenceGames:Array<Int>;
+    private var roles:Array<UserRole>;
     private var friends:Array<String>;
-    private var elo:Map<TimeControlType, EloValue>;
-    private var gamesPlayed:Map<TimeControlType, Int>;
-    private var lastMessageTimestamp:Float;
 
     public static function createForNewPlayer(login:String):PlayerData 
     {
-        return new PlayerData(login, Date.now().getTime());
+        var data:PlayerData = new PlayerData();
+
+        data.login = login;
+        data.lastMessageTimestamp = Date.now().getTime();
+        data.pastGames = [NoneOpt => []];
+        data.elo = [];
+        data.studies = [];
+        data.ongoingCorrespondenceGames = [];
+        data.roles = [];
+        data.friends = [];
+
+        for (timeControl in TimeControlType.createAll()) 
+        {
+            data.pastGames.set(Some(timeControl), []);
+            data.elo.set(timeControl, None);
+        }
+
+        return data;
     }
 
     public static function fromJSON(login:String, json:Dynamic):PlayerData
     {
-        var elo:Map<TimeControlType, EloValue> = [];
-        var gamesPlayed:Map<TimeControlType, Int> = [];
+        var data:PlayerData = new PlayerData();
+
+        data.login = login;
+        data.lastMessageTimestamp = json.lastMessageTimestamp;
+
+        data.pastGames = [NoneOpt => []];
 
         for (timeControl in TimeControlType.createAll())
         {
-            var fieldName:String = timeControl.getName();
+            var a:Array<Int> = Reflect.field(json.games, timeControl.getName());
 
-            if (Reflect.hasField(json.elo, fieldName))
-                elo.set(timeControl, deserialize(json.elo));
-            else
-                elo.set(timeControl, None);
-
-            if (Reflect.hasField(json.gamesPlayed, fieldName))
-                gamesPlayed.set(timeControl, Std.parseInt(json.gamesPlayed));
-            else
-                gamesPlayed.set(timeControl, 0);
+            data.pastGames[Some(timeControl)] = a;
+            data.pastGames[NoneOpt] = data.pastGames[NoneOpt].concat(a); 
         }
 
-        var lastMessageTimestamp:Float = Date.now().getTime();
-        if (Reflect.hasField(json, "lastMessageTimestamp"))
-            lastMessageTimestamp = json.lastMessageTimestamp;
+        data.pastGames[NoneOpt].sort((x, y) -> x - y);
 
-        var pastGames:Array<Int> = [];
-        if (Reflect.hasField(json, "pastGames"))
-            pastGames = json.pastGames;
-        else if (Reflect.hasField(json, "games"))
-            pastGames = json.games;
+        data.elo = [];
 
-        var studies:Array<Int> = [];
-        if (Reflect.hasField(json, "studies"))
-            studies = json.studies;
+        for (timeControl in TimeControlType.createAll())
+        {
+            var storedValue:Null<String> = Reflect.field(json.elo, timeControl.getName());
 
-        var ongoingCorrespondenceGames:Array<Int> = [];
-        if (Reflect.hasField(json, "ongoingCorrespondenceGames"))
-            ongoingCorrespondenceGames = json.ongoingCorrespondenceGames;
+            data.elo[timeControl] = storedValue != null? deserialize(storedValue) : None;
+        }
 
-        var friends:Array<String> = [];
-        if (Reflect.hasField(json, "friends"))
-            friends = json.friends;
+        data.studies = json.studies;
+        data.ongoingCorrespondenceGames = json.ongoingCorrespondenceGames;
+        data.roles = Lambda.map(json.roles, x -> UserRole.createByName(x));
+        data.friends = json.friends;
 
-        var roles:Array<UserRole> = [];
-        if (Reflect.hasField(json, "roles"))
-            roles = Lambda.map(json.roles, x -> UserRole.createByName(x));
-
-        return new PlayerData(login, lastMessageTimestamp, pastGames, studies, ongoingCorrespondenceGames, friends, elo, gamesPlayed, roles);
+        return data;
     }
 
     public function toJSON():Dynamic
     {
+        var eloObj:Dynamic = {};
+        for (timeControl in TimeControlType.createAll())
+            Reflect.setField(eloObj, timeControl.getName(), serialize(elo[timeControl]));
+
+        var gamesObj:Dynamic = {};
+        for (timeControl in TimeControlType.createAll())
+            Reflect.setField(gamesObj, timeControl.getName(), pastGames[Some(timeControl)]);
+
         return {
-            pastGames: pastGames,
-            roles: roles.map(x -> x.getName()),
+            lastMessageTimestamp: lastMessageTimestamp,
+            pastGames: gamesObj,
+            elo: eloObj,
             studies: studies,
             ongoingCorrespondenceGames: ongoingCorrespondenceGames,
-            friends: friends,
-            lastMessageTimestamp: lastMessageTimestamp
+            roles: roles.map(x -> x.getName()),
+            friends: friends
         };
     }
 
@@ -111,7 +127,7 @@ class PlayerData
         var data:MiniProfileData = new MiniProfileData();
 
         data.elo = elo;
-        data.gamesCntByTimeControl = gamesPlayed;
+        data.gamesCntByTimeControl = [for (timeControl in TimeControlType.createAll()) timeControl => getPlayedGamesCnt(timeControl)];
         data.isFriend = requestedByLogin != null && hasFriend(requestedByLogin);
         data.status = getStatus();
 
@@ -122,7 +138,6 @@ class PlayerData
     {
         var data:ProfileData = new ProfileData();
 
-        var user:Null<UserSession> = LoginManager.getUser(login);
         
         var miniData:MiniProfileData = toMiniProfileData(requestedByLogin);
         data.elo = miniData.elo;
@@ -139,46 +154,34 @@ class PlayerData
             data.friends.push(friendData);
         }
 
-        data.gamesInProgress = [];
-        
-        if (user != null)
-        {
-            var finiteTimeGame:Null<FiniteTimeGame> = GameManager.getFiniteTimeGameByPlayer(user);
-
-            if (finiteTimeGame != null)
-                data.gamesInProgress.push(finiteTimeGame.getInfo());
-        }
-
-        for (gameID in ongoingCorrespondenceGames)
-            data.gamesInProgress.push(GameManager.getOngoing(gameID).getInfo());
-        
-        data.preloadedGames = [];
-        for (gameID in pastGames.slice(-10))
-        {
-            var info:GameInfo = new GameInfo();
-            info.id = gameID;
-            info.log = Storage.getGameLog(gameID);
-            data.preloadedGames.push(info);
-        }
-
-        data.preloadedStudies = [];
-        for (studyID in studies.slice(-10))
-        {
-            var info:StudyInfo = new StudyInfo(); //TODO: Replace with actual info retrieval
-            data.preloadedStudies.set(studyID, info);
-        }
+        data.preloadedGames = getPastGames(0, 10);
+        data.preloadedStudies = getStudies(0, 10).map;
+        data.gamesInProgress = getOngoingGames();
 
         data.roles = roles;
 
-        data.totalPastGames = pastGames.length;
+        data.totalPastGames = getPlayedGamesCnt();
         data.totalStudies = studies.length;
 
         return data;
     }
 
-    public function getPlayedGamesCnt(timeControl:TimeControlType):Int
+    private function gameMapKey(timeControl:Null<TimeControlType>):Option<TimeControlType> 
     {
-        return gamesPlayed.get(timeControl);
+        if (timeControl == null)
+            return NoneOpt;
+        else
+            return Some(timeControl);
+    }
+
+    public function getPastGamesIDs(?timeControl:Null<TimeControlType>):Array<Int>
+    {
+        return pastGames[gameMapKey(timeControl)].copy();
+    }
+
+    public function getPlayedGamesCnt(?timeControl:Null<TimeControlType>):Int
+    {
+        return getPastGamesIDs(timeControl).length;
     }
 
     public function getELO(timeControl:TimeControlType):EloValue
@@ -186,29 +189,87 @@ class PlayerData
         return elo.get(timeControl);
     }
 
-    public function getPastGames():Array<Int>
+    public function getPastGames(after:Int, pageSize:Int, ?filterByTimeControl:Null<TimeControlType>):Array<GameInfo>
     {
-        return pastGames.copy();
+        var gameIDs:Array<Int> = getPastGamesIDs(filterByTimeControl).slice(after, after + pageSize);
+
+        var games:Array<GameInfo> = [];
+
+        for (gameID in gameIDs)
+        {
+            var info:GameInfo = new GameInfo();
+            info.id = gameID;
+            info.log = Storage.getGameLog(gameID);
+            games.push(info);
+        }
+
+        return games;
     }
 
-    public function getStudies():Array<Int>
+    public function getStudyIDs():Array<Int>
     {
         return studies.copy();
     }
 
-    public function getOngoingCorrespondenceGames():Array<Int>
+    public function getStudies(after:Int, pageSize:Int, ?filterByTags:Array<String>):{map:Map<Int, StudyInfo>, hasNext:Bool}
     {
-        return ongoingCorrespondenceGames.copy();
+        var map:Map<Int, StudyInfo> = [];
+        var hasNext:Bool = false;
+        var seenCnt:Int = 0;
+        var savedCnt:Int = 0;
+
+        for (studyID in studies)
+        {
+            var data = Storage.getStudyData(studyID);
+            if (filterByTags == null || data.hasTags(filterByTags))
+            {
+                if (seenCnt >= after)
+                {
+                    if (savedCnt == pageSize)
+                    {
+                        hasNext = true;
+                        break;
+                    }
+
+                    map.set(studyID, data);
+                    savedCnt++;
+                }
+
+                seenCnt++;
+            }
+        }
+
+        return {map: map, hasNext: hasNext};
+    }
+
+    public function getOngoingGames():Array<GameInfo>
+    {
+        var games:Array<GameInfo> = [];
+
+        var user:Null<UserSession> = LoginManager.getUser(login);
+        if (user != null)
+        {
+            var finiteTimeGame:Null<FiniteTimeGame> = GameManager.getFiniteTimeGameByPlayer(user);
+
+            if (finiteTimeGame != null)
+                games.push(finiteTimeGame.getInfo());
+        }
+
+        for (gameID in ongoingCorrespondenceGames)
+        {
+            var info:GameInfo = new GameInfo();
+            info.id = gameID;
+            info.log = Storage.getGameLog(gameID);
+            games.push(info);
+        }
+
+        return games;
     }
 
     public function addPastGame(id:Int, timeControl:TimeControlType, ?newElo:EloValue)
     {
-        pastGames.push(id);
-
-        if (gamesPlayed.exists(timeControl))
-            gamesPlayed[timeControl]++;
-        else
-            gamesPlayed.set(timeControl, 1);
+        pastGames[NoneOpt].unshift(id);
+        pastGames[Some(timeControl)].unshift(id);
 
         if (newElo != null)
             elo.set(timeControl, newElo);
@@ -218,13 +279,13 @@ class PlayerData
 
     public function addStudy(id:Int)
     {
-        studies.push(id);
+        studies.unshift(id);
         Storage.savePlayerData(login, this);
     }
 
     public function addOngoingCorrespondenceGame(id:Int)
     {
-        ongoingCorrespondenceGames.push(id);
+        ongoingCorrespondenceGames.unshift(id);
         Storage.savePlayerData(login, this);
     }
 
@@ -274,16 +335,8 @@ class PlayerData
         return Date.fromTime(lastMessageTimestamp);
     }
 
-    private function new(login:String, lastMessageTimestamp:Float, ?pastGames:Array<Int>, ?studies:Array<Int>, ?ongoingCorrespondenceGames:Array<Int>, ?friends:Array<String>, ?elo:Map<TimeControlType, EloValue>, ?gamesPlayed:Map<TimeControlType, Int>, ?roles:Array<UserRole>) 
+    private function new() 
     {
-        this.login = login;
-        this.pastGames = pastGames != null? pastGames : [];
-        this.studies = studies != null? studies : [];
-        this.ongoingCorrespondenceGames = ongoingCorrespondenceGames != null? ongoingCorrespondenceGames : [];
-        this.friends = friends != null? friends : [];
-        this.lastMessageTimestamp = lastMessageTimestamp;
-        this.elo = elo != null? elo : [for (timeControl in TimeControlType.createAll()) timeControl => None];
-        this.gamesPlayed = gamesPlayed != null? gamesPlayed : [for (timeControl in TimeControlType.createAll()) timeControl => 0];
-        this.roles = roles != null? roles : [];
+        
     }
 }

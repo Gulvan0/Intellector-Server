@@ -1,5 +1,8 @@
 package;
 
+import net.shared.StudyInfo;
+import net.shared.GameInfo;
+import stored.PlayerData;
 import services.Storage;
 import net.EventTransformer;
 import services.GameManager;
@@ -81,8 +84,18 @@ class Orchestrator
                 author.storedData.removeFriend(login);
 
             case GetGamesByLogin(login, after, pageSize, filterByTimeControl):
+                var data:PlayerData = Storage.loadPlayerData(login);
+                var games:Array<GameInfo> = data.getPastGames(after, pageSize, filterByTimeControl);
+                var hasNext:Bool = data.getPlayedGamesCnt(filterByTimeControl) > after + pageSize;
+                author.emit(Games(games, hasNext));
             case GetStudiesByLogin(login, after, pageSize, filterByTags):
+                var data:PlayerData = Storage.loadPlayerData(login);
+                var studies = data.getStudies(after, pageSize, filterByTags);
+                author.emit(Studies(studies.map, studies.hasNext));
             case GetOngoingGamesByLogin(login):
+                var data:PlayerData = Storage.loadPlayerData(login);
+                var games:Array<GameInfo> = data.getOngoingGames();
+                author.emit(Games(games, false));
                 
             case GetOpenChallenges:
             case GetCurrentGames:

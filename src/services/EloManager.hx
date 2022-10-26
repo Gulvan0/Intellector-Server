@@ -16,6 +16,16 @@ class EloManager
         }
     }
 
+    public static function getEloValue(storedElo:Int, gamesCnt:Int):EloValue
+    {
+        if (gamesCnt == 0)
+            return None;
+        else if (gamesCnt < Config.calibrationGamesCount)
+            return Provisional(storedElo);
+        else
+            return Normal(storedElo);
+    }
+
     public static function recalculateElo(formerElo:EloValue, formerOpponentElo:EloValue, outcome:PersonalOutcome, totalPriorGames:Int):EloValue
     {
         var score:Int = switch outcome 

@@ -1,5 +1,10 @@
 package services;
 
+import entities.util.GameLog;
+import entities.util.GameLogEntry;
+import stored.StudyData;
+import utils.MovingCountdownTimer;
+import haxe.Timer;
 import entities.util.GameLogTranslator;
 import haxe.io.Path;
 import stored.PlayerData;
@@ -31,15 +36,8 @@ enum DataFile
 
 class Storage 
 {
-    public static function computeLastGameID():Int 
-    {
-        var i:Int = 0;
-
-        while (exists(GameData(i+1)))
-            i++;
-        
-        return i;
-    }
+    private static var playerdataCache:Map<String, PlayerData> = [];
+    private static var playerdataCleaners:Map<String, MovingCountdownTimer> = [];
 
     public static function getGameLog(id:Int):Null<String>
     {
@@ -48,20 +46,56 @@ class Storage
         else
             return read(GameData(id));
     }
+
+    public static function getStudyData(id:Int):Null<StudyData>
+    {
+        if (!exists(StudyData(id)))
+            return null;
+
+        var contentStr:String = read(StudyData(id));
+        var contentJSON:Dynamic = Json.parse(contentStr);
+        var contentData:StudyData = stored.StudyData.fromJSON(contentJSON);
+        return contentData;
+    }
+
+    private static function removeCachedPlayerdata(login:String) 
+    {
+        playerdataCache.remove(login);
+        playerdataCleaners.remove(login);
+    }
+
+    private static function startPlayerdataCleaningTimer(login:String) 
+    {
+        var cleanupTimer:Null<MovingCountdownTimer> = playerdataCleaners.get(login);
+        if (cleanupTimer != null)
+            cleanupTimer.refresh();
+        else
+            playerdataCleaners.set(login, new MovingCountdownTimer(removeCachedPlayerdata.bind(login), 10 * 60 * 1000));
+    }
     
     public static function loadPlayerData(login:String):PlayerData
     {
+        startPlayerdataCleaningTimer(login);
+
+        var cachedValue:Null<PlayerData> = playerdataCache.get(login);
+
+        if (cachedValue != null)
+            return cachedValue;
+
         if (!exists(PlayerData(login)))
         {
             var data:PlayerData = stored.PlayerData.createForNewPlayer(login);
             savePlayerData(login, data);
             Logger.serviceLog("STORAGE", 'Created new data file for player $login');
+            playerdataCache.set(login, data);
             return data;
         }
 
         var content:String = read(PlayerData(login));
         var jsonData:Dynamic = Json.parse(content);
-        return stored.PlayerData.fromJSON(login, jsonData);
+        var data:PlayerData = stored.PlayerData.fromJSON(login, jsonData);
+        playerdataCache.set(login, data);
+        return data;
     }
 
     public static function savePlayerData(login:String, playerData:PlayerData) 
@@ -124,23 +158,35 @@ class Storage
 
     public static function repairGameLogs() 
     {
-        var maxRepairedLogID:Int = GameManager.getLastGameID();
-        var gameID:Int = maxRepairedLogID;
+        var lastGameID:Int = GameManager.getLastGameID();
+        var gameID:Int = getServerDataField("lastRepairedLogID") + 1;
 
-        while (gameID > getServerDataField("lastRepairedLogID"))
+        while (gameID <= lastGameID)
         {
             var log:String = getGameLog(gameID);
 
             if (!log.contains("#R|"))
             {
-                log = GameLogTranslator.concat(log, Result(Drawish(Abort)));
-                overwrite(GameData(gameID), log);
+                var parsedLog = GameLog.load(gameID);
+
+                if (parsedLog.timeControl.isCorrespondence())
+                    continue;
+
+                parsedLog.append(Result(Drawish(Abort)));
+
+                for (login in parsedLog.playerLogins)
+                    if (login != null)
+                    {
+                        var data = Storage.loadPlayerData(login);
+                        if (data.getPastGamesIDs()[0] < gameID)
+                            data.addPastGame(gameID, parsedLog.timeControl.getType());
+                    }
             }
 
-            gameID--;
+            gameID++;
         }
 
-        setServerDataField("lastRepairedLogID", maxRepairedLogID);
+        setServerDataField("lastRepairedLogID", lastGameID);
     }
 
     public static function createMissingFiles() 
