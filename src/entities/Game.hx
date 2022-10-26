@@ -197,7 +197,14 @@ class Game
         var playerColor = sessions.getPlayerColor(user);
 
         if (playerColor == null)
-            return;
+        {
+            playerColor = log.getColorByLogin(user.login);
+
+            if (playerColor == null)
+                return;
+            else
+                sessions.attachPlayer(playerColor, user);
+        }
 
         log.append(Event(PlayerReconnected(playerColor)));
         sessions.broadcast(PlayerReconnected(playerColor));
@@ -206,6 +213,11 @@ class Game
     public function handleSpectatorReconnection(user:UserSession) 
     {
         sessions.broadcast(NewSpectator(user.login));
+    }
+
+    public function onLoggedPlayerDestroyed(user:UserSession) 
+    {
+        sessions.onSessionDestroyed(user);
     }
 
     public function onGuestPlayerDestroyed(user:UserSession) 

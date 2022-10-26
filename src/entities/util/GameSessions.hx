@@ -13,7 +13,7 @@ class GameSessions
     public function getPlayerColor(player:UserSession):Null<PieceColor>
     {
         for (color in PieceColor.createAll())
-            if (playerSessions.get(color) == player)
+            if (playerSessions.get(color).getInteractionReference() == player.getInteractionReference())
                 return color;
         return null;
     }
@@ -76,9 +76,9 @@ class GameSessions
     public function onSessionDestroyed(session:UserSession) 
     {
         if (playerSessions.get(White) == session)
-            playerSessions.set(White, null);
+            removePlayer(White);
         else if (playerSessions.get(Black) == session)
-            playerSessions.set(Black, null);
+            removePlayer(Black);
         else
             spectatorSessions.remove(session);
     }

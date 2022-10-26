@@ -285,17 +285,27 @@ class GameManager
             getOngoing(spectatedGameID).handleSpectatorReconnection(user);
         else 
             for (gameID in ongoingGameIDByPlayerRef.get(userRef))
-                getOngoing(gameID).handlePlayerReconnection(user);
+                getOngoing(gameID).handlePlayerReconnection(user); //TODO: Not correct for correspondence game. Also in reverse ("disconnection from corresp.")
     }
 
-    public static function handleSessionDestruction(user:UserSession)
+    public static function onSpecialReconnection(gameID:Int, player:UserSession) 
     {
-        if (user.login != null)
-            return;
+        getOngoing(gameID).handlePlayerReconnection(player);
+    }
 
+    public static function handleSessionDestruction(user:UserSession) 
+    {
         var userRef:String = user.getLogReference();
-        for (gameID in ongoingGameIDByPlayerRef.get(userRef))
-            getOngoing(gameID).onGuestPlayerDestroyed(user);
+        var gameIDs:Array<Int> = ongoingGameIDByPlayerRef.get(userRef);
+
+        for (gameID in gameIDs)
+        {
+            var game:Game = getOngoing(gameID);
+            if (user.login != null)
+                game.onLoggedPlayerDestroyed(user);
+            else 
+                game.onGuestPlayerDestroyed(user);
+        }
     }        
 
     public static function simpleRematch(author:UserSession, gameID:Int) 

@@ -31,7 +31,7 @@ enum ClientEvent
     CreateStudy(info:StudyInfo);
     OverwriteStudy(overwrittenStudyID:Int, info:StudyInfo);
     DeleteStudy(id:Int);
-    GetGame(id:Int); //TODO: Ensure this also includes an effect of StopSpectating IN CASE THIS IS AN ONGOING GAME
+    GetGame(id:Int);
     GetStudy(id:Int);
     GetMiniProfile(login:String);
     GetPlayerProfile(login:String);

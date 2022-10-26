@@ -31,6 +31,16 @@ class GameLog
         return entries.copy();    
     }
 
+    public function getColorByLogin(login:String):Null<PieceColor> 
+    {
+        if (playerLogins.get(White) == login)
+            return White;
+        else if (playerLogins.get(Black) == login)
+            return Black;
+        else 
+            return null;
+    }
+
     public function save() 
     {
         Storage.overwrite(GameData(gameID), log);

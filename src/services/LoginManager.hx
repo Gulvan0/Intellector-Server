@@ -1,5 +1,7 @@
 package services;
 
+import net.shared.ChallengeData;
+import entities.FiniteTimeGame;
 import entities.UserSession;
 
 class LoginManager 
@@ -25,7 +27,17 @@ class LoginManager
 
             loggedUserByLogin.set(login, user);
             user.onLoggedIn(login);
-            user.emit(LoginResult(Success(ChallengeManager.getAllIncomingChallengesByReceiverLogin(login))));
+
+            var incomingChallenges:Array<ChallengeData> = ChallengeManager.getAllIncomingChallengesByReceiverLogin(login);
+            var finiteTimeGame:Null<FiniteTimeGame> = GameManager.getFiniteTimeGameByPlayer(user);
+
+            if (finiteTimeGame == null)
+                user.emit(LoginResult(Success(incomingChallenges)));
+            else 
+            {
+                user.emit(LoginResult(ReconnectionNeeded(incomingChallenges, finiteTimeGame.id, finiteTimeGame.getTime(), finiteTimeGame.log.get())));
+                GameManager.onSpecialReconnection(finiteTimeGame.id, user);
+            }
         }
         else 
             user.emit(LoginResult(Fail));

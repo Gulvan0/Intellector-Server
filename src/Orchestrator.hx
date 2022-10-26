@@ -1,5 +1,6 @@
 package;
 
+import entities.Game;
 import services.StudyManager;
 import net.shared.StudyInfo;
 import net.shared.GameInfo;
@@ -75,6 +76,24 @@ class Orchestrator
                 StudyManager.delete(author, id);
 
             case GetGame(id):
+                var ongoing:Null<Game> = GameManager.getOngoing(id);
+                if (ongoing != null)
+                {
+                    if (ongoing.log.getColorByLogin(author.login) != null)
+                        GameManager.onSpecialReconnection(id, author);
+                    else
+                        GameManager.addSpectator(author, id, false);
+                    author.emit(GameIsOngoing(ongoing.getTime(), ongoing.log.get()));
+                }
+                else
+                {
+                    var pastLog:Null<String> = Storage.getGameLog(id);
+                    if (pastLog != null)
+                        author.emit(GameIsOver(pastLog));
+                    else
+                        author.emit(GameNotFound);
+                }
+
             case GetStudy(id):
                 var info = StudyManager.get(id);
                 if (info == null)
