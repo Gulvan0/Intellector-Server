@@ -29,6 +29,8 @@ class UserSession
     public var ongoingFiniteGameID(get, set):Null<Int>;
     public var viewedGameID:Null<Int>;
 
+    private var skipDisconnectionProcessing:Bool = false; //If already processed or if aborted intentionally
+
     private function get_ongoingFiniteGameID():Null<Int>
     {
         return storedData.getOngoingFiniteGame();
@@ -97,17 +99,20 @@ class UserSession
         {
             if (preventReconnection)
                 emit(DontReconnect);
-            connection.close(); //TODO: Don't perform extra actions in this case
+            skipDisconnectionProcessing = true;
+            connection.close();
         }
     }
 
     public function onDisconnected()
     {
+        if (skipDisconnectionProcessing)
+            return;
+
+        skipDisconnectionProcessing = true;
+
         ChallengeManager.handleDisconnection(this);
         GameManager.handleDisconnection(this);
-        LoginManager.handleDisconnection(this);
-        //TODO: other managers should handle that too
-        //TODO: Stop spectating or following
 
         var fiveMinutes:Int = 5 * 60 * 1000;
         reconnectionTimer = Timer.delay(onReconnectionTimeOut, fiveMinutes);
@@ -115,26 +120,28 @@ class UserSession
 
     public function onReconnected(connection:SocketHandler):Array<ServerEvent>
     {
+        skipDisconnectionProcessing = false;
+
         if (reconnectionTimer != null)
             reconnectionTimer.stop();
 
         this.reconnectionTimer = null;
         this.connection = connection;
 
-        LoginManager.handleReconnection(this);
-        //TODO: handleReconnection (for all other relevant managers)
+        GameManager.handleReconnection(this);
 
         var returnedEvents = missedEvents;
         missedEvents = [];
-
         return returnedEvents;
     }
 
     private function onReconnectionTimeOut() 
     {
-        //TODO: Ask managers to execute handleSessionDestruction
         reconnectionTimer = null;
         Auth.detachSession(reconnectionToken);
+
+        GameManager.handleSessionDestruction(this);
+        LoginManager.handleSessionDestruction(this);
     }
 
     public function isGuest():Bool

@@ -30,7 +30,7 @@ class SocketHandler extends WebSocketHandler
         Logger.serviceLog("SOCKET", '$id connected');
     }
 
-    private function onClosed() //TODO: Check correctness when aborted by server and when onError() is called
+    private function onClosed()
     {
         Logger.serviceLog("SOCKET", '$id closed');
         user.onDisconnected();
