@@ -27,6 +27,11 @@ class ChallengeManager
     private static var ownerLoginByFormerChallengeID:Map<Int, String> = [];
     private static var gameIDByFormerChallengeID:Map<Int, Int> = [];
 
+    public static function getAllPendingChallenges():Array<Challenge> 
+    {
+        return Lambda.array(pendingChallengeByID);
+    }
+
     public static function getAllIncomingChallengesByReceiverLogin(login:String):Array<ChallengeData>
     {
         var challengeInfos:Array<ChallengeData> = [];

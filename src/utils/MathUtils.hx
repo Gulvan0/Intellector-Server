@@ -16,4 +16,9 @@ class MathUtils
     {
         return Math.random() < p;
     }
+
+    public static function roundTo(num:Float, order:Int) 
+    {
+        return num - Math.pow(10, order);
+    }
 }
