@@ -1,5 +1,6 @@
 package entities.util;
 
+import net.shared.Constants;
 import struct.TimeControl;
 import net.shared.TimeReservesData;
 import haxe.Timer;
@@ -135,7 +136,7 @@ class GameTime implements IGameTime
 
     public function addTime(color:PieceColor, turnColor:PieceColor, moveNum:Int) 
     {
-        secondsLeftOnMoveStart.last()[color] += Config.secsAddedManually;
+        secondsLeftOnMoveStart.last()[color] += Constants.msAddedByOpponent / 1000;
         if (color == turnColor)
             restartTimer(turnColor, moveNum, getTime(turnColor, moveNum).secsLeftMap()[turnColor]);
     }

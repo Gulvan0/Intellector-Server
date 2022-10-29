@@ -1,5 +1,6 @@
 package services;
 
+import net.shared.Constants;
 import services.util.SimpleAnyGame;
 import entities.util.GameLog;
 import utils.ds.CacheMap;
@@ -31,7 +32,7 @@ class GameManager
     private static var playerFollowersByLogin:DefaultArrayMap<String, UserSession> = new DefaultArrayMap([]);
     private static var followedPlayerLoginByFollowerRef:Map<String, String> = [];
 
-    private static var simpleRematchParamsByLogin:CacheMap<String, ChallengeParams> = new CacheMap([], [], 1000 * 60 * 11);
+    private static var simpleRematchParamsByLogin:CacheMap<String, ChallengeParams> = new CacheMap([], [], 1000 * 60 * (Constants.minutesBeforeRematchExpires + 1));
 
     public static function getLastGameID():Int
     {

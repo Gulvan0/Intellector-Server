@@ -20,6 +20,7 @@ enum Event
     TakebackCanceled(offerOwnerColor:PieceColor);
     TakebackAccepted(offerReceiverColor:PieceColor);
     TakebackDeclined(offerReceiverColor:PieceColor);
+    TimeAdded(bonusTimeReceiverColor:PieceColor);
 }
 
 enum GameLogEntry 

@@ -171,8 +171,12 @@ class Game
                 offers.declineTakeback(issuerColor);
                 sessions.broadcast(TakebackDeclined, issuer);
             case AddTime:
-                time.addTime(opposite(issuerColor), state.turnColor(), state.moveNum);
-                sessions.broadcast(TimeCorrection(getTime()));
+                if (state.moveNum == 0)
+                    return;
+                var receiverColor:PieceColor = opposite(issuerColor);
+                log.addTime(receiverColor);
+                time.addTime(receiverColor, state.turnColor(), state.moveNum);
+                sessions.broadcast(TimeAdded(receiverColor, getTime()));
         }
     }
 

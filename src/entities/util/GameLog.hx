@@ -1,5 +1,6 @@
 package entities.util;
 
+import net.shared.Constants;
 import net.shared.PieceColor;
 import struct.Situation;
 import net.shared.TimeControlType;
@@ -47,6 +48,12 @@ class GameLog
         Storage.overwrite(GameData(gameID), log);
     }
 
+    private function saveFromEntryArray() 
+    {
+        log = GameLogTranslator.fromEntries(entries);
+        save();
+    }
+
     public function append(entry:GameLogEntry, ?saveToStorage:Bool = true) 
     {
         log = GameLogTranslator.concat(log, entry);
@@ -72,6 +79,28 @@ class GameLog
 
         if (saveToStorage)
             save();
+    }
+
+    public function addTime(bonusTimeReceiverColor:PieceColor) 
+    {
+        var i:Int = entries.length - 1;
+
+        while (i >= 0)
+        {
+            var entry:GameLogEntry = entries[i];
+            switch entry 
+            {
+                case Move(from, to, morphInto, msLeftWhite, msLeftBlack):
+                    if (bonusTimeReceiverColor == White)
+                        entries[i] = Move(from, to, morphInto, msLeftWhite + Constants.msAddedByOpponent, msLeftBlack);
+                    else
+                        entries[i] = Move(from, to, morphInto, msLeftWhite, msLeftBlack + Constants.msAddedByOpponent);
+                    entries.push(Event(TimeAdded(bonusTimeReceiverColor)));
+                    saveFromEntryArray();
+                    return;
+                default:
+            }
+        }
     }
 
     public function rollback(moveCnt:Int) 

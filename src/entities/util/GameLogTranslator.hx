@@ -91,6 +91,7 @@ class GameLogTranslator
             case TakebackCanceled(offerOwnerColor): "tca" + letter(offerOwnerColor);
             case TakebackAccepted(offerReceiverColor): "tac" + letter(offerReceiverColor);
             case TakebackDeclined(offerReceiverColor): "tde" + letter(offerReceiverColor);
+            case TimeAdded(bonusTimeReceiverColor): "tad" + letter(bonusTimeReceiverColor);
         }
     }
 
@@ -123,6 +124,8 @@ class GameLogTranslator
                 return TakebackAccepted(color);
             case "tde":
                 return TakebackDeclined(color);
+            case "tad":
+                return TimeAdded(color);
             default:
                 throw 'Cannot decode game event: $args';
         }
@@ -249,5 +252,10 @@ class GameLogTranslator
     public static function concat(log:String, newEntry:GameLogEntry):String 
     {
         return log + encode(newEntry) + separator + '\n';
+    }
+
+    public static function fromEntries(entries:Array<GameLogEntry>):String
+    {
+        return join(entries.map(encode));
     }
 }

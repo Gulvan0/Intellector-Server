@@ -1,5 +1,8 @@
 package net.shared;
 
+import net.shared.TimeReservesData;
+import net.shared.PieceColor;
+
 enum ServerEvent
 {
     GameStarted(gameID:Int, logPreamble:String); //Sent when a game with one of the players being the user starts. Signals the app to navigate to the game screen. One of the answers to AcceptDirectChallenge. Also follows the DirectChallengeSent event unless DirectChallengeDeclined was emitted.
@@ -32,9 +35,10 @@ enum ServerEvent
     InvalidMove; //Sent to the player who attempted to perform an invalid move
     Message(author:Null<String>, message:String); //New in-game player message
     SpectatorMessage(author:Null<String>, message:String); //New in-game spectator message
-    TimeCorrection(timeData:TimeReservesData); //Signals to update the in-game timers. Significant game events (Move, Rollback, GameEnded) also contain the same data which should be processed in the exact same way
+    TimeCorrection(timeData:TimeReservesData); //Signals to update the in-game timers. Significant game events (Move, Rollback, TimeAdded, GameEnded) also contain the same data which should be processed in the exact same way
     Move(fromI:Int, toI:Int, fromJ:Int, toJ:Int, morphInto:Null<PieceType>, timeData:Null<TimeReservesData>); //A move has been played. Sent both to opponent and to all of the spectators
     Rollback(plysToUndo:Int, timeData:Null<TimeReservesData>); //Signal to undo a number of plys in a current game. Sent to both spectators and players
+    TimeAdded(receiver:PieceColor, timeData:TimeReservesData);
     GameEnded(outcome:Outcome, rematchPossible:Bool, remainingTimeMs:Null<Map<PieceColor, Int>>, newPersonalElo:Null<EloValue>); //Game over. Sent both to players and to all of the spectators
 
     PlayerDisconnected(color:PieceColor); //Sent to the players and the spectators when one of the players disconnects
