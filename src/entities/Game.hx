@@ -163,7 +163,7 @@ class Game
                 {
                     Logger.serviceLog(serviceName, '${issuer.getInteractionReference()} ($issuerColor) offered draw. Success');
                     log.append(Event(DrawOffered(issuerColor)));
-                    sessions.broadcast(DrawOffered, issuer);
+                    sessions.broadcast(DrawOffered(issuerColor), issuer);
                 }
                 else
                     Logger.serviceLog(serviceName, '${issuer.getInteractionReference()} ($issuerColor) tried to offer a draw, but failed');
@@ -172,7 +172,7 @@ class Game
                 {
                     Logger.serviceLog(serviceName, '${issuer.getInteractionReference()} ($issuerColor) cancelled draw. Success');
                     log.append(Event(DrawCanceled(issuerColor)));
-                    sessions.broadcast(DrawCancelled, issuer);
+                    sessions.broadcast(DrawCancelled(issuerColor), issuer);
                 }
                 else
                     Logger.serviceLog(serviceName, '${issuer.getInteractionReference()} ($issuerColor) tried to cancel a draw, but failed');
@@ -181,7 +181,7 @@ class Game
                 {
                     Logger.serviceLog(serviceName, '${issuer.getInteractionReference()} ($issuerColor) accepted draw. Success');
                     log.append(Event(DrawAccepted(issuerColor)));
-                    sessions.broadcast(DrawAccepted, issuer);
+                    sessions.broadcast(DrawAccepted(issuerColor), issuer);
                 }
                 else
                     Logger.serviceLog(serviceName, '${issuer.getInteractionReference()} ($issuerColor) tried to accept a draw, but failed');
@@ -190,7 +190,7 @@ class Game
                 {
                     Logger.serviceLog(serviceName, '${issuer.getInteractionReference()} ($issuerColor) declined draw. Success');
                     log.append(Event(DrawDeclined(issuerColor)));
-                    sessions.broadcast(DrawDeclined, issuer);
+                    sessions.broadcast(DrawDeclined(issuerColor), issuer);
                 }
                 else
                     Logger.serviceLog(serviceName, '${issuer.getInteractionReference()} ($issuerColor) tried to decline a draw, but failed');
@@ -205,7 +205,7 @@ class Game
                 {
                     Logger.serviceLog(serviceName, '${issuer.getInteractionReference()} ($issuerColor) offered a takeback. Success');
                     log.append(Event(TakebackOffered(issuerColor)));
-                    sessions.broadcast(TakebackOffered, issuer);
+                    sessions.broadcast(TakebackOffered(issuerColor), issuer);
                 }
                 else
                     Logger.serviceLog(serviceName, '${issuer.getInteractionReference()} ($issuerColor) tried to offer a takeback, but failed');
@@ -214,7 +214,7 @@ class Game
                 {
                     Logger.serviceLog(serviceName, '${issuer.getInteractionReference()} ($issuerColor) cancelled a takeback. Success');
                     log.append(Event(TakebackCanceled(issuerColor)));
-                    sessions.broadcast(TakebackCancelled, issuer);
+                    sessions.broadcast(TakebackCancelled(issuerColor), issuer);
                 }
                 else
                     Logger.serviceLog(serviceName, '${issuer.getInteractionReference()} ($issuerColor) tried to cancel a takeback, but failed');
@@ -223,7 +223,7 @@ class Game
                 {
                     Logger.serviceLog(serviceName, '${issuer.getInteractionReference()} ($issuerColor) accepted a takeback. Success');
                     log.append(Event(TakebackAccepted(issuerColor)));
-                    sessions.broadcast(TakebackAccepted, issuer);
+                    sessions.broadcast(TakebackAccepted(issuerColor), issuer);
                 }
                 else
                     Logger.serviceLog(serviceName, '${issuer.getInteractionReference()} ($issuerColor) tried to accept a takeback, but failed');
@@ -232,7 +232,7 @@ class Game
                 {
                     Logger.serviceLog(serviceName, '${issuer.getInteractionReference()} ($issuerColor) declined a takeback. Success');
                     log.append(Event(TakebackDeclined(issuerColor)));
-                    sessions.broadcast(TakebackDeclined, issuer);
+                    sessions.broadcast(TakebackDeclined(issuerColor), issuer);
                 }
                 else
                     Logger.serviceLog(serviceName, '${issuer.getInteractionReference()} ($issuerColor) tried to decline a takeback, but failed');

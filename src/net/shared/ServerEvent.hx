@@ -46,14 +46,14 @@ enum ServerEvent
     NewSpectator(login:Null<String>); //Sent both to players and to all of the spectators when a new user starts spectating
     SpectatorLeft(login:Null<String>); //Sent both to players and to all of the spectators when a user stops spectating
 
-    DrawOffered;
-    DrawCancelled;
-    DrawAccepted;
-    DrawDeclined;
-    TakebackOffered;
-    TakebackCancelled;
-    TakebackAccepted;
-    TakebackDeclined;
+    DrawOffered(color:PieceColor);
+    DrawCancelled(color:PieceColor);
+    DrawAccepted(color:PieceColor);
+    DrawDeclined(color:PieceColor);
+    TakebackOffered(color:PieceColor);
+    TakebackCancelled(color:PieceColor);
+    TakebackAccepted(color:PieceColor);
+    TakebackDeclined(color:PieceColor);
 
     SingleStudy(info:StudyInfo); //Answer to GetStudy
     StudyNotFound; //Answer to GetStudy
