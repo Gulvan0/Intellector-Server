@@ -1,5 +1,6 @@
 package integration;
 
+import services.Logger;
 import struct.ChallengeParams;
 import haxe.Http;
 
@@ -42,5 +43,6 @@ class Discord
         messageText += 'https://intellector.info/game/?p=join/$id';
 
         sendNotification(messageText);
+        Logger.serviceLog("INTEGRATION", 'Discord notification sent (topic: challenge $id)');
     }
 }

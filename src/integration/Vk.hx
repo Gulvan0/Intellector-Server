@@ -1,5 +1,6 @@
 package integration;
 
+import services.Logger;
 import struct.ChallengeParams;
 import sys.Http;
 
@@ -44,5 +45,6 @@ class Vk
         messageText += 'https://intellector.info/game/?p=join/$id';
 
         sendNotification(messageText);
+        Logger.serviceLog("INTEGRATION", 'VK notification sent (topic: challenge $id)');
     }
 }

@@ -28,6 +28,11 @@ class GameState
         return currentSituation.turnColor;
     }
 
+    public function getSIP():String
+    {
+		return currentSituation.serialize();
+	}
+
     public function tryPly(from:HexCoords, to:HexCoords, morphInto:Null<PieceType>):TryPlyResult
     {
         var turnColor:PieceColor = currentSituation.turnColor;

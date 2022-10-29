@@ -95,6 +95,8 @@ class UserSession
 
     public function abortConnection(preventReconnection:Bool) 
     {
+        Logger.serviceLog("SESSION", 'Aborting connection for ${getInteractionReference()} (preventReconnection = $preventReconnection)');
+
         if (connection != null)
         {
             if (preventReconnection)
@@ -106,6 +108,7 @@ class UserSession
 
     public function onDisconnected()
     {
+        Logger.serviceLog("SESSION", '${getInteractionReference()} disconnected (skipDisconnectionProcessing = $skipDisconnectionProcessing)');
         if (skipDisconnectionProcessing)
             return;
 
@@ -120,6 +123,7 @@ class UserSession
 
     public function onReconnected(connection:SocketHandler):Array<ServerEvent>
     {
+        Logger.serviceLog("SESSION", '${getInteractionReference()} reconnected');
         skipDisconnectionProcessing = false;
 
         if (reconnectionTimer != null)
@@ -137,6 +141,7 @@ class UserSession
 
     private function onReconnectionTimeOut() 
     {
+        Logger.serviceLog("SESSION", '${getInteractionReference()} failed to reconnect in time, the session is to be destroyed');
         reconnectionTimer = null;
         Auth.detachSession(reconnectionToken);
 
