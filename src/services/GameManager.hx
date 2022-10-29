@@ -213,11 +213,9 @@ class GameManager
     public static function handleDisconnection(user:UserSession)
     {
         if (user.viewedGameID != null)
-            switch games.get(user.viewedGameID) 
+            switch games.getSimple(user.viewedGameID) 
             {
-                case OngoingFinite(game):
-                    game.onPresentUserDisconnected(user);
-                case OngoingCorrespondence(game):
+                case Ongoing(game):
                     game.onPresentUserDisconnected(user);
                 default:
             }
@@ -226,11 +224,9 @@ class GameManager
     public static function handleReconnection(user:UserSession)
     {
         if (user.viewedGameID != null)
-            switch games.get(user.viewedGameID) 
+            switch games.getSimple(user.viewedGameID) 
             {
-                case OngoingFinite(game):
-                    game.onPresentUserReconnected(user);
-                case OngoingCorrespondence(game):
+                case Ongoing(game):
                     game.onPresentUserReconnected(user);
                 default:
             }
@@ -245,6 +241,8 @@ class GameManager
                     game.onSessionDestroyed(user);
                 case OngoingCorrespondence(game):
                     game.onSessionDestroyed(user);
+                    if (game.sessions.isDerelict())
+                        games.unloadDerelictCorrespondence(gameID);
                 default:
             }
     }        
@@ -264,10 +262,14 @@ class GameManager
         if (user.viewedGameID == null)
             return;
 
-        switch games.getSimple(user.viewedGameID) 
+        switch games.get(user.viewedGameID) 
         {
-            case Ongoing(game):
+            case OngoingFinite(game):
                 game.onUserLeft(user);
+            case OngoingCorrespondence(game):
+                game.onUserLeft(user);
+                if (game.sessions.isDerelict())
+                    games.unloadDerelictCorrespondence(user.viewedGameID);
             default:
         }
 

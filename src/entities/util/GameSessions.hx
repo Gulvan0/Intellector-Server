@@ -8,11 +8,6 @@ class GameSessions
     private var playerSessions:Map<PieceColor, Null<UserSession>> = [];
     private var spectatorSessions:Array<UserSession> = [];
 
-    public function getSpectators():Array<UserSession> 
-    {
-        return spectatorSessions.copy();    
-    }
-
     public function getPresentPlayerColor(player:UserSession):Null<PieceColor>
     {
         for (color in PieceColor.createAll())
