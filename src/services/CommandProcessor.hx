@@ -18,6 +18,8 @@ class CommandProcessor
         var command = parts[0];
         var args = parts.slice(1);
 
+        Logger.serviceLog('COMMAND', 'Executing command: $rawText');
+
         try 
         {
             switch command 

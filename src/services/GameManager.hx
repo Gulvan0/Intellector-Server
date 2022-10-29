@@ -77,6 +77,7 @@ class GameManager
         switch games.getSimple(gameID) 
         {
             case Ongoing(game):
+                Logger.serviceLog('GAMEMGR', 'Adding ${session.getLogReference()} as a spectator to game $gameID');
                 leaveGame(session);
                 session.viewedGameID = gameID;
                 game.onSpectatorJoined(session);
@@ -93,6 +94,8 @@ class GameManager
         if (followedPlayerLogin == followedPlayerLoginByFollowerRef.get(followerRef))
             return;
 
+        Logger.serviceLog('GAMEMGR', 'Adding ${session.getLogReference()} to the list of $followedPlayerLogin\'s followers');
+
         stopFollowing(session);
 
         playerFollowersByLogin.push(followedPlayerLogin, session);
@@ -107,11 +110,14 @@ class GameManager
     public static function stopFollowing(session:UserSession) 
     {
         var followerRef:String = session.getInteractionReference();
+        var followedPlayerLogin:String = followedPlayerLoginByFollowerRef.get(followerRef);
 
-        if (!followedPlayerLoginByFollowerRef.exists(followerRef))
+        if (followedPlayerLogin == null)
             return;
+
+        Logger.serviceLog('GAMEMGR', 'Removing ${session.getLogReference()} from the list of $followedPlayerLogin\'s followers');
         
-        playerFollowersByLogin.remove(followedPlayerLoginByFollowerRef.get(followerRef));
+        playerFollowersByLogin.remove(followedPlayerLogin);
         followedPlayerLoginByFollowerRef.remove(followerRef);
     }
 
@@ -119,6 +125,8 @@ class GameManager
     {
         var gameID:Int = ++lastGameID;
         var acceptorColor:PieceColor = params.calculateActualAcceptorColor();
+
+        Logger.serviceLog('GAMEMGR', 'Starting new game with ID $gameID. Created by: ${ownerSession.getLogReference()}, accepted by: ${acceptorSession.getLogReference()}');
 
         var playerSessions:Map<PieceColor, UserSession>;
         if (acceptorColor == White)
@@ -152,6 +160,8 @@ class GameManager
                 }
         }
 
+        Logger.serviceLog('GAMEMGR', 'Game $gameID started successfully');
+
         return gameID;
     }
 
@@ -172,6 +182,8 @@ class GameManager
 
     public static function onGameEnded(outcome:Outcome, game:Game) 
     {
+        Logger.serviceLog('GAMEMGR', 'Ending game ${game.id} with outcome $outcome');
+        
         games.removeEnded(game.id);
 
         var rematchMap:Map<String, ChallengeParams> = game.getSimpleRematchParams();
@@ -253,7 +265,10 @@ class GameManager
         var params:Null<ChallengeParams> = simpleRematchParamsByLogin.get(author.login);
 
         if (params != null)
+        {
             ChallengeManager.create(author, params);
+            Logger.serviceLog('GAMEMGR', 'Simple rematch challenge (${params.type}) by ${author.getLogReference()}');
+        }
         else
             author.emit(CreateChallengeResult(RematchExpired));
     }
@@ -262,6 +277,8 @@ class GameManager
     {
         if (user.viewedGameID == null)
             return;
+
+        Logger.serviceLog('GAMEMGR', '${user.getLogReference()} leaves game ${user.viewedGameID}');
 
         switch games.get(user.viewedGameID) 
         {

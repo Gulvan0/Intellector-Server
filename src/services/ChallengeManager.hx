@@ -147,6 +147,7 @@ class ChallengeManager
             default:
         }
 
+        Logger.serviceLog('CHALLENGE', 'Challenge has passed all the preliminary checks (author: ${requestAuthor.getLogReference()})');
         return true;
     }
 
@@ -302,6 +303,8 @@ class ChallengeManager
     {
         if (user.login == null)
             return;
+
+        Logger.serviceLog('CHALLENGE', 'Cancelling all challenges for ${user.login}');
 
         var ids:Array<Int> = pendingChallengeIDsByOwnerLogin.get(user.login);
 

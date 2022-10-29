@@ -76,6 +76,7 @@ class Storage
     {
         var content:String = Json.stringify(studyData.toJSON(), null, "    ");
         overwrite(StudyData(id), content);
+        Logger.serviceLog("STORAGE", 'Study data overwritten (ID = $id)');
     }
 
     private static function removeCachedPlayerdata(login:String) 
@@ -122,6 +123,7 @@ class Storage
     {
         var content:String = Json.stringify(playerData.toJSON(), null, "    ");
         overwrite(PlayerData(login), content);
+        Logger.serviceLog("STORAGE", 'Player data overwritten ($login)');
     }
 
     public static function appendLog(log:LogType, entry:String) 
@@ -167,6 +169,20 @@ class Storage
         try
         {
             File.saveContent(path, content);
+
+            switch file 
+            {
+                case GameData(id):
+                    Logger.serviceLog("STORAGE", 'Log for game $id was updated');
+                case PasswordHashes:
+                    Logger.serviceLog("STORAGE", 'Password hash map updated');
+                case ServerConfig:
+                    Logger.serviceLog("STORAGE", 'Server config file updated');
+                case ServerData:
+                    Logger.serviceLog("STORAGE", 'Server data file updated');
+                default:
+                    //Skip as modifications of other files must have already been logged somewhere else
+            }
         }
         catch (e)
         {

@@ -65,6 +65,7 @@ class GameMap
     public function unloadDerelictCorrespondence(id:Int) 
     {
         correspondence.remove(id);
+        Logger.serviceLog('GAMEMGR', 'Derelict game $id removed');
     }
 
     public function new()

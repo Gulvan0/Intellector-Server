@@ -68,6 +68,11 @@ class Auth
 
     public static function addCredentials(login:String, password:String) 
     {
+        if (passwordHashes.exists(login))
+            Logger.serviceLog(serviceName, 'Adding credentials for $login');
+        else
+            Logger.serviceLog(serviceName, 'Changing password for $login');
+        
         passwordHashes[login] = encodePassword(password);
         savePasswords();
     }

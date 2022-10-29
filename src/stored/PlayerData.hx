@@ -1,5 +1,6 @@
 package stored;
 
+import services.Logger;
 import sys.ssl.Context.Config;
 import services.EloManager;
 import haxe.ds.Option;
@@ -256,11 +257,13 @@ class PlayerData
     public function addOngoingFiniteGame(gameID:Int) 
     {
         ongoingFiniteGameID = gameID;
+        Logger.serviceLog('PLAYERDATA', 'Game $gameID added to the $login\'s list of ongoing finite games');
         Storage.savePlayerData(login, this);
     }
 
     public function removeOngoingFiniteGame() 
     {
+        Logger.serviceLog('PLAYERDATA', 'Game $ongoingFiniteGameID removed from the $login\'s list of ongoing finite games');
         ongoingFiniteGameID = null;
         Storage.savePlayerData(login, this);
     }
@@ -278,30 +281,36 @@ class PlayerData
         if (newElo != null)
             elo.set(timeControl, newElo);
 
+        Logger.serviceLog('PLAYERDATA', 'Game $id added to the $login\'s list of past games');
+
         Storage.savePlayerData(login, this);
     }
 
     public function addStudy(id:Int)
     {
         studies.unshift(id);
+        Logger.serviceLog('PLAYERDATA', 'Study $id added to the $login\'s list of studies');
         Storage.savePlayerData(login, this);
     }
 
     public function addOngoingCorrespondenceGame(id:Int)
     {
         ongoingCorrespondenceGames.unshift(id);
+        Logger.serviceLog('PLAYERDATA', 'Game $id added to the $login\'s list of ongoing correspondence games');
         Storage.savePlayerData(login, this);
     }
 
     public function removeStudy(id:Int)
     {
         studies.remove(id);
+        Logger.serviceLog('PLAYERDATA', 'Study $id removed from the $login\'s list of studies');
         Storage.savePlayerData(login, this);
     }
 
     public function removeOngoingCorrespondenceGame(id:Int)
     {
         ongoingCorrespondenceGames.remove(id);
+        Logger.serviceLog('PLAYERDATA', 'Game $id removed from the $login\'s list of ongoing correspondence games');
         Storage.savePlayerData(login, this);
     }
 
