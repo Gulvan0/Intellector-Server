@@ -73,15 +73,9 @@ class LoginManager
         user.onLoggedOut();
     }
 
-    public static function handleDisconnection(user:UserSession) 
+    public static function handleSessionDestruction(user:UserSession)
     {
         if (user.login != null)
             logout(user);
-    }
-
-    public static function handleReconnection(user:UserSession) 
-    {
-        if (user.login != null)
-            loggedUserByLogin.set(user.login, user);
     }
 }

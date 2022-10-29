@@ -1,5 +1,6 @@
 package;
 
+import services.ProfileManager;
 import services.Auth;
 import entities.Game;
 import services.StudyManager;
@@ -19,6 +20,25 @@ import net.shared.ClientEvent;
 
 class Orchestrator
 {
+    private static function processGetGameRequest(author:UserSession, id:Int) 
+    {
+        switch GameManager.getSimple(id) 
+        {
+            case Ongoing(game):
+                author.viewedGameID = id;
+                if (game.log.getColorByLogin(author.login) != null)
+                    GameManager.handleReconnection(author);
+                else
+                    GameManager.addSpectator(author, id, false);
+                author.emit(GameIsOngoing(game.getTime(), game.log.get()));
+            case Past(log):
+                author.viewedGameID = id;
+                author.emit(GameIsOver(log));
+            case NonExisting:
+                author.emit(GameNotFound);
+        }
+    }
+
     public static function processEvent(event:ClientEvent, author:UserSession)
     {
         var authorID:String = author.connection.id;
@@ -72,6 +92,8 @@ class Orchestrator
             case SimpleRematch:
                 GameManager.simpleRematch(author);
 
+            case GetStudy(id):
+                StudyManager.get(author, id);
             case CreateStudy(info):
                 StudyManager.create(author, info);
             case OverwriteStudy(overwrittenStudyID, info):
@@ -80,85 +102,24 @@ class Orchestrator
                 StudyManager.delete(author, id);
 
             case GetGame(id):
-                switch GameManager.getSimple(id) 
-                {
-                    case Ongoing(game):
-                        author.viewedGameID = id;
-                        if (game.log.getColorByLogin(author.login) != null)
-                            GameManager.handleReconnection(author);
-                        else
-                            GameManager.addSpectator(author, id, false);
-                        author.emit(GameIsOngoing(game.getTime(), game.log.get()));
-                    case Past(log):
-                        author.viewedGameID = id;
-                        author.emit(GameIsOver(log));
-                    case NonExisting:
-                        author.emit(GameNotFound);
-                }
-
-            case GetStudy(id):
-                var info = StudyManager.get(id);
-                if (info == null)
-                    author.emit(StudyNotFound);
-                else
-                    author.emit(SingleStudy(info));
+                processGetGameRequest(author, id);
 
             case GetMiniProfile(login):
-                if (Auth.userExists(login))
-                    author.emit(MiniProfile(Storage.loadPlayerData(login).toMiniProfileData(author.login)));
-                else
-                    author.emit(PlayerNotFound); //TODO: Is it processed by client?
+                ProfileManager.getMiniProfile(author, login);
             case GetPlayerProfile(login):
-                if (Auth.userExists(login))
-                    author.emit(PlayerProfile(Storage.loadPlayerData(login).toProfileData(author.login)));
-                else
-                    author.emit(PlayerNotFound);
+                ProfileManager.getProfile(author, login);
 
             case AddFriend(login):
-                if (Auth.userExists(login))
-                    author.storedData.addFriend(login);
-                else
-                    author.emit(PlayerNotFound);
+                ProfileManager.addFriend(author, login);
             case RemoveFriend(login):
-                if (Auth.userExists(login))
-                    author.storedData.removeFriend(login);
-                else
-                    author.emit(PlayerNotFound);
+                ProfileManager.removeFriend(author, login);
 
             case GetGamesByLogin(login, after, pageSize, filterByTimeControl):
-                if (!Auth.userExists(login))
-                {
-                    author.emit(PlayerNotFound);
-                    return;
-                }
-
-                var data:PlayerData = Storage.loadPlayerData(login);
-                var games:Array<GameInfo> = data.getPastGames(after, pageSize, filterByTimeControl);
-                var hasNext:Bool = data.getPlayedGamesCnt(filterByTimeControl) > after + pageSize;
-                author.emit(Games(games, hasNext));
-
+                ProfileManager.getPastGames(author, login, after, pageSize, filterByTimeControl);
             case GetStudiesByLogin(login, after, pageSize, filterByTags):
-                if (!Auth.userExists(login))
-                {
-                    author.emit(PlayerNotFound);
-                    return;
-                }
-
-                var data:PlayerData = Storage.loadPlayerData(login);
-                var studies = data.getStudies(after, pageSize, filterByTags);
-                author.emit(Studies(studies.map, studies.hasNext));
-
+                ProfileManager.getStudies(author, login, after, pageSize, filterByTags);
             case GetOngoingGamesByLogin(login):
-                if (!Auth.userExists(login))
-                {
-                    author.emit(PlayerNotFound);
-                    return;
-                }
-
-                var data:PlayerData = Storage.loadPlayerData(login);
-                var gameIDs:Array<Int> = data.getOngoingGameIDs();
-                var games:Array<GameInfo> = Storage.getGameInfos(gameIDs);
-                author.emit(Games(games, false));
+                ProfileManager.getOngoingGames(author, login);
                 
             case GetOpenChallenges:
                 author.emit(OpenChallenges(ChallengeManager.getPublicChallenges()));

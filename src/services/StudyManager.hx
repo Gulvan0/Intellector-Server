@@ -42,8 +42,12 @@ class StudyManager
         Logger.serviceLog(serviceName, 'Study detached (ID = $lastStudyID; requested by ${author.getLogReference()})');
     }
 
-    public static function get(id:Int):Null<StudyInfo>
+    public static function get(author:UserSession, id:Int)
     {
-        return Storage.getStudyData(id);
+        var info = Storage.getStudyData(id);
+        if (info == null)
+            author.emit(StudyNotFound);
+        else
+            author.emit(SingleStudy(info));
     }
 }
