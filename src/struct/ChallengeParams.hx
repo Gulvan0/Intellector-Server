@@ -1,5 +1,6 @@
 package struct;
 
+import utils.MathUtils;
 import net.shared.PieceColor;
 
 enum ChallengeType
@@ -89,6 +90,14 @@ class ChallengeParams
     private function isValid():Bool
     {
         return !rated || (customStartingSituation == null && acceptorColor == null);
+    }
+
+    public function calculateActualAcceptorColor() 
+    {
+        if (acceptorColor != null)
+            return acceptorColor;
+        else
+            return MathUtils.bernoulli(0.5)? White : Black;    
     }
 
     public function new(timeControl:TimeControl, type:ChallengeType, ?acceptorColor:Null<PieceColor>, ?customStartingSituation:Null<Situation>, ?rated:Bool = false)

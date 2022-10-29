@@ -1,5 +1,7 @@
 package entities;
 
+import struct.ChallengeParams;
+import struct.TimeControl;
 import net.shared.GameInfo;
 import net.shared.TimeReservesData;
 import services.EloManager;
@@ -32,8 +34,6 @@ class Game
     public var sessions:GameSessions;
     public var state:GameState;
     public var time:IGameTime;
-
-    private var onEndedCallback:Outcome->Game->Void;
 
     public function getTime():Null<TimeReservesData> 
     {
@@ -78,7 +78,7 @@ class Game
 
     private function sendMessage(author:UserSession, text:String) 
     {
-        var authorColor:Null<PieceColor> = sessions.getPlayerColor(author);
+        var authorColor:Null<PieceColor> = sessions.getPresentPlayerColor(author);
         if (authorColor != null)
         {
             log.append(PlayerMessage(authorColor, text));
@@ -101,7 +101,7 @@ class Game
             log.append(MsLeft(whiteMsLeft, blackMsLeft));
         }
 
-        onEndedCallback(outcome, this);
+        GameManager.onGameEnded(outcome, this);
     }
 
     private function rollback(requestedBy:PieceColor) 
@@ -116,7 +116,7 @@ class Game
 
     public function processAction(action:GameAction, issuer:UserSession) 
     {
-        var issuerColor:Null<PieceColor> = sessions.getPlayerColor(issuer);
+        var issuerColor:Null<PieceColor> = sessions.getPresentPlayerColor(issuer);
 
         if (issuerColor == null && !action.match(Message(_) | RequestTimeoutCheck))
             return;
@@ -176,58 +176,66 @@ class Game
         }
     }
 
-    public function handlePlayerDisconnection(user:UserSession) 
+    public function onUserLeft(user:UserSession) 
     {
-        var playerColor = sessions.getPlayerColor(user);
+        var playerColor:Null<PieceColor> = sessions.getPresentPlayerColor(user);
 
-        if (playerColor == null)
-            return;
-
-        log.append(Event(PlayerDisconnected(playerColor)));
-        sessions.broadcast(PlayerDisconnected(playerColor));
-    }
-
-    public function handleSpectatorDisconnection(user:UserSession) 
-    {
-        sessions.broadcast(SpectatorLeft(user.login));
-    }
-
-    public function handlePlayerReconnection(user:UserSession) 
-    {
-        var playerColor = sessions.getPlayerColor(user);
-
-        if (playerColor == null)
+        if (playerColor != null)
         {
-            playerColor = log.getColorByLogin(user.login);
-
-            if (playerColor == null)
-                return;
-            else
-                sessions.attachPlayer(playerColor, user);
+            sessions.removePlayer(playerColor);
+            log.append(Event(PlayerDisconnected(playerColor)));
+            sessions.broadcast(PlayerDisconnected(playerColor));
         }
+        else
+        {
+            sessions.removeSpectator(user);
+            sessions.broadcast(SpectatorLeft(user.login));
+        }
+    }
 
+    public function onPlayerJoined(playerColor:PieceColor, session:UserSession) 
+    {
+        sessions.attachPlayer(playerColor, session);
         log.append(Event(PlayerReconnected(playerColor)));
         sessions.broadcast(PlayerReconnected(playerColor));
     }
 
-    public function handleSpectatorReconnection(user:UserSession) 
+    public function onSpectatorJoined(spectator:UserSession) 
     {
-        sessions.broadcast(NewSpectator(user.login));
+        sessions.addSpectator(spectator);
+        sessions.broadcast(NewSpectator(spectator.login));
     }
 
-    public function onLoggedPlayerDestroyed(user:UserSession) 
+    public function onPresentUserDisconnected(user:UserSession) 
     {
-        sessions.onSessionDestroyed(user);
+        var playerColor:Null<PieceColor> = sessions.getPresentPlayerColor(user);
+        if (playerColor != null)
+        {
+            log.append(Event(PlayerDisconnected(playerColor)));
+            sessions.broadcast(PlayerDisconnected(playerColor));
+        }
+        else
+            sessions.broadcast(SpectatorLeft(user.login));
     }
 
-    public function onGuestPlayerDestroyed(user:UserSession) 
+    public function onPresentUserReconnected(user:UserSession) 
     {
-        var playerColor = sessions.getPlayerColor(user);
+        var playerColor:Null<PieceColor> = sessions.getPresentPlayerColor(user);
+        if (playerColor != null)
+        {
+            log.append(Event(PlayerReconnected(playerColor)));
+            sessions.broadcast(PlayerReconnected(playerColor));
+        }
+        else
+            sessions.broadcast(NewSpectator(user.login));
+    }
 
-        if (playerColor == null)
-            return;
-
-        endGame(Decisive(Abandon, opposite(playerColor)));
+    public function onSessionDestroyed(user:UserSession) 
+    {
+        var playerColor:Null<PieceColor> = sessions.getPresentPlayerColor(user); 
+        sessions.removeSession(user);
+        if (playerColor != null && user.isGuest())
+            endGame(Decisive(Abandon, opposite(playerColor)));
     }
 
     public function getInfo():GameInfo
@@ -238,9 +246,37 @@ class Game
         return info;
     }
 
-    private function new(id:Int, onEndedCallback:Outcome->Game->Void) 
+    public function getSimpleRematchParams():Map<String, ChallengeParams>
+    {   
+        var map:Map<String, ChallengeParams> = [];
+
+        for (color in PieceColor.createAll())
+        {
+            var playerLogin:Null<String> = log.playerLogins.get(color);
+            var opponent:Null<UserSession> = sessions.getPresentPlayerSession(opposite(color));
+
+            if (playerLogin == null || opponent == null)
+                continue;
+
+            var opponentRef:String = opponent.getInteractionReference();
+            var params:ChallengeParams = new ChallengeParams(log.timeControl, Direct(opponentRef), color, log.customStartingSituation, log.rated);
+
+            map.set(playerLogin, params);
+        }
+
+        return map;
+    }
+
+    public static function create(id:Int, players:Map<PieceColor, Null<UserSession>>, timeControl:TimeControl, rated:Bool, ?customStartingSituation:Situation):Game
+    {
+        if (timeControl.isCorrespondence())
+            return CorrespondenceGame.createNew(id, players, rated, customStartingSituation);
+        else
+            return new FiniteTimeGame(id, players, timeControl, rated, customStartingSituation);
+    }
+
+    private function new(id:Int) 
     {
         this.id = id;
-        this.onEndedCallback = onEndedCallback;
     }
 }

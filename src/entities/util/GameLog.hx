@@ -20,6 +20,7 @@ class GameLog
     public var rated(default, null):Bool;
     public var elo(default, null):Map<PieceColor, EloValue>;
     public var msLeftOnOver(default, null):Null<Map<PieceColor, Int>>;
+    public var customStartingSituation(default, null):Null<Situation>;
     
     public function get():String
     {
@@ -60,6 +61,8 @@ class GameLog
                 elo = [White => whiteElo, Black => blackElo];
             case TimeControl(tc):
                 timeControl = tc;
+            case CustomStartingSituation(situation):
+                customStartingSituation = situation;
             case MsLeft(whiteMs, blackMs):
                 msLeftOnOver = [White => whiteMs, Black => blackMs];
             case Result(_):
@@ -97,14 +100,14 @@ class GameLog
         Storage.overwrite(GameData(gameID), log);
     }
 
-    public static function load(id:Int):GameLog
+    public static function load(id:Int):Null<GameLog>
     {
-        var log:GameLog = new GameLog(id);
-
         var logStr = Storage.getGameLog(id);
 
         if (logStr == null)
-            throw 'Failed to load the log for game $id';
+            return null;
+
+        var log:GameLog = new GameLog(id);
 
         for (entry in GameLogTranslator.parse(logStr))
             log.append(entry, false);
@@ -112,36 +115,21 @@ class GameLog
         return log;
     }
 
-    public static function createNew(id:Int, whitePlayer:UserSession, blackPlayer:UserSession, timeControl:TimeControl, rated:Bool, ?customStartingSituation:Situation):GameLog 
+    public static function createNew(id:Int, players:Map<PieceColor, Null<UserSession>>, timeControl:TimeControl, rated:Bool, ?customStartingSituation:Situation):GameLog 
     {
         var log:GameLog = new GameLog(id);
 
         var timeControlType:TimeControlType = timeControl.getType();
 
-        var whiteElo:EloValue;
-        var blackElo:EloValue;
+        var eloValues:Map<PieceColor, EloValue> = [White => None, Black => None];
 
-        if (whitePlayer.login != null && whitePlayer.storedData != null)
-        {
-            whiteElo = whitePlayer.storedData.getELO(timeControlType);
-            if (whiteElo == null)
-                whiteElo = None;
-        }
-        else
-            whiteElo = None;
-
-        if (blackPlayer.login != null && blackPlayer.storedData != null)
-        {
-            blackElo = blackPlayer.storedData.getELO(timeControlType);
-            if (blackElo == null)
-                blackElo = None;
-        }
-        else
-            blackElo = None;
+        for (color => player in players.keyValueIterator())
+            if (player != null && player.login != null && player.storedData != null)
+                eloValues[color] = player.storedData.getELO(timeControlType);
         
-        log.append(Players(whitePlayer.login, blackPlayer.login), false);
+        log.append(Players(players[White].login, players[Black].login), false);
         if (rated)
-            log.append(Elo(whiteElo, blackElo), false);
+            log.append(Elo(eloValues[White], eloValues[Black]), false);
         log.append(DateTime(Date.now()), false);
         log.append(TimeControl(timeControl), false);
         if (customStartingSituation != null)

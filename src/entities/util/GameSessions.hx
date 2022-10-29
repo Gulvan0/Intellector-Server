@@ -8,9 +8,12 @@ class GameSessions
     private var playerSessions:Map<PieceColor, Null<UserSession>> = [];
     private var spectatorSessions:Array<UserSession> = [];
 
-    private var broadcastConnectionEvents:Bool = true;
+    public function getSpectators():Array<UserSession> 
+    {
+        return spectatorSessions.copy();    
+    }
 
-    public function getPlayerColor(player:UserSession):Null<PieceColor>
+    public function getPresentPlayerColor(player:UserSession):Null<PieceColor>
     {
         for (color in PieceColor.createAll())
             if (playerSessions.get(color).getInteractionReference() == player.getInteractionReference())
@@ -18,9 +21,14 @@ class GameSessions
         return null;
     }
 
-    public function getPlayerSession(color:PieceColor):Null<UserSession> 
+    public function getPresentPlayerSession(color:PieceColor):Null<UserSession> 
     {
         return playerSessions.get(color);
+    }
+
+    public function isDerelict():Bool
+    {
+        return playerSessions.get(White) == null && playerSessions.get(Black) == null && Lambda.empty(spectatorSessions);
     }
 
     public function attachPlayer(color:PieceColor, session:UserSession) 
@@ -35,28 +43,33 @@ class GameSessions
 
     public function addSpectator(session:UserSession) 
     {
-        if (broadcastConnectionEvents)
-            broadcast(NewSpectator(session.login));
         spectatorSessions.push(session);
     }
 
     public function removeSpectator(session:UserSession) 
     {
         spectatorSessions.remove(session);
-        if (broadcastConnectionEvents)
-            broadcast(SpectatorLeft(session.login));
+    }
+
+    public function removeSession(session:UserSession) 
+    {
+        var sessionRef:String = session.getInteractionReference();
+
+        if (playerSessions.get(White).getInteractionReference() == sessionRef)
+            removePlayer(White);
+        else if (playerSessions.get(Black).getInteractionReference() == sessionRef)
+            removePlayer(Black);
+        else 
+            removeSpectator(session);
     }
 
     public function broadcast(event:ServerEvent, ?excludedUser:Null<UserSession>)
     {
-        var excludedColor:Null<PieceColor> = excludedUser != null? getPlayerColor(excludedUser) : null;
+        var receivers:Array<UserSession> = [for (session in playerSessions) session].concat(spectatorSessions);
+        var excludedRef:Null<String> = excludedUser != null? excludedUser.getInteractionReference() : null;
 
-        for (color in PieceColor.createAll())
-            if (color != excludedColor)
-                tellPlayer(color, event);
-
-        for (session in spectatorSessions)
-            if (session != excludedUser)
+        for (session in receivers)
+            if (session.getInteractionReference() != excludedRef)
                 session.emit(event);
     }
 
@@ -68,26 +81,13 @@ class GameSessions
 
     public function tellPlayer(color:PieceColor, event:ServerEvent) 
     {
-        var session:UserSession = getPlayerSession(color);
+        var session:UserSession = getPresentPlayerSession(color);
         if (session != null)
             session.emit(event);
     }
 
-    public function onSessionDestroyed(session:UserSession) 
+    public function new(players:Map<PieceColor, Null<UserSession>>) 
     {
-        if (playerSessions.get(White) == session)
-            removePlayer(White);
-        else if (playerSessions.get(Black) == session)
-            removePlayer(Black);
-        else
-            spectatorSessions.remove(session);
-    }
-
-    public function new(broadcastConnectionEvents:Bool, whiteSession:Null<UserSession>, blackSession:Null<UserSession>, ?existingSpectators:Array<UserSession>) 
-    {
-        this.broadcastConnectionEvents = broadcastConnectionEvents;
-        this.playerSessions = [White => whiteSession, Black => blackSession];
-        if (existingSpectators != null)
-            this.spectatorSessions = existingSpectators;
+        this.playerSessions = players;
     }
 }

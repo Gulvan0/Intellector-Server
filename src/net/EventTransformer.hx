@@ -37,19 +37,19 @@ class EventTransformer
     {
         return switch event
         {
-            case Move(_, fromI, toI, fromJ, toJ, morphInto): Move(fromI, toI, fromJ, toJ, morphInto);
-            case RequestTimeoutCheck(_): RequestTimeoutCheck;
-            case Message(_, text): Message(text);
-            case Resign(_): Resign;
-            case OfferDraw(_): OfferDraw;
-            case CancelDraw(_): CancelDraw;
-            case AcceptDraw(_): AcceptDraw;
-            case DeclineDraw(_): DeclineDraw;
-            case OfferTakeback(_): OfferTakeback;
-            case CancelTakeback(_): CancelTakeback;
-            case AcceptTakeback(_): AcceptTakeback;
-            case DeclineTakeback(_): DeclineTakeback;
-            case AddTime(_): AddTime;
+            case Move(fromI, toI, fromJ, toJ, morphInto): Move(fromI, toI, fromJ, toJ, morphInto);
+            case RequestTimeoutCheck: RequestTimeoutCheck;
+            case Message(text): Message(text);
+            case Resign: Resign;
+            case OfferDraw: OfferDraw;
+            case CancelDraw: CancelDraw;
+            case AcceptDraw: AcceptDraw;
+            case DeclineDraw: DeclineDraw;
+            case OfferTakeback: OfferTakeback;
+            case CancelTakeback: CancelTakeback;
+            case AcceptTakeback: AcceptTakeback;
+            case DeclineTakeback: DeclineTakeback;
+            case AddTime: AddTime;
             default: null;
         }
     }

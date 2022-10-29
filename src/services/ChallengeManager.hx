@@ -53,19 +53,27 @@ class ChallengeManager
         if (challenge == null)
         {
             var gameID:Null<Int> = gameIDByFormerChallengeID.get(id);
-            var game:Null<Game> = gameID != null? GameManager.getOngoing(gameID) : null;
-            
-            if (game != null)
-            {
-                Logger.serviceLog('CHALLENGE', 'Challenge $id has been fullfilled, the corresponding game is still in progress');
-                requestAuthor.emit(OpenChallengeHostPlaying(gameID, game.getTime(), game.log.get()));
-                GameManager.addSpectator(requestAuthor, gameID, false);
-            }
-            else
+
+            if (gameID == null)
             {
                 Logger.serviceLog('CHALLENGE', 'Challenge $id does not exist');
                 requestAuthor.emit(OpenChallengeNotFound);
             }
+            else
+                switch GameManager.getSimple(gameID) 
+                {
+                    case Ongoing(game):
+                        Logger.serviceLog('CHALLENGE', 'Challenge $id has been fullfilled, the corresponding game $gameID is still in progress');
+                        requestAuthor.emit(OpenChallengeHostPlaying(gameID, game.getTime(), game.log.get()));
+                        GameManager.addSpectator(requestAuthor, gameID, false);
+                    case Past(log):
+                        Logger.serviceLog('CHALLENGE', 'Challenge $id has been fullfilled, the corresponding game $gameID has already ended');
+                        requestAuthor.viewedGameID = gameID;
+                        requestAuthor.emit(OpenChallengeGameEnded(gameID, log));
+                    case NonExisting:
+                        Logger.serviceLog('CHALLENGE', 'Challenge $id is linked to gameID = $gameID, but there\'s no game with such id');
+                        requestAuthor.emit(OpenChallengeNotFound);
+                }
         }
         else if (challenge.isDirect())
         {
@@ -238,12 +246,18 @@ class ChallengeManager
                 requestAuthor.emit(ChallengeCancelledByOwner);
             else if (ownerSession == null)
                 requestAuthor.emit(ChallengeOwnerOffline(ownerLogin));
-            else if (ownerSession.getState() == InGame)
+            else if (ownerSession.getState().match(PlayingFiniteGame(_)))
                 requestAuthor.emit(ChallengeOwnerInGame(ownerLogin));
             else
                 requestAuthor.emit(ChallengeCancelledByOwner);
 
             Logger.serviceLog('CHALLENGE', 'Failed to accept challenge $id: challenge not found');
+            return;
+        }
+
+        if (challenge.ownerLogin == requestAuthor.login)
+        {
+            Logger.serviceLog('CHALLENGE', 'Failed to accept challenge $id: caller = callee (${requestAuthor.login})');
             return;
         }
         
@@ -279,7 +293,7 @@ class ChallengeManager
             ownerSession.emit(DirectChallengeDeclined(id));
     }
 
-    private static function cancelAllOutgoingChallenges(user:UserSession)
+    public static function cancelAllOutgoingChallenges(user:UserSession)
     {
         if (user.login == null)
             return;
@@ -293,15 +307,5 @@ class ChallengeManager
     public static function handleDisconnection(user:UserSession) 
     {
         cancelAllOutgoingChallenges(user);
-    }
-    
-    public static function handleGameStart(game:Game) 
-    {
-        for (color in PieceColor.createAll())
-        {
-            var session:Null<UserSession> = game.sessions.getPlayerSession(color);
-            if (session != null)
-                cancelAllOutgoingChallenges(session);
-        }
     }
 }

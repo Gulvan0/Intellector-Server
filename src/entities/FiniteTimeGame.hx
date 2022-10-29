@@ -26,13 +26,13 @@ class FiniteTimeGame extends Game
         endGame(Decisive(Timeout, opposite(timedOutColor)));
     }
 
-    public function new(id:Int, onEndedCallback:Outcome->Game->Void, whitePlayer:UserSession, blackPlayer:UserSession, timeControl:TimeControl, rated:Bool, ?customStartingSituation:Situation)
+    public function new(id:Int, players:Map<PieceColor, Null<UserSession>>, timeControl:TimeControl, rated:Bool, ?customStartingSituation:Situation)
     {
-        super(id, onEndedCallback);
+        super(id);
 
-        log = GameLog.createNew(id, whitePlayer, blackPlayer, timeControl, rated, customStartingSituation);
+        log = GameLog.createNew(id, players, timeControl, rated, customStartingSituation);
         offers = new GameOffers(endGame.bind(Drawish(DrawAgreement)), rollback);
-        sessions = new GameSessions(true, whitePlayer, blackPlayer);
+        sessions = new GameSessions(players);
         state = GameState.createNew(customStartingSituation);
         time = GameTime.active(timeControl, onTimeout);
     }

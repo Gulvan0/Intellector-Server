@@ -30,6 +30,7 @@ class PlayerData
     private var elo:Map<TimeControlType, EloValue>;
     private var studies:Array<Int>;
     private var ongoingCorrespondenceGames:Array<Int>;
+    private var ongoingFiniteGameID:Null<Int>;
     private var roles:Array<UserRole>;
     private var friends:Array<String>;
 
@@ -43,6 +44,7 @@ class PlayerData
         data.elo = [];
         data.studies = [];
         data.ongoingCorrespondenceGames = [];
+        data.ongoingFiniteGameID = null;
         data.roles = [];
         data.friends = [];
 
@@ -85,6 +87,7 @@ class PlayerData
 
         data.studies = json.studies;
         data.ongoingCorrespondenceGames = json.ongoingCorrespondenceGames;
+        data.ongoingFiniteGameID = Reflect.field(json, "ongoingFiniteGameID");
         data.roles = Lambda.map(json.roles, x -> UserRole.createByName(x));
         data.friends = json.friends;
 
@@ -101,7 +104,7 @@ class PlayerData
         for (timeControl in TimeControlType.createAll())
             Reflect.setField(gamesObj, timeControl.getName(), pastGames[Some(timeControl)]);
 
-        return {
+        var json:Dynamic = {
             lastMessageTimestamp: lastMessageTimestamp,
             pastGames: gamesObj,
             elo: eloObj,
@@ -110,6 +113,11 @@ class PlayerData
             roles: roles.map(x -> x.getName()),
             friends: friends
         };
+
+        if (ongoingFiniteGameID != null)
+            Reflect.setField(json, "ongoingFiniteGameID", ongoingFiniteGameID);
+
+        return json;
     }
 
     public function getStatus():UserStatus
@@ -139,7 +147,6 @@ class PlayerData
     public function toProfileData(requestedByLogin:Null<String>):ProfileData 
     {
         var data:ProfileData = new ProfileData();
-
         
         var miniData:MiniProfileData = toMiniProfileData(requestedByLogin);
         data.elo = miniData.elo;
@@ -158,7 +165,10 @@ class PlayerData
 
         data.preloadedGames = getPastGames(0, 10);
         data.preloadedStudies = getStudies(0, 10).map;
-        data.gamesInProgress = getOngoingGames();
+        data.gamesInProgress = Storage.getGameInfos(ongoingCorrespondenceGames);
+
+        if (ongoingFiniteGameID != null)
+            data.gamesInProgress.unshift(Storage.getGameInfo(ongoingFiniteGameID));
 
         data.roles = roles;
 
@@ -194,18 +204,7 @@ class PlayerData
     public function getPastGames(after:Int, pageSize:Int, ?filterByTimeControl:Null<TimeControlType>):Array<GameInfo>
     {
         var gameIDs:Array<Int> = getPastGamesIDs(filterByTimeControl).slice(after, after + pageSize);
-
-        var games:Array<GameInfo> = [];
-
-        for (gameID in gameIDs)
-        {
-            var info:GameInfo = new GameInfo();
-            info.id = gameID;
-            info.log = Storage.getGameLog(gameID);
-            games.push(info);
-        }
-
-        return games;
+        return Storage.getGameInfos(gameIDs);
     }
 
     public function getStudyIDs():Array<Int>
@@ -244,28 +243,31 @@ class PlayerData
         return {map: map, hasNext: hasNext};
     }
 
-    public function getOngoingGames():Array<GameInfo>
+    public function getOngoingGameIDs():Array<Int>
     {
-        var games:Array<GameInfo> = [];
+        var a:Array<Int> = ongoingCorrespondenceGames.copy();
+        
+        if (ongoingFiniteGameID != null)
+            a.unshift(ongoingFiniteGameID);
+        
+        return a;
+    }
 
-        var user:Null<UserSession> = LoginManager.getUser(login);
-        if (user != null)
-        {
-            var finiteTimeGame:Null<FiniteTimeGame> = GameManager.getFiniteTimeGameByPlayer(user);
+    public function addOngoingFiniteGame(gameID:Int) 
+    {
+        ongoingFiniteGameID = gameID;
+        Storage.savePlayerData(login, this);
+    }
 
-            if (finiteTimeGame != null)
-                games.push(finiteTimeGame.getInfo());
-        }
+    public function removeOngoingFiniteGame() 
+    {
+        ongoingFiniteGameID = null;
+        Storage.savePlayerData(login, this);
+    }
 
-        for (gameID in ongoingCorrespondenceGames)
-        {
-            var info:GameInfo = new GameInfo();
-            info.id = gameID;
-            info.log = Storage.getGameLog(gameID);
-            games.push(info);
-        }
-
-        return games;
+    public function getOngoingFiniteGame():Null<Int>
+    {
+        return ongoingFiniteGameID;
     }
 
     public function addPastGame(id:Int, timeControl:TimeControlType, ?newElo:EloValue)

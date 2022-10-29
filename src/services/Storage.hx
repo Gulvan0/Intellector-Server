@@ -1,5 +1,6 @@
 package services;
 
+import net.shared.GameInfo;
 import entities.util.GameLog;
 import entities.util.GameLogEntry;
 import stored.StudyData;
@@ -45,6 +46,19 @@ class Storage
             return null;
         else
             return read(GameData(id));
+    }
+
+    public static function getGameInfo(id:Int):GameInfo
+    {
+        var info:GameInfo = new GameInfo();
+        info.id = id;
+        info.log = getGameLog(id);
+        return info;
+    }
+
+    public static function getGameInfos(ids:Array<Int>):Array<GameInfo> 
+    {
+        return ids.map(getGameInfo);
     }
 
     public static function getStudyData(id:Int):Null<StudyData>
@@ -182,7 +196,13 @@ class Storage
 
         while (gameID <= lastGameID)
         {
-            var log:String = getGameLog(gameID);
+            var log:Null<String> = getGameLog(gameID);
+
+            if (log == null)
+            {
+                Logger.logError('Missing game log: $gameID');
+                continue;
+            }
 
             if (!log.contains("#R|"))
             {
@@ -199,7 +219,11 @@ class Storage
                         var data = Storage.loadPlayerData(login);
                         if (data.getPastGamesIDs()[0] < gameID)
                             data.addPastGame(gameID, parsedLog.timeControl.getType());
+                        if (data.getOngoingFiniteGame() == gameID)
+                            data.removeOngoingFiniteGame();
                     }
+
+                Logger.serviceLog("STORAGE", 'Repaired a log for a game with ID = $gameID');
             }
 
             gameID++;

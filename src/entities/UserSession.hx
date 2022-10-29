@@ -1,5 +1,7 @@
 package entities;
 
+import net.shared.GameInfo;
+import net.shared.ClientEvent;
 import services.Logger;
 import services.Auth;
 import services.LoginManager;
@@ -23,17 +25,44 @@ class UserSession
     public var reconnectionToken(default, null):String;
     private var reconnectionTimer:Timer;
     private var missedEvents:Array<ServerEvent>;
-    
+
+    public var ongoingFiniteGameID(get, set):Null<Int>;
+    public var viewedGameID:Null<Int>;
+
+    private function get_ongoingFiniteGameID():Null<Int>
+    {
+        return storedData.getOngoingFiniteGame();
+    }
+
+    private function set_ongoingFiniteGameID(id:Null<Int>):Null<Int>
+    {
+        if (id == null)
+            storedData.removeOngoingFiniteGame();
+        else
+            storedData.addOngoingFiniteGame(id);
+        return id;
+    }
+
     public function getState():UserState
     {
         if (connection == null)
             return AwaitingReconnection;
         else if (login == null)
             return NotLogged;
-        else if (GameManager.getFiniteTimeGameByPlayer(this) == null)
-            return Browsing;
+        else if (ongoingFiniteGameID != null)
+            return PlayingFiniteGame(ongoingFiniteGameID);
+        else if (viewedGameID != null)
+            return ViewingGame(viewedGameID);
         else
-            return InGame;
+            return Browsing;
+    }
+
+    public function getRelevantGameIDs():Array<Int> 
+    {
+        var ids = storedData.getOngoingGameIDs();
+        if (ongoingFiniteGameID == null && viewedGameID != null)
+            ids.push(viewedGameID);
+        return ids;
     }
 
     public function getLogReference():String
@@ -106,6 +135,11 @@ class UserSession
         //TODO: Ask managers to execute handleSessionDestruction
         reconnectionTimer = null;
         Auth.detachSession(reconnectionToken);
+    }
+
+    public function isGuest():Bool
+    {
+        return Auth.isGuest(getInteractionReference());    
     }
 
     public function onLoggedIn(login:String) 

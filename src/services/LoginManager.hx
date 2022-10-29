@@ -29,14 +29,22 @@ class LoginManager
             user.onLoggedIn(login);
 
             var incomingChallenges:Array<ChallengeData> = ChallengeManager.getAllIncomingChallengesByReceiverLogin(login);
-            var finiteTimeGame:Null<FiniteTimeGame> = GameManager.getFiniteTimeGameByPlayer(user);
+            var finiteGameID:Null<Int> = user.ongoingFiniteGameID;
 
-            if (finiteTimeGame == null)
+            if (finiteGameID == null)
                 user.emit(LoginResult(Success(incomingChallenges)));
             else 
             {
-                user.emit(LoginResult(ReconnectionNeeded(incomingChallenges, finiteTimeGame.id, finiteTimeGame.getTime(), finiteTimeGame.log.get())));
-                GameManager.onSpecialReconnection(finiteTimeGame.id, user);
+                switch GameManager.get(finiteGameID) 
+                {
+                    case OngoingFinite(game):
+                        user.emit(LoginResult(ReconnectionNeeded(incomingChallenges, finiteGameID, game.getTime(), game.log.get())));
+                        user.viewedGameID = finiteGameID;
+                        GameManager.handleReconnection(user);
+                    default:
+                        user.ongoingFiniteGameID = null;
+                        user.emit(LoginResult(Success(incomingChallenges)));
+                }
             }
         }
         else 
