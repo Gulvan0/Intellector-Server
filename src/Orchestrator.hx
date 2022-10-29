@@ -80,7 +80,7 @@ class Orchestrator
                 if (Auth.userExists(login))
                     GameManager.addFollower(author, login);
                 else
-                    author.emit(PlayerNotFound); //TODO: Is it processed by client?
+                    author.emit(PlayerNotFound);
             case StopFollowing:
                 GameManager.stopFollowing(author);
             case LeaveGame:

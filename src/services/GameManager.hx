@@ -83,6 +83,8 @@ class GameManager
                 game.onSpectatorJoined(session);
                 if (sendSpectationData)
                     session.emit(SpectationData(gameID, game.getTime(), game.log.get()));
+                else
+                    session.emit(FollowSuccess);
             default:
         }
     }
@@ -247,6 +249,8 @@ class GameManager
 
     public static function handleSessionDestruction(user:UserSession) 
     {
+        stopFollowing(user);
+
         for (gameID in user.getRelevantGameIDs())
             switch games.get(gameID) 
             {

@@ -63,7 +63,9 @@ enum ServerEvent
     Games(games:Array<GameInfo>, hasNext:Bool); //Answer to GetGamesByLogin, GetOngoingGamesByLogin
     Studies(studies:Map<Int, StudyInfo>, hasNext:Bool); //Answer to GetStudiesByLogin
 
-    PlayerNotFound; //Answer to GetPlayerProfile, GetGamesByLogin, GetOngoingGamesByLogin and GetStudiesByLogin: no such player exists
+    FollowSuccess; //Answer to FollowPlayer: no current game to spectate, but the player will be notified when the followed player starts playing
+
+    PlayerNotFound; //Answer to FollowPlayer, GetPlayerProfile, GetGamesByLogin, GetOngoingGamesByLogin and GetStudiesByLogin: no such player exists
 
     OpenChallenges(data:Array<ChallengeData>); //Answer to GetOpenChallenges
     CurrentGames(data:Array<GameInfo>); //Answer to GetCurrentGames

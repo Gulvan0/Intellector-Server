@@ -42,7 +42,7 @@ class ProfileManager
         if (Auth.userExists(login))
             author.emit(PlayerProfile(Storage.loadPlayerData(login).toProfileData(author.login)));
         else
-            author.emit(PlayerNotFound); //TODO: Is it processed by client?
+            author.emit(PlayerNotFound);
     }
 
     public static function getMiniProfile(author:UserSession, login:String) 
@@ -50,7 +50,7 @@ class ProfileManager
         if (Auth.userExists(login))
             author.emit(MiniProfile(Storage.loadPlayerData(login).toMiniProfileData(author.login)));
         else
-            author.emit(PlayerNotFound); //TODO: Is it processed by client?
+            author.emit(PlayerNotFound);
     }
 
     public static function getPastGames(author:UserSession, login:String, after:Int, pageSize:Int, filterByTimeControl:Null<TimeControlType>) 
