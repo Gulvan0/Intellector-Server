@@ -15,7 +15,7 @@ class GameLog
     private var log:String = "";
     private var entries:Array<GameLogEntry> = []; //Pay special attention to keeping it in sync with the `log` property
 
-    public var playerLogins(default, null):Map<PieceColor, Null<String>>;
+    public var playerRefs(default, null):Map<PieceColor, String>;
     public var timeControl(default, null):TimeControl;
     public var ongoing(default, null):Bool = true;
     public var rated(default, null):Bool;
@@ -33,11 +33,11 @@ class GameLog
         return entries.copy();    
     }
 
-    public function getColorByLogin(login:String):Null<PieceColor> 
+    public function getColorByRef(ref:String):Null<PieceColor> 
     {
-        if (playerLogins.get(White) == login)
+        if (playerRefs.get(White) == ref)
             return White;
-        else if (playerLogins.get(Black) == login)
+        else if (playerRefs.get(Black) == ref)
             return Black;
         else 
             return null;
@@ -61,8 +61,8 @@ class GameLog
 
         switch entry 
         {
-            case Players(whiteLogin, blackLogin):
-                playerLogins = [White => whiteLogin, Black => blackLogin];
+            case Players(whiteRef, blackRef):
+                playerRefs = [White => whiteRef, Black => blackRef];
             case Elo(whiteElo, blackElo):
                 rated = true;
                 elo = [White => whiteElo, Black => blackElo];
@@ -144,7 +144,7 @@ class GameLog
         return log;
     }
 
-    public static function createNew(id:Int, players:Map<PieceColor, Null<UserSession>>, timeControl:TimeControl, rated:Bool, ?customStartingSituation:Situation):GameLog 
+    public static function createNew(id:Int, players:Map<PieceColor, UserSession>, timeControl:TimeControl, rated:Bool, ?customStartingSituation:Situation):GameLog 
     {
         var log:GameLog = new GameLog(id);
 
@@ -156,7 +156,7 @@ class GameLog
             if (player != null && player.login != null && player.storedData != null)
                 eloValues[color] = player.storedData.getELO(timeControlType);
         
-        log.append(Players(players[White].login, players[Black].login), false);
+        log.append(Players(players[White].getLogReference(), players[Black].getLogReference()), false);
         if (rated)
             log.append(Elo(eloValues[White], eloValues[Black]), false);
         log.append(DateTime(Date.now()), false);

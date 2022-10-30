@@ -26,7 +26,7 @@ class FiniteTimeGame extends Game
         endGame(Decisive(Timeout, opposite(timedOutColor)));
     }
 
-    public function new(id:Int, players:Map<PieceColor, Null<UserSession>>, timeControl:TimeControl, rated:Bool, ?customStartingSituation:Situation)
+    public function new(id:Int, players:Map<PieceColor, UserSession>, timeControl:TimeControl, rated:Bool, ?customStartingSituation:Situation)
     {
         super(id);
 

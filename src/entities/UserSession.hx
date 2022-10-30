@@ -67,20 +67,18 @@ class UserSession
         return ids;
     }
 
-    public function getLogReference():String
-    {
-        if (connection == null)
-            return 'TokenHolder($reconnectionToken)';
-        else if (login == null)
-            return 'Connection(${connection.id})';
-        else
-            return 'Player($login, ${connection.id})';
-    }
-
     public function getInteractionReference():String 
     {
         if (login == null)
             return reconnectionToken;
+        else
+            return login;
+    }
+
+    public function getLogReference():String
+    {
+        if (login == null)
+            return "_" + Auth.getSessionID(reconnectionToken);
         else
             return login;
     }

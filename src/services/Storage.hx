@@ -229,10 +229,10 @@ class Storage
 
                 parsedLog.append(Result(Drawish(Abort)));
 
-                for (login in parsedLog.playerLogins)
-                    if (login != null)
+                for (ref in parsedLog.playerRefs)
+                    if (!Auth.isGuest(ref))
                     {
-                        var data = Storage.loadPlayerData(login);
+                        var data = Storage.loadPlayerData(ref);
                         if (data.getPastGamesIDs()[0] < gameID)
                             data.addPastGame(gameID, parsedLog.timeControl.getType());
                         if (data.getOngoingFiniteGame() == gameID)

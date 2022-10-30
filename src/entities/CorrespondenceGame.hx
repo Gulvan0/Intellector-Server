@@ -17,7 +17,7 @@ import net.shared.PieceType;
 
 class CorrespondenceGame extends Game
 {
-    public static function createNew(id:Int, players:Map<PieceColor, Null<UserSession>>, rated:Bool, ?customStartingSituation:Situation):CorrespondenceGame
+    public static function createNew(id:Int, players:Map<PieceColor, UserSession>, rated:Bool, ?customStartingSituation:Situation):CorrespondenceGame
     {
         var game:CorrespondenceGame = new CorrespondenceGame(id);
         

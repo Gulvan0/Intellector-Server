@@ -26,7 +26,7 @@ class Orchestrator
         {
             case Ongoing(game):
                 author.viewedGameID = id;
-                if (game.log.getColorByLogin(author.login) != null)
+                if (game.log.getColorByRef(author.getLogReference()) != null)
                     GameManager.handleReconnection(author);
                 else
                     GameManager.addSpectator(author, id, false);

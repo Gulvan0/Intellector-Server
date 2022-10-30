@@ -173,10 +173,8 @@ class GameLogTranslator
         switch typeCode
         {
             case "P":
-                var playerLogins:Array<String> = args[0].split(":");
-                var whiteLogin:Null<String> = playerLogins[0] == "_"? null : playerLogins[0];
-                var blackLogin:Null<String> = playerLogins[1] == "_"? null : playerLogins[1];
-                return Players(whiteLogin, blackLogin);
+                var playerRefs:Array<String> = args[0].split(":");
+                return Players(playerRefs[0], playerRefs[1]);
             case "e":
                 return Elo(deserialize(args[0]), deserialize(args[1]));
             case "D":
@@ -212,12 +210,8 @@ class GameLogTranslator
                 if (whiteMsLeft != null && blackMsLeft != null)
                     base += '/$whiteMsLeft/$blackMsLeft';
                 return base;
-            case Players(whiteLogin, blackLogin):
-                if (whiteLogin == null)
-                    whiteLogin = "_";
-                if (blackLogin == null)
-                    blackLogin = "_";
-                return '#P|$whiteLogin:$blackLogin';
+            case Players(whiteRef, blackRef):
+                return '#P|$whiteRef:$blackRef';
             case Elo(whiteElo, blackElo):
                 return '#e|$whiteElo/$blackElo';
             case DateTime(ts):

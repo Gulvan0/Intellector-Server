@@ -26,7 +26,7 @@ enum Event
 enum GameLogEntry 
 {
     Move(from:HexCoords, to:HexCoords, morphInto:Null<PieceType>, msLeftWhite:Null<Int>, msLeftBlack:Null<Int>);
-    Players(whiteLogin:Null<String>, blackLogin:Null<String>);
+    Players(whiteRef:String, blackRef:String);
     Elo(whiteElo:EloValue, blackElo:EloValue);
     DateTime(ts:Date);
     MsLeft(whiteMs:Int, blackMs:Int);

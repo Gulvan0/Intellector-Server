@@ -170,7 +170,7 @@ class GameManager
     private static function getNewElo(color:PieceColor, data:PlayerData, outcome:Outcome, gameLog:GameLog):EloValue
     {
         var timeControlType:TimeControlType = gameLog.timeControl.getType();
-        var login:String = gameLog.playerLogins.get(color);
+        var login:String = gameLog.playerRefs.get(color);
         var formerElo:EloValue = gameLog.elo[color];
         var formerOpponentElo:EloValue = gameLog.elo[opposite(color)];
         var personalOutcome:PersonalOutcome = toPersonal(outcome, color);
@@ -196,7 +196,8 @@ class GameManager
 
         for (color in PieceColor.createAll())
         {
-            var login:Null<String> = game.log.playerLogins.get(color);
+            var gameRef:String = game.log.playerRefs.get(color);
+            var login:Null<String> = Auth.isGuest(gameRef)? null : gameRef;
             var data:Null<PlayerData> = login != null? Storage.loadPlayerData(login) : null;
             var session:Null<UserSession> = game.sessions.getPresentPlayerSession(color);
             

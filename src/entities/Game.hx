@@ -1,5 +1,6 @@
 package entities;
 
+import services.Auth;
 import net.shared.Constants;
 import services.Logger;
 import struct.ChallengeParams;
@@ -89,10 +90,10 @@ class Game
         if (authorColor != null)
         {
             log.append(PlayerMessage(authorColor, text));
-            sessions.broadcast(Message(author.login, text), author);
+            sessions.broadcast(Message(author.getLogReference(), text), author);
         }
         else
-            sessions.broadcast(SpectatorMessage(author.login, text), author);
+            sessions.broadcast(SpectatorMessage(author.getLogReference(), text), author);
     }
 
     private function endGame(outcome:Outcome) 
@@ -266,7 +267,7 @@ class Game
         {
             Logger.serviceLog(serviceName, 'Spectator ${user.getLogReference()} left');
             sessions.removeSpectator(user);
-            sessions.broadcast(SpectatorLeft(user.login));
+            sessions.broadcast(SpectatorLeft(user.getLogReference()));
         }
     }
 
@@ -282,7 +283,7 @@ class Game
     {
         Logger.serviceLog(serviceName, 'Spectator ${spectator.getLogReference()} joined');
         sessions.addSpectator(spectator);
-        sessions.broadcast(NewSpectator(spectator.login));
+        sessions.broadcast(NewSpectator(spectator.getLogReference()));
     }
 
     public function onPresentUserDisconnected(user:UserSession) 
@@ -297,7 +298,7 @@ class Game
         else
         {
             Logger.serviceLog(serviceName, 'Spectator ${user.getLogReference()} disconnected');
-            sessions.broadcast(SpectatorLeft(user.login));
+            sessions.broadcast(SpectatorLeft(user.getLogReference()));
         }
     }
 
@@ -313,7 +314,7 @@ class Game
         else
         {
             Logger.serviceLog(serviceName, 'Spectator ${user.getLogReference()} reconnected');
-            sessions.broadcast(NewSpectator(user.login));
+            sessions.broadcast(NewSpectator(user.getLogReference()));
         }
     }
 
@@ -343,10 +344,10 @@ class Game
 
         for (color in PieceColor.createAll())
         {
-            var playerLogin:Null<String> = log.playerLogins.get(color);
+            var playerLogin:String = log.playerRefs.get(color);
             var opponent:Null<UserSession> = sessions.getPresentPlayerSession(opposite(color));
 
-            if (playerLogin == null || opponent == null)
+            if (Auth.isGuest(playerLogin) || opponent == null)
                 continue;
 
             var opponentRef:String = opponent.getInteractionReference();
@@ -358,7 +359,7 @@ class Game
         return map;
     }
 
-    public static function create(id:Int, players:Map<PieceColor, Null<UserSession>>, timeControl:TimeControl, rated:Bool, ?customStartingSituation:Situation):Game
+    public static function create(id:Int, players:Map<PieceColor, UserSession>, timeControl:TimeControl, rated:Bool, ?customStartingSituation:Situation):Game
     {
         if (timeControl.isCorrespondence())
             return CorrespondenceGame.createNew(id, players, rated, customStartingSituation);

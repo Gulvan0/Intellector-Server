@@ -15,6 +15,8 @@ class Auth
 
     private static var userByToken:Map<String, UserSession> = [];
 
+    private static var lastSessionID:Int = 0;
+
     public static function createSession(connection:SocketHandler):UserSession
     {
         var token:String = generateSessionToken();
@@ -45,15 +47,24 @@ class Auth
 
     private static function generateSessionToken():String
     {
+        var sessionID:Int = ++lastSessionID;
+
         var token:String = "_";
+        token += sessionID + "_";
         for (i in 0...25)
             token += String.fromCharCode(MathUtils.randomInt(33, 126));
+        
         return token;
     }
 
     public static function isGuest(userRef:String) 
     {
         return userRef.charAt(0) == '_';    
+    }
+
+    public static function getSessionID(token:String):Int
+    {
+        return Std.parseInt(token.split("_")[1]);    
     }
 
     public static function isValid(login:String, password:String):Bool 
