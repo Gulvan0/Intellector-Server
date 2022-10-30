@@ -1,5 +1,6 @@
 package;
 
+import services.CommandProcessor;
 import sys.thread.Thread;
 import integration.Telegram;
 import haxe.Timer;
@@ -22,12 +23,29 @@ class Routines
         Storage.repairGameLogs();
         Auth.loadPasswords();
 
-        Thread.createWithEventLoop(initCheckTGTimer);
+        initTimer(1000, Telegram.checkAdminChat, 'checkAdminTG');
+        Thread.createWithEventLoop(watchStdin);
     }
 
-    private static function initCheckTGTimer() 
+    private static function watchStdin() 
     {
-        var timer:Timer = new Timer(1000);
-        timer.run = Telegram.checkAdminChat;    
+        while (true)
+            CommandProcessor.processCommand(Sys.stdin().readLine(), Sys.println);
+    }
+
+    private static function initTimer(intervalMs:Int, callback:Void->Void, routineName:String) 
+    {
+        var timer:Timer = new Timer(intervalMs);
+        timer.run = () -> 
+        {
+            try
+            {
+                Thread.createWithEventLoop(callback);
+            }
+            catch (e)
+            {
+                Logger.logError('Routine error ($routineName)\nException:\n${e.message}\nNative:\n${e.native}\nPrevious:\n${e.previous}\nStack:\n${e.stack}');
+            }
+        }  
     }
 }

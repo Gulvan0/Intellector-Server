@@ -44,6 +44,27 @@ class GameManager
         return games.getCurrentFiniteGames();
     }
 
+    public static function getRecentGames():Array<GameInfo> 
+    {
+        var i:Int = 10;
+        var currentID:Int = lastGameID;
+        var infos:Array<GameInfo> = [];
+
+        while (i > 0)
+        {
+            switch games.getSimple(currentID) 
+            {
+                case Past(log):
+                    infos.push(GameInfo.create(currentID, log));
+                    i--;
+                default:
+            }
+            currentID--;
+        }
+
+		return infos;
+	}
+
     public static function get(id:Int):AnyGame
     {
         return games.get(id);
@@ -174,8 +195,8 @@ class GameManager
         var formerElo:EloValue = gameLog.elo[color];
         var formerOpponentElo:EloValue = gameLog.elo[opposite(color)];
         var personalOutcome:PersonalOutcome = toPersonal(outcome, color);
-        var priorPlayedGames:Int = data.getPlayedGamesCnt(timeControlType);
-        var newElo:EloValue = EloManager.recalculateElo(formerElo, formerOpponentElo, personalOutcome, priorPlayedGames);
+        var priorRatedGames:Int = data.getRatedGamesCnt(timeControlType);
+        var newElo:EloValue = EloManager.recalculateElo(formerElo, formerOpponentElo, personalOutcome, priorRatedGames);
 
         Logger.addAntifraudEntry(login, "ELO_" + timeControlType.getName(), EloManager.getNumericalElo(formerElo), EloManager.getNumericalElo(newElo));
 

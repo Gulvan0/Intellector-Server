@@ -16,8 +16,5 @@ class Main
         
         server = Config.constructServer();
         server.start();
-        
-        while (true)
-            CommandProcessor.processCommand(Sys.stdin().readLine(), Sys.println);
     }
 }

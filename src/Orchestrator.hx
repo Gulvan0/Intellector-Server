@@ -44,7 +44,7 @@ class Orchestrator
         var authorID:String = author.connection.id;
         var authorState:UserState = author.getState();
 
-        Logger.logIncomingEvent(event, authorID, author.login);
+        Logger.logIncomingEvent(event, authorID, author);
 
         if (!isEventRelevant(event, authorState))
         {
@@ -52,7 +52,8 @@ class Orchestrator
             return;
         }
         
-        author.storedData.onMessageReceived();
+        if (author.storedData != null)
+            author.storedData.onMessageReceived();
 
         switch event 
         {
@@ -125,6 +126,8 @@ class Orchestrator
                 author.emit(OpenChallenges(ChallengeManager.getPublicChallenges()));
             case GetCurrentGames:
                 author.emit(CurrentGames(GameManager.getCurrentFiniteTimeGames()));
+            case GetRecentGames:
+                author.emit(RecentGames(GameManager.getRecentGames()));
         }
     }
 
@@ -143,7 +146,7 @@ class Orchestrator
             case LogOut: logged;
             case Move(_, _, _, _, _) | RequestTimeoutCheck | Message(_) | Resign | OfferDraw | CancelDraw | AcceptDraw | DeclineDraw | OfferTakeback | CancelTakeback | AcceptTakeback | DeclineTakeback | AddTime | LeaveGame(_): viewingGame;
             case CreateChallenge(_) | CancelChallenge(_) | SimpleRematch | CreateStudy(_) | OverwriteStudy(_, _) | DeleteStudy(_): notInGame && logged;
-            case GetOpenChallenge(_) | FollowPlayer(_) | AcceptChallenge(_) | DeclineDirectChallenge(_) | StopFollowing | GetGame(_) | GetStudy(_) | GetPlayerProfile(_) | GetGamesByLogin(_, _, _, _) | GetStudiesByLogin(_, _, _, _) | GetOngoingGamesByLogin(_) | GetOpenChallenges | GetCurrentGames: notInGame;
+            case GetOpenChallenge(_) | FollowPlayer(_) | AcceptChallenge(_) | DeclineDirectChallenge(_) | StopFollowing | GetGame(_) | GetStudy(_) | GetPlayerProfile(_) | GetGamesByLogin(_, _, _, _) | GetStudiesByLogin(_, _, _, _) | GetOngoingGamesByLogin(_) | GetOpenChallenges | GetCurrentGames | GetRecentGames: notInGame;
             case RestoreSession(_): false;
             case GetMiniProfile(_) | AddFriend(_) | RemoveFriend(_): true;
         }

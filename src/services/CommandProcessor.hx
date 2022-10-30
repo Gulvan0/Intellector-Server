@@ -82,17 +82,22 @@ class CommandProcessor
                         }
                     }
                 case "challenges":
-                    for (challengeInfo in ChallengeManager.getAllPendingChallenges())
-                    {
-                        var desc:String = 'Challenge ${challengeInfo.id} by ${challengeInfo.ownerLogin}\n';
-                        desc += 'Type: ${challengeInfo.params.type}\n';
-                        desc += 'Time control: ${challengeInfo.params.timeControl.toString(false)}\n';
-                        desc += 'Rated: ${challengeInfo.params.rated}\n';
-                        if (challengeInfo.params.customStartingSituation != null)
-                            desc += 'Custom SIP: ${challengeInfo.params.customStartingSituation.serialize()}\n';
-                        desc += 'Acceptor color: ${challengeInfo.params.acceptorColor}';
-                        callback(desc);
-                    }
+                    var challenges = ChallengeManager.getAllPendingChallenges();
+
+                    if (Lambda.empty(challenges))
+                        callback('No challenges found');
+                    else
+                        for (challengeInfo in challenges)
+                        {
+                            var desc:String = 'Challenge ${challengeInfo.id} by ${challengeInfo.ownerLogin}\n';
+                            desc += 'Type: ${challengeInfo.params.type}\n';
+                            desc += 'Time control: ${challengeInfo.params.timeControl.toString(false)}\n';
+                            desc += 'Rated: ${challengeInfo.params.rated}\n';
+                            if (challengeInfo.params.customStartingSituation != null)
+                                desc += 'Custom SIP: ${challengeInfo.params.customStartingSituation.serialize()}\n';
+                            desc += 'Acceptor color: ${challengeInfo.params.acceptorColor}';
+                            callback(desc);
+                        }
                 case "profile":
                     if (args.length > 0)
                         callback(Storage.read(PlayerData(args[0].toLowerCase())));

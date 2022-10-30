@@ -1,14 +1,15 @@
 package services;
 
+import entities.UserSession;
 import net.shared.ServerEvent;
 import integration.Telegram;
 import net.shared.ClientEvent;
 
 class Logger
 {
-    public static function logIncomingEvent(event:ClientEvent, senderID:String, ?senderLogin:String) 
+    public static function logIncomingEvent(event:ClientEvent, senderID:String, ?sender:Null<UserSession>) 
     {
-        var senderStr:String = senderLogin == null? senderID : '$senderID ($senderLogin)';
+        var userStr:String = sender != null? sender.getLogReference() : senderID;
         var eventStr:String = switch event 
         {
             case Login(login, _): 'Login($login, ***)';
@@ -16,23 +17,23 @@ class Logger
             default: '${event.getName()}(${event.getParameters().join(', ')})';
         }
         
-        var message:String = '> $senderStr | $eventStr';
+        var message:String = '> $userStr | $eventStr';
         Storage.appendLog(Event, message);
         Storage.appendLog(Full, message);
         if (Config.printLog)
-            trace(message);
+            Sys.println(message);
     }
 
-    public static function logOutgoingEvent(event:ServerEvent, receiverID:String, ?receiverLogin:String) 
+    public static function logOutgoingEvent(event:ServerEvent, receiverID:String, ?receiver:Null<UserSession>) 
     {
-        var receiverStr:String = receiverLogin == null? receiverID : '$receiverID ($receiverLogin)';
+        var userStr:String = receiver != null? receiver.getLogReference() : receiverID;
         var eventStr:String = '${event.getName()}(${event.getParameters().join(', ')})';
 
-        var message:String = '< $receiverStr | $eventStr';
+        var message:String = '< $userStr | $eventStr';
         Storage.appendLog(Event, message);
         Storage.appendLog(Full, message);
         if (Config.printLog)
-            trace(message);
+            Sys.println(message);
     }
 
     public static function addAntifraudEntry(playerLogin:String, valueName:String, oldValue:Float, newValue:Float) 
@@ -41,7 +42,7 @@ class Logger
         Storage.appendLog(Antifraud, message);
         Storage.appendLog(Full, "$ " + message);
         if (Config.printLog)
-            trace("$ " + message);
+            Sys.println("$ " + message);
     }
 
     public static function logError(message:String, ?notifyAdmin:Bool = true) 
@@ -51,7 +52,7 @@ class Logger
         Storage.appendLog(Error, message);
         Storage.appendLog(Full, "! " + message);
         if (Config.printLog)
-            trace("! " + message);
+            Sys.println("! " + message);
     }
 
     public static function serviceLog(service:String, entry:String) 
@@ -59,6 +60,6 @@ class Logger
         var message:String = '@ $service | $entry';
         Storage.appendLog(Full, message);
         if (Config.printLog)
-            trace(message);
+            Sys.println(message);
     }
 }

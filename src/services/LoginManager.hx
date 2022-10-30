@@ -21,7 +21,17 @@ class LoginManager
     public static function login(user:UserSession, login:String, password:String) 
     {
         Logger.serviceLog('LOGIN', '${user.getLogReference()} attempts logging in as $login');
-        if (Auth.isValid(login, password))
+        if (!Auth.userExists(login))
+        {
+            Logger.serviceLog('LOGIN', 'Failed to log ${user.getLogReference()} in as $login: user does not exist');
+            user.emit(LoginResult(Fail));
+        }
+        else if (!Auth.isValid(login, password))
+        {
+            Logger.serviceLog('LOGIN', 'Failed to log ${user.getLogReference()} in as $login: invalid password');
+            user.emit(LoginResult(Fail));
+        }
+        else
         {
             if (loggedUserByLogin.exists(login))
                 loggedUserByLogin.get(login).abortConnection(true);
@@ -51,11 +61,6 @@ class LoginManager
                         user.emit(LoginResult(Success(incomingChallenges)));
                 }
             }
-        }
-        else 
-        {
-            Logger.serviceLog('LOGIN', 'Failed to log ${user.getLogReference()} in as $login: invalid password');
-            user.emit(LoginResult(Fail));
         }
     }
 

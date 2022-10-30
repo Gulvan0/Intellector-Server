@@ -97,10 +97,10 @@ class GameLogTranslator
 
     private static function decodeEvent(args:Array<String>):Event
     {
-        if (args.length != 2)
+        if (Lambda.empty(args) || args.length > 2)
             throw 'Cannot decode game event (wrong number of entry args): $args';
 
-        var color:PieceColor = colorByLetter(args[1]);
+        var color:PieceColor = args.length == 2? colorByLetter(args[1]) : White;
 
         switch args[0]
         {
@@ -173,8 +173,7 @@ class GameLogTranslator
         switch typeCode
         {
             case "P":
-                var playerRefs:Array<String> = args[0].split(":");
-                return Players(playerRefs[0], playerRefs[1]);
+                return Players(args[0], args[1]);
             case "e":
                 return Elo(deserialize(args[0]), deserialize(args[1]));
             case "D":
@@ -211,7 +210,7 @@ class GameLogTranslator
                     base += '/$whiteMsLeft/$blackMsLeft';
                 return base;
             case Players(whiteRef, blackRef):
-                return '#P|$whiteRef:$blackRef';
+                return '#P|$whiteRef/$blackRef';
             case Elo(whiteElo, blackElo):
                 return '#e|$whiteElo/$blackElo';
             case DateTime(ts):

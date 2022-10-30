@@ -28,6 +28,7 @@ class PlayerData
     private var login:String;
     private var lastMessageTimestamp:Float;
     private var pastGames:Map<Option<TimeControlType>, Array<Int>>;
+    private var ratedGamesCnt:Map<TimeControlType, Int>;
     private var elo:Map<TimeControlType, EloValue>;
     private var studies:Array<Int>;
     private var ongoingCorrespondenceGames:Array<Int>;
@@ -42,6 +43,7 @@ class PlayerData
         data.login = login;
         data.lastMessageTimestamp = Date.now().getTime();
         data.pastGames = [NoneOpt => []];
+        data.ratedGamesCnt = [];
         data.elo = [];
         data.studies = [];
         data.ongoingCorrespondenceGames = [];
@@ -53,6 +55,7 @@ class PlayerData
         {
             data.pastGames.set(Some(timeControl), []);
             data.elo.set(timeControl, None);
+            data.ratedGamesCnt.set(timeControl, 0);
         }
 
         return data;
@@ -69,7 +72,7 @@ class PlayerData
 
         for (timeControl in TimeControlType.createAll())
         {
-            var a:Array<Int> = Reflect.field(json.games, timeControl.getName());
+            var a:Array<Int> = Reflect.field(json.pastGames, timeControl.getName());
 
             data.pastGames[Some(timeControl)] = a;
             data.pastGames[NoneOpt] = data.pastGames[NoneOpt].concat(a); 
@@ -77,13 +80,16 @@ class PlayerData
 
         data.pastGames[NoneOpt].sortIntDesc();
 
+        data.ratedGamesCnt = [];
         data.elo = [];
 
         for (timeControl in TimeControlType.createAll())
         {
-            var storedValue:Null<String> = Reflect.field(json.elo, timeControl.getName());
+            var storedGameCnt:Null<Int> = Reflect.field(json.ratedGamesCnt, timeControl.getName());
+            var storedElo:Null<String> = Reflect.field(json.elo, timeControl.getName());
 
-            data.elo[timeControl] = storedValue != null? deserialize(storedValue) : None;
+            data.ratedGamesCnt[timeControl] = storedGameCnt != null? storedGameCnt : 0;
+            data.elo[timeControl] = storedElo != null? deserialize(storedElo) : None;
         }
 
         data.studies = json.studies;
@@ -105,9 +111,14 @@ class PlayerData
         for (timeControl in TimeControlType.createAll())
             Reflect.setField(gamesObj, timeControl.getName(), pastGames[Some(timeControl)]);
 
+        var ratedCntObj:Dynamic = {};
+        for (timeControl in TimeControlType.createAll())
+            Reflect.setField(ratedCntObj, timeControl.getName(), ratedGamesCnt[timeControl]);
+
         var json:Dynamic = {
             lastMessageTimestamp: lastMessageTimestamp,
             pastGames: gamesObj,
+            ratedGamesCnt: ratedCntObj,
             elo: eloObj,
             studies: studies,
             ongoingCorrespondenceGames: ongoingCorrespondenceGames,
@@ -197,6 +208,11 @@ class PlayerData
         return getPastGamesIDs(timeControl).length;
     }
 
+    public function getRatedGamesCnt(timeControl:TimeControlType):Int
+    {
+        return ratedGamesCnt[timeControl];
+    }
+
     public function getELO(timeControl:TimeControlType):EloValue
     {
         return elo.get(timeControl);
@@ -279,7 +295,10 @@ class PlayerData
         pastGames[Some(timeControl)].unshift(id);
 
         if (newElo != null)
-            elo.set(timeControl, newElo);
+        {
+            ratedGamesCnt[timeControl]++;
+            elo[timeControl] = newElo;
+        }
 
         Logger.serviceLog('PLAYERDATA', 'Game $id added to the $login\'s list of past games');
 

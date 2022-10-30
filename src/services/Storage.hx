@@ -208,9 +208,9 @@ class Storage
     public static function repairGameLogs() 
     {
         var lastGameID:Int = GameManager.getLastGameID();
-        var gameID:Int = getServerDataField("lastRepairedLogID") + 1;
+        var gameID:Int = getServerDataField("lastRepairedLogID");
 
-        while (gameID <= lastGameID)
+        while (gameID++ < lastGameID)
         {
             var log:Null<String> = getGameLog(gameID);
 
@@ -241,8 +241,6 @@ class Storage
 
                 Logger.serviceLog("STORAGE", 'Repaired a log for a game with ID = $gameID');
             }
-
-            gameID++;
         }
 
         setServerDataField("lastRepairedLogID", lastGameID);

@@ -1,5 +1,6 @@
 package net;
 
+import haxe.CallStack;
 import services.Auth;
 import entities.UserSession;
 import services.Logger;
@@ -21,7 +22,7 @@ class SocketHandler extends WebSocketHandler
 
     public function emit(event:ServerEvent) 
     {
-        Logger.logOutgoingEvent(event, id, user.login);
+        Logger.logOutgoingEvent(event, id, user);
         send(Serializer.run(event));
     }
 
@@ -38,7 +39,6 @@ class SocketHandler extends WebSocketHandler
 
     private function onError(e:Dynamic)
     {
-        Logger.serviceLog("SOCKET", '$id error');
         user.onDisconnected();
         handleError(ConnectionError(e));
     }
@@ -53,9 +53,9 @@ class SocketHandler extends WebSocketHandler
             case BytesReceived(bytes):
                 Logger.logError('Unexpected bytes:\nUUID: $id\n${bytes.toHex()}', false);
             case DeserializationError(message, exception):
-                Logger.logError('Event deserialization failed:\nUUID: $id\nOriginal message: $message\n${exception.details()}');
-            case ProcessingError(event, exception):
-                Logger.logError('Error during event processing:\nUUID: $id\nEvent: $event\n${exception.details()}');
+                Logger.logError('Event deserialization failed:\nUUID: $id\nOriginal message: $message\nException:\n${exception.message}\nNative:\n${exception.native}\nPrevious:\n${exception.previous}\nStack:${exception.stack}');
+            case ProcessingError(event, exception, stack):
+                Logger.logError('Error during event processing:\nUUID: $id\nEvent: $event\nException:\n${exception.message}\nNative:\n${exception.native}\nPrevious:\n${exception.previous}\nStack:$stack');
         }
     }
 
@@ -94,7 +94,7 @@ class SocketHandler extends WebSocketHandler
         }
         catch (e)
         {
-            handleError(ProcessingError(event, e));
+            handleError(ProcessingError(event, e, CallStack.exceptionStack(true)));
         }
     }
 

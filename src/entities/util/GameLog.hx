@@ -141,6 +141,9 @@ class GameLog
         for (entry in GameLogTranslator.parse(logStr))
             log.append(entry, false);
 
+        if (log.timeControl == null)
+            log.timeControl = TimeControl.correspondence();
+
         return log;
     }
 
