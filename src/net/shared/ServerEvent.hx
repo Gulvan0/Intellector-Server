@@ -33,8 +33,8 @@ enum ServerEvent
     RestoreSessionResult(result:SessionRestorationResult); //Answer to RestoreSession
 
     InvalidMove; //Sent to the player who attempted to perform an invalid move
-    Message(author:String, message:String); //New in-game player message
-    SpectatorMessage(author:String, message:String); //New in-game spectator message
+    Message(authorRef:String, message:String); //New in-game player message
+    SpectatorMessage(authorRef:String, message:String); //New in-game spectator message
     TimeCorrection(timeData:TimeReservesData); //Signals to update the in-game timers. Significant game events (Move, Rollback, TimeAdded, GameEnded) also contain the same data which should be processed in the exact same way
     Move(fromI:Int, toI:Int, fromJ:Int, toJ:Int, morphInto:Null<PieceType>, timeData:Null<TimeReservesData>); //A move has been played. Sent both to opponent and to all of the spectators
     Rollback(plysToUndo:Int, timeData:Null<TimeReservesData>); //Signal to undo a number of plys in a current game. Sent to both spectators and players
@@ -43,8 +43,8 @@ enum ServerEvent
 
     PlayerDisconnected(color:PieceColor); //Sent to the players and the spectators when one of the players disconnects
     PlayerReconnected(color:PieceColor); //Sent to the players and the spectators when one of the players reconnects
-    NewSpectator(login:String); //Sent both to players and to all of the spectators when a new user starts spectating
-    SpectatorLeft(login:String); //Sent both to players and to all of the spectators when a user stops spectating
+    NewSpectator(ref:String); //Sent both to players and to all of the spectators when a new user starts spectating
+    SpectatorLeft(ref:String); //Sent both to players and to all of the spectators when a user stops spectating
 
     DrawOffered(color:PieceColor);
     DrawCancelled(color:PieceColor);

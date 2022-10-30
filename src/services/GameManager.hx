@@ -278,9 +278,9 @@ class GameManager
             author.emit(CreateChallengeResult(RematchExpired));
     }
 
-    public static function leaveGame(user:UserSession) 
+    public static function leaveGame(user:UserSession, ?id:Int) 
     {
-        if (user.viewedGameID == null)
+        if (user.viewedGameID == null || (id != null && id != user.viewedGameID))
             return;
 
         Logger.serviceLog('GAMEMGR', '${user.getLogReference()} leaves game ${user.viewedGameID}');

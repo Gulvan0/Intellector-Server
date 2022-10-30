@@ -26,7 +26,7 @@ enum ClientEvent
     AddTime; 
     GetOpenChallenge(id:Int); 
     FollowPlayer(login:String);
-    LeaveGame;
+    LeaveGame(id:Int);
     StopFollowing;
     CreateStudy(info:StudyInfo);
     OverwriteStudy(overwrittenStudyID:Int, info:StudyInfo);
