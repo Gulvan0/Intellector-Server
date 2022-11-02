@@ -1,5 +1,6 @@
 package integration;
 
+import sys.thread.Thread;
 import services.CommandProcessor;
 import haxe.Json;
 import sys.Http;
@@ -8,42 +9,50 @@ using StringTools;
 
 class Telegram 
 {
+    private static var httpRequest:Http;
+
     public static function notifyAdmin(message:String) 
     {
         if (message.trim().length == 0)
             message = '<empty>';
-        useMethod('sendMessage', ['chat_id' => Config.tgChatID, 'text' => message, 'parse_mode' => 'MarkdownV2'], onMethodError);
+
+        Thread.create(() -> {
+            useMethod('sendMessage', ['chat_id' => Config.tgChatID, 'text' => message, 'parse_mode' => 'MarkdownV2']);
+        });
     }
 
-    private static function onMethodError(http:Http, error:String) 
+    public static function init() 
     {
-        useMethod('sendMessage', ['chat_id' => Config.tgChatID, 'text' => http.responseData, 'parse_mode' => 'MarkdownV2']);
+        httpRequest = new Http(getURLPrefix() + 'getUpdates');
+        httpRequest.cnxTimeout = 0.5;
+        httpRequest.addParameter('allowed_updates', '["message"]');
+        httpRequest.onData = processUpdates;    
     }
 
     public static function checkAdminChat() 
     {
-        var http = new Http(getURLPrefix() + 'getUpdates');
-        http.addParameter('allowed_updates', '["message"]');
-        http.onData = processUpdates;
-        http.request();
-    }
-
-    private static function markConfirmed(updateID:Int) 
-    {
-        var http = new Http(getURLPrefix() + 'getUpdates');
-        http.addParameter('offset', '$updateID');
-        http.request();
+        httpRequest.request();
     }
 
     private static function processUpdates(listStr:String) 
     {
+        if (listStr == '{"ok":true,"result":[]}')
+            return;
+        
         var list:Array<Dynamic> = Json.parse(listStr).result;
+
+        var maxID:Null<Int> = null;
         for (update in list)
         {
             if (Std.string(update.message.chat.id) == Config.tgChatID)
                 CommandProcessor.processCommand(update.message.text, notifyAdmin);
-            markConfirmed(update.update_id + 1);
+
+            if (maxID == null || update.update_id > maxID)
+                maxID = update.update_id;
         }
+
+        if (maxID != null)
+            httpRequest.setParameter('offset', '${maxID + 1}');
     }
 
     private static function useMethod(methodName:String, params:Map<String, String>, ?onError:Http->String->Void) 

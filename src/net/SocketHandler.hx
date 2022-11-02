@@ -64,7 +64,7 @@ class SocketHandler extends WebSocketHandler
         switch message
         {
             case BytesMessage(content):
-                onError(BytesReceived(content.readAllAvailableBytes()));
+                handleError(BytesReceived(content.readAllAvailableBytes()));
             case StrMessage(content):
                 processEvent(content);
         }

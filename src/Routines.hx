@@ -22,6 +22,7 @@ class Routines
         hx.ws.Log.mask = Config.logMask;
         Storage.repairGameLogs();
         Auth.loadPasswords();
+        Telegram.init();
 
         initTimer(1000, Telegram.checkAdminChat, 'checkAdminTG');
         Thread.createWithEventLoop(watchStdin);
@@ -40,7 +41,7 @@ class Routines
         {
             try
             {
-                Thread.createWithEventLoop(callback);
+                Thread.create(callback);
             }
             catch (e)
             {
