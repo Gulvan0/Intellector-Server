@@ -95,6 +95,19 @@ class UserSession
     {
         Logger.serviceLog("SESSION", 'Aborting connection for ${getInteractionReference()} (preventReconnection = $preventReconnection)');
 
+        if (reconnectionTimer != null)
+            reconnectionTimer.stop();
+
+        reconnectionTimer = null;
+
+        Auth.detachSession(reconnectionToken);
+
+        ChallengeManager.handleDisconnection(this);
+        GameManager.handleDisconnection(this);
+
+        GameManager.handleSessionDestruction(this);
+        LoginManager.handleSessionDestruction(this);
+
         if (connection != null)
         {
             if (preventReconnection)
