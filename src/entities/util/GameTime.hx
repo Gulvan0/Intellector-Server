@@ -94,7 +94,7 @@ class GameTime implements IGameTime
     public function onRollback(moveCnt:Int, newTurnColor:PieceColor, newMoveNum:Int) 
     {
         secondsLeftOnMoveStart = secondsLeftOnMoveStart.slice(0, -moveCnt);
-        moveStartTimestamp = Date.now().getTime();
+        moveStartTimestamp = Sys.time() * 1000;
         restartTimer(newTurnColor, newMoveNum, getMsAtMoveStart()[newTurnColor]);
     }
 
@@ -102,11 +102,11 @@ class GameTime implements IGameTime
     {
         if (finalTimeLeft != null)
         {
-            finalTimeLeft.timestamp = Date.now().getTime();
+            finalTimeLeft.timestamp = Sys.time() * 1000;
             return finalTimeLeft;
         }
 
-        var timestamp:Float = Date.now().getTime();
+        var timestamp:Float = Sys.time() * 1000;
         var msPassed:Float = moveNum < 2? 0 : timestamp - moveStartTimestamp;
 
         var secsLeft:Map<PieceColor, Float> = secondsLeftOnMoveStart.last();
@@ -156,6 +156,6 @@ class GameTime implements IGameTime
         this.onTimeout = onTimeout;
         this.timeControl = timeControl;
         secondsLeftOnMoveStart.push([White => timeControl.startSecs, Black => timeControl.startSecs]);
-        moveStartTimestamp = Date.now().getTime();
+        moveStartTimestamp = Sys.time() * 1000;
     }
 }

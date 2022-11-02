@@ -34,7 +34,13 @@ class LoginManager
         else
         {
             if (loggedUserByLogin.exists(login))
+            {
+                var lastMessageTS:Float = loggedUserByLogin[login].storedData.getLastMessageTimestamp().getTime();
+                var intervalSeconds:Float = Sys.time() - lastMessageTS / 1000;
+
+                Logger.serviceLog('LOGIN', 'A session for player $login already exists (last message $intervalSeconds secs ago), aborting the connection and destroying');
                 loggedUserByLogin.get(login).abortConnection(true);
+            }
 
             loggedUserByLogin.set(login, user);
             user.onLoggedIn(login);

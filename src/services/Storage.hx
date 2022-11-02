@@ -128,7 +128,9 @@ class Storage
 
     public static function appendLog(log:LogType, entry:String) 
     {
-        append(Log(log), '\n### ${Date.now().toString()} ###\n\n$entry\n');
+        var seconds:Float = Sys.time();
+        var suffix:String = '${seconds % 1}'.substr(1);
+        append(Log(log), '\n### ${Date.fromTime(seconds * 1000).toString()}$suffix ###\n\n$entry\n');
     }
 
     public static function exists(file:DataFile):Bool
