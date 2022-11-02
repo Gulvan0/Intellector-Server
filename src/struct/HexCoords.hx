@@ -121,10 +121,10 @@ class HexCoords
     public static function fromScalarCoord(t:Int):HexCoords 
     {
         var det:Int = t % 9;
-        if (det > 4)
-            return new HexCoords(det * 2, Std.int(det / 9));
+        if (det < 5)
+            return new HexCoords(det * 2, Std.int(t / 9));
         else
-            return new HexCoords(det * 2 - 9, Std.int(det / 9));
+            return new HexCoords(det * 2 - 9, Std.int(t / 9));
     }
 
     public function new(i:Int, j:Int)

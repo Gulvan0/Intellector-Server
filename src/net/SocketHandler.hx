@@ -34,12 +34,14 @@ class SocketHandler extends WebSocketHandler
     private function onClosed()
     {
         Logger.serviceLog("SOCKET", '$id closed');
-        user.onDisconnected();
+        if (user != null)
+            user.onDisconnected();
     }
 
     private function onError(e:Dynamic)
     {
-        user.onDisconnected();
+        if (user != null)
+            user.onDisconnected();
         handleError(ConnectionError(e));
     }
 
@@ -127,6 +129,9 @@ class SocketHandler extends WebSocketHandler
     public function new(s:SocketImpl) 
     {
         super(s);
+
+        var peer = s.peer();
+        Logger.serviceLog("SOCKET", '$id created for ${peer.host.toString()}:${peer.port}');
 
         this.onopen = onOpen;
         this.onclose = onClosed;

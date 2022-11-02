@@ -9,8 +9,9 @@ class Discord
     private static function sendNotification(message:String) 
     {
         var r = new Http(Config.discordWebhookURL);
+        var cleanMessage:String = StringTools.replace(message, "\n", "\\n");
         r.addHeader('Content-Type', 'application/json');
-        r.setPostData('{"content": "$message"}');
+        r.setPostData('{"content": "$cleanMessage"}');
         r.request(true);
     }
 
