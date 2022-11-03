@@ -165,6 +165,7 @@ class GameManager
         for (session in playerSessions)
         {
             ChallengeManager.cancelAllOutgoingChallenges(session);
+            SpecialBroadcaster.removeObserver(MainMenu, session);
             stopFollowing(session);
             leaveGame(session);
             session.viewedGameID = gameID;
@@ -182,6 +183,8 @@ class GameManager
                     addSpectator(follower, gameID, false);
                 }
         }
+
+        SpecialBroadcaster.broadcast(MainMenu, MainMenuNewGame(game.getInfo()));
 
         Logger.serviceLog('GAMEMGR', 'Game $gameID started successfully');
 
@@ -245,6 +248,8 @@ class GameManager
         }
 
         game.sessions.announceToSpectators(GameEnded(outcome, false, game.log.msLeftOnOver, null));
+
+        SpecialBroadcaster.broadcast(MainMenu, MainMenuGameEnded(game.getInfo()));
     }
 
     public static function handleDisconnection(user:UserSession)

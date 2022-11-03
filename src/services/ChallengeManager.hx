@@ -186,6 +186,7 @@ class ChallengeManager
         switch params.type 
         {
             case Public:
+                SpecialBroadcaster.broadcast(MainMenu, MainMenuNewOpenChallenge(challengeData));
                 Discord.onPublicChallengeCreated(lastChallengeID, challengeData.ownerLogin, params);
                 Vk.onPublicChallengeCreated(lastChallengeID, challengeData.ownerLogin, params);
             case Direct(calleeRef):
@@ -207,6 +208,7 @@ class ChallengeManager
         {
             case Public:
                 pendingPublicChallengeByIndicator.remove(challenge.params.compatibilityIndicator());
+                SpecialBroadcaster.broadcast(MainMenu, MainMenuOpenChallengeRemoved(challenge.id));
             case Direct(calleeRef):
                 pendingDirectChallengeIDsByReceiverRef.pop(calleeRef, challenge.id);
                 var callee:Null<UserSession> = Auth.getUserByInteractionReference(calleeRef);
