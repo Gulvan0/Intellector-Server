@@ -1,5 +1,6 @@
 package entities;
 
+import services.SpecialBroadcaster;
 import net.shared.GameInfo;
 import net.shared.ClientEvent;
 import services.Logger;
@@ -26,23 +27,25 @@ class UserSession
     private var reconnectionTimer:Timer;
     private var missedEvents:Array<ServerEvent>;
 
-    public var ongoingFiniteGameID(get, set):Null<Int>;
+    @:isVar public var ongoingFiniteGameID(get, set):Null<Int>;
     public var viewedGameID:Null<Int>;
 
     private var skipDisconnectionProcessing:Bool = false; //If already processed or if aborted intentionally
 
     private function get_ongoingFiniteGameID():Null<Int>
     {
-        return storedData.getOngoingFiniteGame();
+        return ongoingFiniteGameID;
     }
 
     private function set_ongoingFiniteGameID(id:Null<Int>):Null<Int>
     {
-        if (id == null)
-            storedData.removeOngoingFiniteGame();
-        else
-            storedData.addOngoingFiniteGame(id);
-        return id;
+        if (storedData != null)
+            if (id == null)
+                storedData.removeOngoingFiniteGame();
+            else
+                storedData.addOngoingFiniteGame(id);
+
+        return ongoingFiniteGameID = id;
     }
 
     public function getState():UserState
@@ -61,9 +64,14 @@ class UserSession
 
     public function getRelevantGameIDs():Array<Int> 
     {
-        var ids = storedData.getOngoingGameIDs();
+        var ids:Array<Int> = [];
+
+        if (storedData != null)
+            storedData.getOngoingGameIDs();
+        
         if (ongoingFiniteGameID == null && viewedGameID != null)
             ids.push(viewedGameID);
+
         return ids;
     }
 
@@ -107,6 +115,7 @@ class UserSession
 
         GameManager.handleSessionDestruction(this);
         LoginManager.handleSessionDestruction(this);
+        SpecialBroadcaster.handleSessionDestruction(this);
 
         if (connection != null)
         {
@@ -158,6 +167,7 @@ class UserSession
 
         GameManager.handleSessionDestruction(this);
         LoginManager.handleSessionDestruction(this);
+        SpecialBroadcaster.handleSessionDestruction(this);
     }
 
     public function isGuest():Bool
@@ -169,12 +179,14 @@ class UserSession
     {
         this.login = login;
         this.storedData = Storage.loadPlayerData(login);
+        this.ongoingFiniteGameID = storedData.getOngoingFiniteGame();
     }
 
     public function onLoggedOut() 
     {
         this.login = null;
         this.storedData = null;
+        this.ongoingFiniteGameID = null;
     }
 
     public function new(connection:SocketHandler, token:String)

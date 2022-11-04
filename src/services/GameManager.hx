@@ -166,9 +166,12 @@ class GameManager
         {
             ChallengeManager.cancelAllOutgoingChallenges(session);
             SpecialBroadcaster.removeObserver(MainMenu, session);
+            
             stopFollowing(session);
             leaveGame(session);
+
             session.viewedGameID = gameID;
+
             if (params.timeControl.isCorrespondence())
                 session.storedData.addOngoingCorrespondenceGame(gameID);
             else

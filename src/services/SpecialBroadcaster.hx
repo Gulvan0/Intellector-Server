@@ -7,28 +7,28 @@ import utils.ds.DefaultArrayMap;
 
 class SpecialBroadcaster 
 {
-    private static var observerRefs:DefaultArrayMap<SpecialObserverType, String> = new DefaultArrayMap([]);
+    private static var observers:DefaultArrayMap<SpecialObserverType, UserSession> = new DefaultArrayMap([]);
 
     public static function addObserver(type:SpecialObserverType, obs:UserSession) 
     {
-        observerRefs.push(type, obs.getInteractionReference());
+        if (!observers.get(type).contains(obs))
+            observers.push(type, obs);
     }
 
     public static function removeObserver(type:SpecialObserverType, obs:UserSession) 
     {
-        observerRefs.pop(type, obs.getInteractionReference());
+        observers.pop(type, obs);
     }
 
     public static function broadcast(type:SpecialObserverType, event:ServerEvent) 
     {
-        for (userRef in observerRefs.get(type))
-        {
-            var session:Null<UserSession> = Auth.getUserByInteractionReference(userRef);
+        for (session in observers.get(type))
+            session.emit(event);
+    }
 
-            if (session != null)
-                session.emit(event);
-            else
-                observerRefs.pop(type, userRef);
-        }
+    public static function handleSessionDestruction(user:UserSession) 
+    {
+        for (type in SpecialObserverType.createAll())
+            removeObserver(type, user);
     }
 }
