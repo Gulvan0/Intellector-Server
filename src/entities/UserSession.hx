@@ -193,7 +193,5 @@ class UserSession
     {
         this.connection = connection;
         this.reconnectionToken = token;
-        
-        emit(SessionToken(token));
     }
 }

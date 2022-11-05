@@ -49,7 +49,7 @@ class Orchestrator
 
         if (!isEventRelevant(event, authorState))
         {
-            Logger.logError('Skipping irrelevant event ${event.getName()} for author $authorID (state = ${authorState.getName()})');
+            Logger.logError('Skipping irrelevant event ${event.getName()} for author ${author.getLogReference()} (state = ${authorState.getName()})');
             return;
         }
         
@@ -58,12 +58,14 @@ class Orchestrator
 
         switch event 
         {
+            case Greet(_):
+                Logger.logError('Unexpected greeting from ${author.getLogReference()}');
+                return;
+
             case Login(login, password):
                 LoginManager.login(author, login, password);
             case Register(login, password):
                 LoginManager.register(author, login, password);
-            case RestoreSession(token):
-                Logger.logError('Error: trying to process RestoreSession event inside the Orchestrator method. Token: $token');
             case LogOut:
                 LoginManager.logout(author);
 
@@ -155,7 +157,7 @@ class Orchestrator
             case Move(_, _, _, _, _) | RequestTimeoutCheck | Message(_) | Resign | OfferDraw | CancelDraw | AcceptDraw | DeclineDraw | OfferTakeback | CancelTakeback | AcceptTakeback | DeclineTakeback | AddTime | LeaveGame(_): viewingGame;
             case CreateChallenge(_) | CancelChallenge(_) | SimpleRematch | CreateStudy(_) | OverwriteStudy(_, _) | DeleteStudy(_): notInGame && logged;
             case GetOpenChallenge(_) | FollowPlayer(_) | AcceptChallenge(_) | DeclineDirectChallenge(_) | StopFollowing | GetGame(_) | GetStudy(_) | GetPlayerProfile(_) | GetGamesByLogin(_, _, _, _) | GetStudiesByLogin(_, _, _, _) | GetOngoingGamesByLogin(_) | GetOpenChallenges | GetCurrentGames | GetRecentGames | MainMenuEntered | MainMenuLeft: notInGame;
-            case RestoreSession(_): false;
+            case Greet(_): false;
             case GetMiniProfile(_) | AddFriend(_) | RemoveFriend(_): true;
         }
     }

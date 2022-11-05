@@ -39,6 +39,20 @@ class StudyData extends StudyInfo
         return data;
     }
 
+    public function toStudyInfo():StudyInfo
+    {
+        var info:StudyInfo = new StudyInfo();
+        
+        info.name = name;
+        info.description = description;
+        info.tags = tags;
+        info.publicity = publicity;
+        info.keyPositionSIP = keyPositionSIP;
+        info.variantStr = variantStr;
+        
+        return info;
+    }
+
     public static function fromJSON(json:Dynamic):StudyData
     {
         var data:StudyData = new StudyData();

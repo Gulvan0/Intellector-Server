@@ -14,6 +14,7 @@ class Logger
         {
             case Login(login, _): 'Login($login, ***)';
             case Register(login, _): 'Register($login, ***)';
+            case Greet(Login(login, _)): 'Greet(Login($login, ***))';
             default: '${event.getName()}(${event.getParameters().join(', ')})';
         }
         

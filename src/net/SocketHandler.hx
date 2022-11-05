@@ -1,5 +1,7 @@
 package net;
 
+import services.LoginManager;
+import haxe.Timer;
 import haxe.CallStack;
 import services.Auth;
 import entities.UserSession;
@@ -19,6 +21,7 @@ class SocketHandler extends WebSocketHandler
 {
     private var isNew:Bool = true;
     private var user:UserSession;
+    private var silentConnectionDropTimer:Timer;
 
     public function emit(event:ServerEvent) 
     {
@@ -104,26 +107,46 @@ class SocketHandler extends WebSocketHandler
     {
         isNew = false;
 
+        if (silentConnectionDropTimer != null)
+            silentConnectionDropTimer.stop();
+        silentConnectionDropTimer = null;
+
         switch event
         {
-            case RestoreSession(token):
-                var restoredUser:Null<UserSession> = Auth.getUserBySessionToken(token);
-                if (restoredUser != null)
+            case Greet(greeting):
+                Logger.serviceLog("SOCKET", 'Greeting received from $id');
+                switch greeting 
                 {
-                    this.user = restoredUser;
-                    var missedEvents = user.onReconnected(this);
-                    emit(RestoreSessionResult(Restored(missedEvents)));
-                }
-                else
-                {
-                    this.user = Auth.createSession(this);
-                    emit(RestoreSessionResult(NotRestored));
-                    Logger.serviceLog("SOCKET", '${user.getLogReference()} attempted to restore a session with a wrong token: $token');
+                    case Simple:
+                        this.user = Auth.createSession(this);
+                        emit(GreetingResponse(ConnectedAsGuest(user.reconnectionToken, false)));
+                    case Login(login, password):
+                        this.user = Auth.createSession(this);
+                        LoginManager.login(user, login, password, true);
+                    case Reconnect(token):
+                        var restoredUser:Null<UserSession> = Auth.getUserBySessionToken(token);
+                        if (restoredUser != null)
+                        {
+                            this.user = restoredUser;
+                            var missedEvents = user.onReconnected(this);
+                            emit(GreetingResponse(Reconnected(missedEvents)));
+                        }
+                        else
+                        {
+                            emit(GreetingResponse(NotReconnected));
+                            Logger.serviceLog("SOCKET", '${user.getLogReference()} attempted to restore a session with a wrong token: $token');
+                        }
                 }
             default:
-                this.user = Auth.createSession(this);
-                Orchestrator.processEvent(event, user);
+                Logger.serviceLog("SOCKET", '$id sent an event without greeting, closing');
+                close();
         }
+    }
+
+    private function onNoGreetingAfterTimeout() 
+    {
+        Logger.serviceLog("SOCKET", '$id remained silent since the connection was estabilished, closing');
+        close();
     }
 
     public function new(s:SocketImpl) 
@@ -132,6 +155,8 @@ class SocketHandler extends WebSocketHandler
 
         var peer = s.peer();
         Logger.serviceLog("SOCKET", '$id created for ${peer.host.toString()}:${peer.port}');
+
+        silentConnectionDropTimer = Timer.delay(onNoGreetingAfterTimeout, 1000 * 60);
 
         this.onopen = onOpen;
         this.onclose = onClosed;

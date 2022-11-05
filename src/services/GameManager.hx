@@ -1,5 +1,6 @@
 package services;
 
+import net.shared.OngoingGameInfo;
 import net.shared.Constants;
 import services.util.SimpleAnyGame;
 import entities.util.GameLog;
@@ -103,7 +104,7 @@ class GameManager
                 session.viewedGameID = gameID;
                 game.onSpectatorJoined(session);
                 if (sendSpectationData)
-                    session.emit(SpectationData(gameID, game.getTime(), game.log.get()));
+                    session.emit(SpectationData(OngoingGameInfo.create(game.id, game.getTime(), game.log.get())));
                 else
                     session.emit(FollowSuccess);
             default:

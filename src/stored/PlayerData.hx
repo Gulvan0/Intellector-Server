@@ -238,7 +238,7 @@ class PlayerData
 
         for (studyID in studies)
         {
-            var data = Storage.getStudyData(studyID);
+            var data:StudyData = Storage.getStudyData(studyID);
             if (filterByTags == null || data.hasTags(filterByTags))
             {
                 if (seenCnt >= after)
@@ -249,7 +249,7 @@ class PlayerData
                         break;
                     }
 
-                    map.set(studyID, data);
+                    map.set(studyID, data.toStudyInfo());
                     savedCnt++;
                 }
 

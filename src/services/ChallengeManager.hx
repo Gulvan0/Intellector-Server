@@ -1,5 +1,6 @@
 package services;
 
+import net.shared.OngoingGameInfo;
 import integration.Vk;
 import integration.Discord;
 import utils.ds.DefaultArrayMap;
@@ -69,7 +70,7 @@ class ChallengeManager
                 {
                     case Ongoing(game):
                         Logger.serviceLog('CHALLENGE', 'Challenge $id has been fullfilled, the corresponding game $gameID is still in progress');
-                        requestAuthor.emit(OpenChallengeHostPlaying(gameID, game.getTime(), game.log.get()));
+                        requestAuthor.emit(OpenChallengeHostPlaying(OngoingGameInfo.create(game.id, game.getTime(), game.log.get())));
                         GameManager.addSpectator(requestAuthor, gameID, false);
                     case Past(log):
                         Logger.serviceLog('CHALLENGE', 'Challenge $id has been fullfilled, the corresponding game $gameID has already ended');
