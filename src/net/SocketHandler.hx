@@ -92,6 +92,8 @@ class SocketHandler extends WebSocketHandler
         try
         {
             event = EventTransformer.normalizeLogin(event);
+            Logger.logIncomingEvent(event, id, user);
+            
             if (isNew)
                 processFirstEvent(event);
             else

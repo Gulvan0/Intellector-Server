@@ -8,6 +8,8 @@ class EventTransformer
     {
         return switch event 
         {
+            case Greet(Login(login, password)):
+                Greet(Login(login.toLowerCase(), password));
             case Login(login, password):
                 Login(login.toLowerCase(), password);
             case Register(login, password):

@@ -42,10 +42,7 @@ class Orchestrator
 
     public static function processEvent(event:ClientEvent, author:UserSession)
     {
-        var authorID:String = author.connection.id;
         var authorState:UserState = author.getState();
-
-        Logger.logIncomingEvent(event, authorID, author);
 
         if (!isEventRelevant(event, authorState))
         {
