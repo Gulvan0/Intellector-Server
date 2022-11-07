@@ -12,6 +12,8 @@ class ProfileManager
         Logger.serviceLog('PROFILEMGR', '${author.getLogReference()} wants to add $login as a friend');
         if (Auth.userExists(login))
         {
+            trace(author);
+            trace(author.storedData);
             author.storedData.addFriend(login);
             Logger.serviceLog('PROFILEMGR', 'Success: ${author.getLogReference()} and $login are now friends');
         }

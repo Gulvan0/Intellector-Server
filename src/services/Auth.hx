@@ -77,6 +77,11 @@ class Auth
             return false;
     }
 
+    public static function getHash(login:String):String 
+    {
+        return passwordHashes.get(login);
+    }
+
     public static function addCredentials(login:String, password:String) 
     {
         if (passwordHashes.exists(login))

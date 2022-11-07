@@ -351,6 +351,24 @@ class PlayerData
         Storage.savePlayerData(login, this);
     }
 
+    public function getRoles():Array<UserRole>
+    {
+        return roles.copy();
+    }
+
+    public function addRole(role:UserRole) 
+    {
+        if (!roles.contains(role))
+            roles.push(role);
+        Storage.savePlayerData(login, this);
+    }
+
+    public function removeRole(role:UserRole) 
+    {
+        roles.remove(role);
+        Storage.savePlayerData(login, this);
+    }
+
     public function hasFriend(login:String):Bool
     {
         return friends.contains(login);
