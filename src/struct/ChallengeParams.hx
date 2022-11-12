@@ -44,7 +44,7 @@ class ChallengeParams
         var sitStr = customStartingSituation == null? "" : customStartingSituation.serialize();
         var ratedStr = rated? "t" : "";
 
-        return acceptorColor + ";" + timeControl.startSecs + ";" + timeControl.incrementSecs + ";" + sitStr + ";" + ratedStr;
+        return colorStr + ";" + timeControl.startSecs + ";" + timeControl.incrementSecs + ";" + sitStr + ";" + ratedStr;
     }
 
     public function compatibleIndicators():Array<String> 

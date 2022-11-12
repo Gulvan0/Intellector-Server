@@ -22,6 +22,7 @@ class ChallengeManager
     private static var pendingDirectChallengeIDsByReceiverRef:DefaultArrayMap<String, Int> = new DefaultArrayMap([]);
     
     private static var pendingPublicChallengeByIndicator:Map<String, Challenge> = [];
+    private static var pendingChallengeIDByUniqIndicator:Map<String, Int> = [];
 
     private static var pendingChallengeByID:Map<Int, Challenge> = [];
 
@@ -111,12 +112,22 @@ class ChallengeManager
         return false;
     }
 
-    private static function performPreliminaryChecks(requestAuthor:UserSession, challengeType:ChallengeType, compatibleIndicators:Array<String>):Bool
+    private static function performPreliminaryChecks(requestAuthor:UserSession, challengeType:ChallengeType, compatibleIndicators:Array<String>, uniqIndicator:String):Bool
     {
+        var authorRef:String = requestAuthor.getLogReference();
+
         if (requestAuthor.getState() != Browsing)
         {
-            Logger.serviceLog('CHALLENGE', 'Failed to create a challenge by ${requestAuthor.getLogReference()}: user state ${requestAuthor.getState()} != Browsing');
+            Logger.serviceLog('CHALLENGE', 'Failed to create a challenge by $authorRef: user state ${requestAuthor.getState()} != Browsing');
             requestAuthor.emit(CreateChallengeResult(Impossible));
+            return false;
+        }
+
+        if (pendingChallengeIDByUniqIndicator.exists(uniqIndicator))
+        {
+            var anotherChallengeID:Int = pendingChallengeIDByUniqIndicator.get(uniqIndicator);
+            Logger.serviceLog('CHALLENGE', 'Failed to create a challenge by $authorRef: there is another pending challenge (ID: $anotherChallengeID) with the same indicator $uniqIndicator');
+            requestAuthor.emit(CreateChallengeResult(Duplicate));
             return false;
         }
 
@@ -129,19 +140,19 @@ class ChallengeManager
             case Direct(calleeRef):
                 if (requestAuthor.getInteractionReference() == calleeRef)
                 {
-                    Logger.serviceLog('CHALLENGE', 'Failed to create a challenge by ${requestAuthor.getLogReference()}: caller and callee are the same person');
+                    Logger.serviceLog('CHALLENGE', 'Failed to create a challenge by $authorRef: caller and callee are the same person');
                     requestAuthor.emit(CreateChallengeResult(ToOneself));
                     return false;
                 }
                 else if (!Auth.isGuest(calleeRef) && !Auth.userExists(calleeRef))
                 {
-                    Logger.serviceLog('CHALLENGE', 'Failed to create a challenge by ${requestAuthor.getLogReference()}: callee not found');
+                    Logger.serviceLog('CHALLENGE', 'Failed to create a challenge by $authorRef: callee not found');
                     requestAuthor.emit(CreateChallengeResult(PlayerNotFound));
                     return false;
                 }
                 else if (pendingChallengeIDsByOwnerLogin.get(requestAuthor.login).intersects(pendingDirectChallengeIDsByReceiverRef.get(calleeRef)))
                 {
-                    Logger.serviceLog('CHALLENGE', 'Failed to create a challenge by ${requestAuthor.getLogReference()}: another challenge with the same caller and callee already exists');
+                    Logger.serviceLog('CHALLENGE', 'Failed to create a challenge by $authorRef: another challenge with the same caller and callee already exists');
                     requestAuthor.emit(CreateChallengeResult(AlreadyExists));
                     return false;
                 }
@@ -156,17 +167,18 @@ class ChallengeManager
     {
         Logger.serviceLog('CHALLENGE', '${requestAuthor.getLogReference()} requested creating a new challenge');
 
-        var creationNeeded:Bool = performPreliminaryChecks(requestAuthor, params.type, params.compatibleIndicators());
+        var challenge:Challenge = new Challenge(lastChallengeID + 1, params, requestAuthor.login);
+
+        var creationNeeded:Bool = performPreliminaryChecks(requestAuthor, params.type, params.compatibleIndicators(), challenge.equivalenceIndicator());
         if (!creationNeeded)
             return;
         
         lastChallengeID++;
 
-        var challenge:Challenge = new Challenge(lastChallengeID, params, requestAuthor.login);
-
         pendingChallengeByID.set(challenge.id, challenge);
 
         pendingChallengeIDsByOwnerLogin.push(challenge.ownerLogin, challenge.id);
+        pendingChallengeIDByUniqIndicator.set(challenge.equivalenceIndicator(), challenge.id);
 
         switch params.type 
         {
@@ -188,8 +200,7 @@ class ChallengeManager
         {
             case Public:
                 SpecialBroadcaster.broadcast(MainMenu, MainMenuNewOpenChallenge(challengeData));
-                Discord.onPublicChallengeCreated(lastChallengeID, challengeData.ownerLogin, params);
-                Vk.onPublicChallengeCreated(lastChallengeID, challengeData.ownerLogin, params);
+                IntegrationManager.onPublicChallengeCreated(lastChallengeID, challengeData.ownerLogin, params);
             case Direct(calleeRef):
                 var callee:Null<UserSession> = Auth.getUserByInteractionReference(calleeRef);
                 if (callee != null)
@@ -200,10 +211,14 @@ class ChallengeManager
         Logger.serviceLog('CHALLENGE', 'Challenge ${challenge.id} has been created by ${challenge.ownerLogin}');
     }
 
+    /**
+        General purpose challenge removal: called both when a challenge is cancelled and when a challenge is fulfilled (combined via matchmaking or accepted)
+    **/
     private static function removeChallenge(challenge:Challenge) 
     {
         pendingChallengeByID.remove(challenge.id);
         pendingChallengeIDsByOwnerLogin.pop(challenge.ownerLogin, challenge.id);
+        pendingChallengeIDByUniqIndicator.remove(challenge.equivalenceIndicator());
 
         switch challenge.params.type 
         {

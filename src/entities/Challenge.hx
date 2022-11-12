@@ -21,6 +21,11 @@ class Challenge
         }
     }
 
+    public function equivalenceIndicator():String 
+    {
+        return ownerLogin + ";" + params.serialize();
+    }
+
     public function toChallengeData():ChallengeData
     {
         var info:ChallengeData = new ChallengeData();
