@@ -40,7 +40,8 @@ class LoginManager
         }
         else
         {
-            if (loggedUserByLogin.exists(login))
+            var alreadyExistingSession:Null<UserSession> = loggedUserByLogin.get(login);
+            if (alreadyExistingSession != null)
             {
                 var lastMessageTS:Float = loggedUserByLogin[login].storedData.getLastMessageTimestamp().getTime();
                 var intervalSeconds:Float = Sys.time() - lastMessageTS / 1000;
@@ -48,7 +49,12 @@ class LoginManager
                 if (!asGreeting || intervalSeconds > 60 * 60)
                 {
                     Logger.serviceLog('LOGIN', 'A session for player $login already exists (last message $intervalSeconds secs ago), aborting the connection and destroying');
-                    loggedUserByLogin.get(login).abortConnection(true);
+                    alreadyExistingSession.abortConnection(true);
+                }
+                else if (alreadyExistingSession.getState() == AwaitingReconnection)
+                {
+                    Logger.serviceLog('LOGIN', 'A session for player $login already exists, but not connected (last message $intervalSeconds secs ago), aborting the connection and destroying');
+                    alreadyExistingSession.abortConnection(true);
                 }
                 else
                 {

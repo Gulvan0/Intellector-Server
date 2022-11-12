@@ -12,8 +12,6 @@ class ProfileManager
         Logger.serviceLog('PROFILEMGR', '${author.getLogReference()} wants to add $login as a friend');
         if (Auth.userExists(login))
         {
-            trace(author);
-            trace(author.storedData);
             author.storedData.addFriend(login);
             Logger.serviceLog('PROFILEMGR', 'Success: ${author.getLogReference()} and $login are now friends');
         }
@@ -39,10 +37,18 @@ class ProfileManager
         }
     }
 
+    public static function isFriend(author:UserSession, login:String):Bool
+    {
+        if (Auth.userExists(login))
+            return author.storedData.hasFriend(login);
+        else
+            return false;
+    }
+
     public static function getProfile(author:UserSession, login:String) 
     {
         if (Auth.userExists(login))
-            author.emit(PlayerProfile(Storage.loadPlayerData(login).toProfileData(author.login)));
+            author.emit(PlayerProfile(Storage.loadPlayerData(login).toProfileData(author)));
         else
             author.emit(PlayerNotFound);
     }
@@ -50,7 +56,7 @@ class ProfileManager
     public static function getMiniProfile(author:UserSession, login:String) 
     {
         if (Auth.userExists(login))
-            author.emit(MiniProfile(Storage.loadPlayerData(login).toMiniProfileData(author.login)));
+            author.emit(MiniProfile(Storage.loadPlayerData(login).toMiniProfileData(author)));
         else
             author.emit(PlayerNotFound);
     }

@@ -1,5 +1,6 @@
 package stored;
 
+import services.ProfileManager;
 import services.Logger;
 import sys.ssl.Context.Config;
 import services.EloManager;
@@ -41,7 +42,7 @@ class PlayerData
         var data:PlayerData = new PlayerData();
 
         data.login = login;
-        data.lastMessageTimestamp = Date.now().getTime();
+        data.lastMessageTimestamp = new Date(2022, 11, 1, 0, 0, 0).getTime();
         data.pastGames = [NoneOpt => []];
         data.ratedGamesCnt = [];
         data.elo = [];
@@ -144,23 +145,23 @@ class PlayerData
             return InGame;
     }
 
-    public function toMiniProfileData(requestedByLogin:Null<String>):MiniProfileData
+    public function toMiniProfileData(author:UserSession):MiniProfileData
     {
         var data:MiniProfileData = new MiniProfileData();
 
         data.elo = elo;
         data.gamesCntByTimeControl = [for (timeControl in TimeControlType.createAll()) timeControl => getPlayedGamesCnt(timeControl)];
-        data.isFriend = requestedByLogin != null && hasFriend(requestedByLogin);
+        data.isFriend = author.login != null && ProfileManager.isFriend(author, login);
         data.status = getStatus();
 
         return data;
     }
 
-    public function toProfileData(requestedByLogin:Null<String>):ProfileData 
+    public function toProfileData(author:UserSession):ProfileData 
     {
         var data:ProfileData = new ProfileData();
         
-        var miniData:MiniProfileData = toMiniProfileData(requestedByLogin);
+        var miniData:MiniProfileData = toMiniProfileData(author);
         data.elo = miniData.elo;
         data.gamesCntByTimeControl = miniData.gamesCntByTimeControl;
         data.isFriend = miniData.isFriend;
@@ -272,6 +273,9 @@ class PlayerData
 
     public function addOngoingFiniteGame(gameID:Int) 
     {
+        if (ongoingFiniteGameID == gameID)
+            return;
+
         ongoingFiniteGameID = gameID;
         Logger.serviceLog('PLAYERDATA', 'Game $gameID added to the $login\'s list of ongoing finite games');
         Storage.savePlayerData(login, this);
@@ -279,6 +283,9 @@ class PlayerData
 
     public function removeOngoingFiniteGame() 
     {
+        if (ongoingFiniteGameID == null)
+            return;
+
         Logger.serviceLog('PLAYERDATA', 'Game $ongoingFiniteGameID removed from the $login\'s list of ongoing finite games');
         ongoingFiniteGameID = null;
         Storage.savePlayerData(login, this);
@@ -338,16 +345,16 @@ class PlayerData
         return friends.copy();
     }
 
-    public function addFriend(login:String) 
+    public function addFriend(friendLogin:String) 
     {
-        if (!hasFriend(login))
-            friends.push(login);
+        if (!hasFriend(friendLogin))
+            friends.push(friendLogin);
         Storage.savePlayerData(login, this);
     }
 
-    public function removeFriend(login:String) 
+    public function removeFriend(friendLogin:String) 
     {
-        friends.remove(login);
+        friends.remove(friendLogin);
         Storage.savePlayerData(login, this);
     }
 
@@ -369,9 +376,9 @@ class PlayerData
         Storage.savePlayerData(login, this);
     }
 
-    public function hasFriend(login:String):Bool
+    public function hasFriend(friendLogin:String):Bool
     {
-        return friends.contains(login);
+        return friends.contains(friendLogin);
     }
 
     public function onMessageReceived() 

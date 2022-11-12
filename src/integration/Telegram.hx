@@ -1,5 +1,6 @@
 package integration;
 
+import services.Logger;
 import sys.thread.Thread;
 import services.CommandProcessor;
 import haxe.Json;
@@ -16,9 +17,16 @@ class Telegram
         if (message.trim().length == 0)
             message = '<empty>';
 
-        Thread.create(() -> {
-            useMethod('sendMessage', ['chat_id' => Config.tgChatID, 'text' => message, 'parse_mode' => 'MarkdownV2']);
-        });
+        try
+        {
+            Thread.create(() -> {
+                useMethod('sendMessage', ['chat_id' => Config.tgChatID, 'text' => message, 'parse_mode' => 'MarkdownV2']);
+            });
+        }
+        catch (e)
+        {
+            Logger.logError('Failed to notify admin (message = $message):\n$e', false);
+        }
     }
 
     public static function init() 

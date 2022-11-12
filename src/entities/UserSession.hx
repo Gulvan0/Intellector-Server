@@ -25,7 +25,7 @@ class UserSession
 
     public var reconnectionToken(default, null):String;
     private var reconnectionTimer:Timer;
-    private var missedEvents:Array<ServerEvent>;
+    private var missedEvents:Array<ServerEvent> = [];
 
     @:isVar public var ongoingFiniteGameID(get, set):Null<Int>;
     public var viewedGameID:Null<Int>;
@@ -129,10 +129,13 @@ class UserSession
     public function onDisconnected()
     {
         Logger.serviceLog("SESSION", '${getInteractionReference()} disconnected (skipDisconnectionProcessing = $skipDisconnectionProcessing)');
+
         if (skipDisconnectionProcessing)
             return;
 
         skipDisconnectionProcessing = true;
+
+        this.connection = null;
 
         ChallengeManager.handleDisconnection(this);
         GameManager.handleDisconnection(this);
