@@ -8,6 +8,9 @@ class Discord
 {
     private static function sendNotification(message:String) 
     {
+        if (Config.discordWebhookURL == null)
+            return;
+
         var r = new Http(Config.discordWebhookURL);
         var cleanMessage:String = StringTools.replace(message, "\n", "\\n");
         r.addHeader('Content-Type', 'application/json');
@@ -17,6 +20,9 @@ class Discord
 
     public static function onPublicChallengeCreated(id:Int, ownerLogin:String, params:ChallengeParams) 
     {
+        if (Config.discordWebhookURL == null)
+            return;
+        
         var messageText:String = 'New open challenge by **$ownerLogin**\n';
 
         if (params.rated)

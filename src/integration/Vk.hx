@@ -8,6 +8,9 @@ class Vk
 {
     private static function sendNotification(message:String) 
     {
+        if (Config.vkChatID == null || Config.vkToken == null)
+            return;
+
         var r = new Http('https://api.vk.com/method/messages.send');
         r.addParameter('peer_id', Config.vkChatID);
         r.addParameter('message', message);
@@ -18,6 +21,9 @@ class Vk
 
     public static function onPublicChallengeCreated(id:Int, ownerLogin:String, params:ChallengeParams) 
     {
+        if (Config.vkChatID == null || Config.vkToken == null)
+            return;
+        
         var messageText:String = '🗣 Открытый вызов от $ownerLogin\n';
 
         if (params.rated)

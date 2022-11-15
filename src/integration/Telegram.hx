@@ -14,6 +14,9 @@ class Telegram
 
     public static function notifyAdmin(message:String) 
     {
+        if (Config.tgChatID == null || httpRequest == null)
+            return;
+
         if (message.trim().length == 0)
             message = '<empty>';
 
@@ -31,6 +34,9 @@ class Telegram
 
     public static function init() 
     {
+        if (Config.tgChatID == null || Config.tgToken == null)
+            return;
+
         httpRequest = new Http(getURLPrefix() + 'getUpdates');
         httpRequest.cnxTimeout = 0.5;
         httpRequest.addParameter('allowed_updates', '["message"]');
@@ -39,6 +45,9 @@ class Telegram
 
     public static function checkAdminChat() 
     {
+        if (httpRequest == null)
+            return;
+
         httpRequest.request();
     }
 

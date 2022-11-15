@@ -42,7 +42,7 @@ class PlayerData
         var data:PlayerData = new PlayerData();
 
         data.login = login;
-        data.lastMessageTimestamp = new Date(2022, 11, 1, 0, 0, 0).getTime();
+        data.lastMessageTimestamp = Date.now().getTime();
         data.pastGames = [NoneOpt => []];
         data.ratedGamesCnt = [];
         data.elo = [];

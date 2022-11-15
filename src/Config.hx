@@ -124,7 +124,11 @@ class Config
 
                 if (discData.exists("webhook-url"))
                     discordWebhookURL = discData.get("webhook-url");
+                else 
+                    Sys.println('integrations > discord > webhook-url config entry not found, discord notifications will be disabled');
             }
+            else
+                Sys.println('integrations > discord config entry not found, discord notifications will be disabled');
 
             if (integrationsMap.exists("telegram"))
             {
@@ -132,10 +136,16 @@ class Config
 
                 if (tgData.exists("bot-token"))
                     tgToken = tgData.get("bot-token");
+                else
+                    Sys.println('integrations > telegram > bot-token config entry not found, telegram notifications will be disabled');
                     
                 if (tgData.exists("admin-chat-id"))
                     tgChatID = Std.string(tgData.get("admin-chat-id"));
+                else
+                    Sys.println('integrations > telegram > admin-chat-id config entry not found, telegram notifications will be disabled');
             }
+            else
+                Sys.println('integrations > telegram config entry not found, telegram notifications will be disabled');
 
             if (integrationsMap.exists("vk"))
             {
@@ -143,18 +153,25 @@ class Config
 
                 if (vkData.exists("token"))
                     vkToken = vkData.get("token");
+                else
+                    Sys.println('integrations > vk > token config entry not found, vk notifications will be disabled');
                     
                 if (vkData.exists("chat-id"))
                     vkChatID = Std.string(vkData.get("chat-id"));
+                else
+                    Sys.println('integrations > vk > chat-id config entry not found, vk notifications will be disabled');
             }
+            else
+                Sys.println('integrations > vk config entry not found, vk notifications will be disabled');
         }
+        else
+            Sys.println('integrations config entry not found, all notifications will be disabled');
     }
 
     private static function loadFromCLIArgs() 
     {
         var parser:ArgParser = new ArgParser();
         parser.addArgument({flags: ["-i"], help: "Include INFO-level messages in the stdout"});
-        parser.addArgument({flags: ["-m"], help: "Include DATA-level messages in the stdout"});
         parser.addArgument({flags: ["-d"], help: "Include DEBUG-level messages in the stdout"});
         parser.addArgument({flags: ["-l"], help: "Include LOG-level messages in the stdout"});
 
@@ -163,8 +180,6 @@ class Config
 
         if (namespace.exists("i"))
             logMask |= hx.ws.Log.INFO;
-        if (namespace.exists("m"))
-            logMask |= hx.ws.Log.DATA;
         if (namespace.exists("d"))
             logMask |= hx.ws.Log.DEBUG;
 
