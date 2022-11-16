@@ -60,6 +60,7 @@ class SocketHandler extends WebSocketHandler
             case DeserializationError(message, exception):
                 Logger.logError('Event deserialization failed:\nUUID: $id\nOriginal message: $message\nException:\n${exception.message}\nNative:\n${exception.native}\nPrevious:\n${exception.previous}\nStack:${exception.stack}');
             case ProcessingError(event, exception, stack):
+                emit(ServerError('Timestamp: ${Sys.time()}\nEvent: $event\nException: ${exception.message} $stack'));
                 Logger.logError('Error during event processing:\nUUID: $id\nEvent: $event\nException:\n${exception.message}\nNative:\n${exception.native}\nPrevious:\n${exception.previous}\nStack:$stack');
         }
     }
