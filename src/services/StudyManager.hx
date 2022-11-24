@@ -13,6 +13,7 @@ class StudyManager
     public static function create(author:UserSession, info:StudyInfo) 
     {
         lastStudyID++;
+        Storage.setServerDataField("lastStudyID", lastStudyID);
 
         var data:StudyData = StudyData.fromStudyInfo(author.login, info);
         var playerData:PlayerData = Storage.loadPlayerData(author.login);

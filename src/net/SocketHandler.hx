@@ -137,7 +137,7 @@ class SocketHandler extends WebSocketHandler
                         else
                         {
                             emit(GreetingResponse(NotReconnected));
-                            Logger.serviceLog("SOCKET", '${user.getLogReference()} attempted to restore a session with a wrong token: $token');
+                            Logger.serviceLog("SOCKET", '$id attempted to restore a session with a wrong token: $token');
                         }
                 }
             default:

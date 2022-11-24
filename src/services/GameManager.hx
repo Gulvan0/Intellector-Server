@@ -147,7 +147,10 @@ class GameManager
 
     public static function startGame(params:ChallengeParams, ownerSession:UserSession, acceptorSession:UserSession):Int
     {
-        var gameID:Int = ++lastGameID;
+        lastGameID++;
+        Storage.setServerDataField("lastGameID", lastGameID);
+
+        var gameID:Int = lastGameID;
         var acceptorColor:PieceColor = params.calculateActualAcceptorColor();
 
         Logger.serviceLog('GAMEMGR', 'Starting new game with ID $gameID. Created by: ${ownerSession.getLogReference()}, accepted by: ${acceptorSession.getLogReference()}');
@@ -310,7 +313,7 @@ class GameManager
 
     public static function leaveGame(user:UserSession, ?id:Int) 
     {
-        if (user.viewedGameID == null || (id != null && id != user.viewedGameID))
+        if (user == null || user.viewedGameID == null || (id != null && id != user.viewedGameID))
             return;
 
         Logger.serviceLog('GAMEMGR', '${user.getLogReference()} leaves game ${user.viewedGameID}');

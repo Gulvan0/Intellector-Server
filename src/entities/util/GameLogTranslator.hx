@@ -81,17 +81,17 @@ class GameLogTranslator
     {
         return switch event 
         {
-            case PlayerDisconnected(color): "dcn" + letter(color);
-            case PlayerReconnected(color): "rcn" + letter(color);
-            case DrawOffered(offerOwnerColor): "dof" + letter(offerOwnerColor);
-            case DrawCanceled(offerOwnerColor): "dca" + letter(offerOwnerColor);
-            case DrawAccepted(offerReceiverColor): "dac" + letter(offerReceiverColor);
-            case DrawDeclined(offerReceiverColor): "dde" + letter(offerReceiverColor);
-            case TakebackOffered(offerOwnerColor): "tof" + letter(offerOwnerColor);
-            case TakebackCanceled(offerOwnerColor): "tca" + letter(offerOwnerColor);
-            case TakebackAccepted(offerReceiverColor): "tac" + letter(offerReceiverColor);
-            case TakebackDeclined(offerReceiverColor): "tde" + letter(offerReceiverColor);
-            case TimeAdded(bonusTimeReceiverColor): "tad" + letter(bonusTimeReceiverColor);
+            case PlayerDisconnected(color): "dcn/" + letter(color);
+            case PlayerReconnected(color): "rcn/" + letter(color);
+            case DrawOffered(offerOwnerColor): "dof/" + letter(offerOwnerColor);
+            case DrawCanceled(offerOwnerColor): "dca/" + letter(offerOwnerColor);
+            case DrawAccepted(offerReceiverColor): "dac/" + letter(offerReceiverColor);
+            case DrawDeclined(offerReceiverColor): "dde/" + letter(offerReceiverColor);
+            case TakebackOffered(offerOwnerColor): "tof/" + letter(offerOwnerColor);
+            case TakebackCanceled(offerOwnerColor): "tca/" + letter(offerOwnerColor);
+            case TakebackAccepted(offerReceiverColor): "tac/" + letter(offerReceiverColor);
+            case TakebackDeclined(offerReceiverColor): "tde/" + letter(offerReceiverColor);
+            case TimeAdded(bonusTimeReceiverColor): "tad/" + letter(bonusTimeReceiverColor);
         }
     }
 
