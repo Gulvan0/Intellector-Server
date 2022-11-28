@@ -127,6 +127,11 @@ class HexCoords
             return new HexCoords(det * 2 - 9, Std.int(t / 9));
     }
 
+    public function toString():String
+    {
+        return '($i; $j)';     
+    }
+
     public function new(i:Int, j:Int)
     {
         this.i = i;

@@ -177,7 +177,7 @@ class GameLogTranslator
             case "e":
                 return Elo(deserialize(args[0]), deserialize(args[1]));
             case "D":
-                return DateTime(Date.fromTime(Std.parseInt(args[0]) * 1000));
+                return DateTime(Date.fromTime(Std.parseFloat(args[0]) * 1000));
             case "L":
                 return MsLeft(Std.parseInt(args[0]), Std.parseInt(args[1]));
             case "S":
@@ -214,7 +214,7 @@ class GameLogTranslator
             case Elo(whiteElo, blackElo):
                 return '#e|$whiteElo/$blackElo';
             case DateTime(ts):
-                return '#D|${Math.floor(ts.getTime() / 1000)}';
+                return '#D|${Math.ffloor(ts.getTime() / 1000)}';
             case MsLeft(whiteMs, blackMs):
                 return '#L|$whiteMs/$blackMs';
             case CustomStartingSituation(situation):
@@ -234,7 +234,7 @@ class GameLogTranslator
 
     public static function split(log:String):Array<String>
     {
-        return log.split(separator).map(StringTools.trim);
+        return log.split(separator).map(StringTools.trim).filter(x -> x.length > 0);
     }
 
     public static function join(encodedEntries:Array<String>):String 
