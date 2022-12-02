@@ -5,6 +5,11 @@ class PieceData
     public final type:PieceType;
     public final color:PieceColor;
 
+    public function toString():String
+    {
+        return '[$type;$color]';
+    }
+
     public function new(type:PieceType, color:PieceColor)
     {
         if (type == null || color == null)

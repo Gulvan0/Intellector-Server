@@ -112,6 +112,11 @@ abstract PieceArrangement(Vector<Vector<Hex>>) from Vector<Vector<Hex>>
         return newArrangement;
     }
 
+    public function toString():String
+    {
+        return 'PieceArrangement';    
+    }
+
     private function new() 
     {
         this = new Vector(9);

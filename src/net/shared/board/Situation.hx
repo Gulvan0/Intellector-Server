@@ -210,6 +210,11 @@ class Situation
         return new Situation(pieces.copy(), turnColor, intellectorPos.copy());
     }
 
+    public function toString():String
+    {
+        return 'Situation';  
+    }
+
     public function new(pieces:PieceArrangement, turnColor:PieceColor, intellectorPos:Map<PieceColor, HexCoords>)
     {
         this.pieces = pieces;

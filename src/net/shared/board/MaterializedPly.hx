@@ -79,4 +79,9 @@ abstract MaterializedPly(InternalMaterializedPly) from InternalMaterializedPly t
                 return RawPly.construct(from, to, morphInto);
         }
     }
+
+    public function toString():String
+    {
+        return Std.string(this);
+    }
 }
