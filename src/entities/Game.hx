@@ -1,28 +1,29 @@
 package entities;
 
+import net.shared.board.RawPly;
 import services.Auth;
 import net.shared.Constants;
 import services.Logger;
 import struct.ChallengeParams;
 import struct.TimeControl;
-import net.shared.GameInfo;
-import net.shared.TimeReservesData;
+import net.shared.dataobj.GameInfo;
+import net.shared.dataobj.TimeReservesData;
 import services.EloManager;
 import entities.util.GameTime.IGameTime;
 import net.shared.Outcome;
 import net.GameAction;
-import net.shared.TimeReservesData;
+import net.shared.dataobj.TimeReservesData;
 import entities.util.GameLog;
 import entities.util.GameState;
 import entities.util.GameSessions;
 import entities.util.GameOffers;
 import services.GameManager;
 import utils.ds.DefaultCountMap;
-import struct.HexCoords;
+import net.shared.board.HexCoords;
 import net.shared.ServerEvent;
 import net.shared.PieceType;
-import struct.Ply;
-import struct.Situation;
+import net.shared.board.MaterializedPly;
+import net.shared.board.Situation;
 import net.shared.PieceColor;
 import services.Storage;
 
@@ -45,7 +46,7 @@ class Game
         return time.getTime(state.turnColor(), state.moveNum);
     }
 
-    private function onMoveSuccessful(author:UserSession, turnColor:PieceColor, moveNum:Int, from:HexCoords, to:HexCoords, morphInto:Null<PieceType>) 
+    private function onMoveSuccessful(author:UserSession, turnColor:PieceColor, moveNum:Int, rawPly:RawPly) 
     {
         time.onMoveMade(turnColor, moveNum);
 
@@ -55,31 +56,29 @@ class Game
 
         var actualTimeData = getTime();
 
-        log.append(Move(from, to, morphInto, whiteMs, blackMs));
+        log.append(Move(rawPly, whiteMs, blackMs));
         offers.onMoveMade();
-        sessions.broadcast(Move(from.i, to.i, from.j, to.j, morphInto, actualTimeData), author);
+        sessions.broadcast(Move(rawPly, actualTimeData), author);
         if (actualTimeData != null)
             sessions.tellPlayer(turnColor, TimeCorrection(actualTimeData));
     }
 
-    private function performMove(author:UserSession, fromI:Int, toI:Int, fromJ:Int, toJ:Int, morphInto:Null<PieceType>) 
+    private function performMove(author:UserSession, rawPly:RawPly) 
     {
         var turnColor:PieceColor = state.turnColor();
-        var from:HexCoords = new HexCoords(fromI, fromJ);
-        var to:HexCoords = new HexCoords(toI, toJ);
-        var result:TryPlyResult = state.tryPly(from, to, morphInto);
+        var result:TryPlyResult = state.tryPly(rawPly);
 
         switch result 
         {
             case Performed:
                 Logger.serviceLog(serviceName, '${author.getInteractionReference()} ($turnColor) successfully performed a move');
-                onMoveSuccessful(author, turnColor, state.moveNum - 1, from, to, morphInto);
+                onMoveSuccessful(author, turnColor, state.moveNum - 1, rawPly);
             case GameEnded(outcome):
                 Logger.serviceLog(serviceName, '${author.getInteractionReference()} ($turnColor) successfully performed a game-finishing move');
-                onMoveSuccessful(author, turnColor, state.moveNum - 1, from, to, morphInto);
+                onMoveSuccessful(author, turnColor, state.moveNum - 1, rawPly);
                 endGame(outcome);
             case Failed:
-                Logger.serviceLog(serviceName, '${author.getInteractionReference()} ($turnColor) attempted to perform invalid move: ($fromI, $fromJ) -> ($toI, $toJ) / Morph $morphInto; board SIP: ${state.getSIP()}');
+                Logger.serviceLog(serviceName, '${author.getInteractionReference()} ($turnColor) attempted to perform invalid move: $rawPly; board SIP: ${state.getSIP()}');
                 sessions.tellPlayer(turnColor, InvalidMove);
         }
     }
@@ -135,8 +134,8 @@ class Game
 
         switch action 
         {
-            case Move(fromI, toI, fromJ, toJ, morphInto):
-                performMove(issuer, fromI, toI, fromJ, toJ, morphInto);
+            case Move(rawPly):
+                performMove(issuer, rawPly);
             case RequestTimeoutCheck:
                 Logger.serviceLog(serviceName, '${issuer.getInteractionReference()} ($issuerColor) demanded timeout check; performing');
                 time.checkTime(state.turnColor(), state.moveNum);

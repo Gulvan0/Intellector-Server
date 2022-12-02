@@ -3,7 +3,7 @@ package services;
 import stored.PlayerData;
 import entities.UserSession;
 import stored.StudyData;
-import net.shared.StudyInfo;
+import net.shared.dataobj.StudyInfo;
 
 class StudyManager 
 {

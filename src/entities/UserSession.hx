@@ -1,7 +1,7 @@
 package entities;
 
 import services.SpecialBroadcaster;
-import net.shared.GameInfo;
+import net.shared.dataobj.GameInfo;
 import net.shared.ClientEvent;
 import services.Logger;
 import services.Auth;

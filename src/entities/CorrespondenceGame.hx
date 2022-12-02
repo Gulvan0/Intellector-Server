@@ -3,7 +3,7 @@ package entities;
 import net.shared.PieceColor;
 import net.shared.Outcome;
 import entities.util.GameTime;
-import net.shared.TimeReservesData;
+import net.shared.dataobj.TimeReservesData;
 import net.GameAction;
 import entities.util.GameState;
 import entities.util.GameSessions;
@@ -12,7 +12,7 @@ import struct.TimeControl;
 import entities.util.GameLog;
 import services.Logger;
 import services.Storage;
-import struct.Situation;
+import net.shared.board.Situation;
 import net.shared.PieceType;
 
 class CorrespondenceGame extends Game

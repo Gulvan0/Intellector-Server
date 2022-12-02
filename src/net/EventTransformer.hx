@@ -39,7 +39,7 @@ class EventTransformer
     {
         return switch event
         {
-            case Move(fromI, toI, fromJ, toJ, morphInto): Move(fromI, toI, fromJ, toJ, morphInto);
+            case Move(rawPly): Move(rawPly);
             case RequestTimeoutCheck: RequestTimeoutCheck;
             case Message(text): Message(text);
             case Resign: Resign;

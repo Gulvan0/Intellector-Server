@@ -4,7 +4,7 @@ import haxe.Serializer;
 import haxe.Unserializer;
 import net.SocketHandler;
 import entities.UserSession;
-import utils.MathUtils;
+import net.shared.utils.MathUtils;
 import haxe.crypto.Md5;
 
 class Auth 

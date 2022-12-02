@@ -1,7 +1,7 @@
 package entities;
 
 import services.Storage;
-import net.shared.ChallengeData;
+import net.shared.dataobj.ChallengeData;
 import struct.ChallengeParams;
 
 class Challenge 

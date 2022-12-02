@@ -1,6 +1,7 @@
 package struct;
 
-import utils.MathUtils;
+import net.shared.board.Situation;
+import net.shared.utils.MathUtils;
 import net.shared.PieceColor;
 
 enum ChallengeType

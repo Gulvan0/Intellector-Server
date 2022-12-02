@@ -1,7 +1,7 @@
 package services.util;
 
 import entities.Game;
-import net.shared.GameInfo;
+import net.shared.dataobj.GameInfo;
 import entities.util.GameLog;
 import entities.CorrespondenceGame;
 import entities.FiniteTimeGame;

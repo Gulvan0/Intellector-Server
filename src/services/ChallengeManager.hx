@@ -1,6 +1,6 @@
 package services;
 
-import net.shared.OngoingGameInfo;
+import net.shared.dataobj.OngoingGameInfo;
 import integration.Vk;
 import integration.Discord;
 import utils.ds.DefaultArrayMap;
@@ -8,7 +8,7 @@ import stored.PlayerData;
 import struct.ChallengeParams;
 import net.shared.PieceColor;
 import entities.Challenge;
-import net.shared.ChallengeData;
+import net.shared.dataobj.ChallengeData;
 import entities.Game;
 import entities.UserSession;
 

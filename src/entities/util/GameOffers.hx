@@ -101,7 +101,7 @@ class GameOffers
         for (entry in parsedLog)
             switch entry 
             {
-                case Move(_, _, _, _, _):
+                case Move(_, _, _):
                     offers.onMoveMade();
                 case Event(DrawOffered(offerOwnerColor)):
                     offers.offerDraw(offerOwnerColor);

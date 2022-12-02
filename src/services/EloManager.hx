@@ -1,7 +1,7 @@
 package services;
 
 import net.shared.Outcome.PersonalOutcome;
-import utils.MathUtils;
+import net.shared.utils.MathUtils;
 import net.shared.EloValue;
 
 class EloManager 

@@ -1,12 +1,14 @@
 package entities.util;
 
+import net.shared.board.RawPly;
+import net.shared.board.PerformPlyResult;
 import net.shared.PieceType;
 import net.shared.PieceColor;
-import struct.Ply;
-import struct.HexCoords;
+import net.shared.board.MaterializedPly;
+import net.shared.board.HexCoords;
 import net.shared.Outcome;
 import utils.ds.DefaultCountMap;
-import struct.Situation;
+import net.shared.board.Situation;
 
 enum TryPlyResult
 {
@@ -19,7 +21,7 @@ class GameState
 {
     public var moveNum(default, null):Int = 0;
     private var currentSituation:Situation;
-    private var plyHistory:Array<Ply> = []; //To simplify rollbacks (caused by takebacks, for example)
+    private var plyHistory:Array<MaterializedPly> = []; //To simplify rollbacks (caused by takebacks, for example)
     private var situationOccurences:DefaultCountMap<String> = new DefaultCountMap([]); //For threefold repetition check
     private var progressiveMoveNums:Array<Int> = []; //For 60-move rule check
 
@@ -33,10 +35,10 @@ class GameState
 		return currentSituation.serialize();
 	}
 
-    public function tryPly(from:HexCoords, to:HexCoords, morphInto:Null<PieceType>):TryPlyResult
+    public function tryPly(rawPly:RawPly):TryPlyResult
     {
         var turnColor:PieceColor = currentSituation.turnColor;
-        var result:PerformPlyResult = currentSituation.performPly(from, to, morphInto);
+        var result:PerformPlyResult = currentSituation.performRawPly(rawPly);
 
         switch result 
         {
@@ -87,7 +89,7 @@ class GameState
             var hash:String = currentSituation.getHash();
             situationOccurences.subtract(hash);
 
-            var revertedPly:Ply = plyHistory.pop();
+            var revertedPly:MaterializedPly = plyHistory.pop();
             currentSituation.revertPly(revertedPly);
         }
         
@@ -118,8 +120,8 @@ class GameState
     {
         switch entry 
         {
-            case Move(from, to, morphInto, _, _):
-                tryPly(from, to, morphInto);
+            case Move(rawPly, _, _):
+                tryPly(rawPly);
             default:
         }
     }

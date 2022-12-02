@@ -1,6 +1,6 @@
 package stored;
 
-import net.shared.StudyInfo;
+import net.shared.dataobj.StudyInfo;
 
 class StudyData extends StudyInfo
 {

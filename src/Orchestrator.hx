@@ -5,8 +5,8 @@ import services.ProfileManager;
 import services.Auth;
 import entities.Game;
 import services.StudyManager;
-import net.shared.StudyInfo;
-import net.shared.GameInfo;
+import net.shared.dataobj.StudyInfo;
+import net.shared.dataobj.GameInfo;
 import stored.PlayerData;
 import services.Storage;
 import net.EventTransformer;
@@ -87,7 +87,7 @@ class Orchestrator
             case LeaveGame(id):
                 GameManager.leaveGame(author, id);
 
-            case Move(_, _, _, _, _) | RequestTimeoutCheck | Message(_) | Resign | OfferDraw | CancelDraw | AcceptDraw | DeclineDraw | OfferTakeback | CancelTakeback | AcceptTakeback | DeclineTakeback | AddTime:
+            case Move(_) | RequestTimeoutCheck | Message(_) | Resign | OfferDraw | CancelDraw | AcceptDraw | DeclineDraw | OfferTakeback | CancelTakeback | AcceptTakeback | DeclineTakeback | AddTime:
                 GameManager.processAction(EventTransformer.asGameAction(event), author);
 
             case SimpleRematch:
@@ -151,7 +151,7 @@ class Orchestrator
         {
             case Login(_, _) | Register(_, _): !logged;
             case LogOut: logged;
-            case Move(_, _, _, _, _) | RequestTimeoutCheck | Message(_) | Resign | OfferDraw | CancelDraw | AcceptDraw | DeclineDraw | OfferTakeback | CancelTakeback | AcceptTakeback | DeclineTakeback | AddTime: viewingGame;
+            case Move(_) | RequestTimeoutCheck | Message(_) | Resign | OfferDraw | CancelDraw | AcceptDraw | DeclineDraw | OfferTakeback | CancelTakeback | AcceptTakeback | DeclineTakeback | AddTime: viewingGame;
             case CreateChallenge(_) | CancelChallenge(_) | SimpleRematch | CreateStudy(_) | OverwriteStudy(_, _) | DeleteStudy(_): notInGame && logged;
             case GetOpenChallenge(_) | FollowPlayer(_) | AcceptChallenge(_) | DeclineDirectChallenge(_) | StopFollowing | GetGame(_) | GetStudy(_) | GetPlayerProfile(_) | GetGamesByLogin(_, _, _, _) | GetStudiesByLogin(_, _, _, _) | GetOngoingGamesByLogin(_) | GetOpenChallenges | GetCurrentGames | GetRecentGames | MainMenuEntered: notInGame;
             case Greet(_): false;

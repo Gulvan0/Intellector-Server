@@ -1,7 +1,7 @@
 package services;
 
-import net.shared.OngoingGameInfo;
-import net.shared.ChallengeData;
+import net.shared.dataobj.OngoingGameInfo;
+import net.shared.dataobj.ChallengeData;
 import entities.FiniteTimeGame;
 import entities.UserSession;
 

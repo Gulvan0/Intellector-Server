@@ -2,7 +2,7 @@ package entities.util;
 
 import net.shared.Constants;
 import struct.TimeControl;
-import net.shared.TimeReservesData;
+import net.shared.dataobj.TimeReservesData;
 import haxe.Timer;
 import net.shared.PieceColor;
 

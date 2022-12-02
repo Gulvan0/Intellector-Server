@@ -1,6 +1,6 @@
 package services;
 
-import net.shared.GameInfo;
+import net.shared.dataobj.GameInfo;
 import entities.util.GameLog;
 import entities.util.GameLogEntry;
 import stored.StudyData;

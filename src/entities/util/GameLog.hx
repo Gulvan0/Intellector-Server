@@ -2,7 +2,7 @@ package entities.util;
 
 import net.shared.Constants;
 import net.shared.PieceColor;
-import struct.Situation;
+import net.shared.board.Situation;
 import net.shared.TimeControlType;
 import net.shared.EloValue;
 import struct.TimeControl;
@@ -90,11 +90,11 @@ class GameLog
             var entry:GameLogEntry = entries[i];
             switch entry 
             {
-                case Move(from, to, morphInto, msLeftWhite, msLeftBlack):
+                case Move(rawPly, msLeftWhite, msLeftBlack):
                     if (bonusTimeReceiverColor == White)
-                        entries[i] = Move(from, to, morphInto, msLeftWhite + Constants.msAddedByOpponent, msLeftBlack);
+                        entries[i] = Move(rawPly, msLeftWhite + Constants.msAddedByOpponent, msLeftBlack);
                     else
-                        entries[i] = Move(from, to, morphInto, msLeftWhite, msLeftBlack + Constants.msAddedByOpponent);
+                        entries[i] = Move(rawPly, msLeftWhite, msLeftBlack + Constants.msAddedByOpponent);
                     entries.push(Event(TimeAdded(bonusTimeReceiverColor)));
                     saveFromEntryArray();
                     return;
@@ -113,7 +113,7 @@ class GameLog
         {
             switch entries[i] 
             {
-                case Move(_, _, _, _, _):
+                case Move(_, _, _):
                     entries.splice(i, 1);
                     splittedLog.splice(i, 1);
                     movesToEraseLeft--;

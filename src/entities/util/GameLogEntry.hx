@@ -1,12 +1,13 @@
 package entities.util;
 
+import net.shared.board.RawPly;
 import net.shared.Outcome;
 import net.shared.PieceColor;
 import struct.TimeControl;
-import struct.Situation;
+import net.shared.board.Situation;
 import net.shared.EloValue;
 import net.shared.PieceType;
-import struct.HexCoords;
+import net.shared.board.HexCoords;
 
 enum Event
 {
@@ -25,7 +26,7 @@ enum Event
 
 enum GameLogEntry 
 {
-    Move(from:HexCoords, to:HexCoords, morphInto:Null<PieceType>, msLeftWhite:Null<Int>, msLeftBlack:Null<Int>);
+    Move(rawPly:RawPly, msLeftWhite:Null<Int>, msLeftBlack:Null<Int>);
     Players(whiteRef:String, blackRef:String);
     Elo(whiteElo:EloValue, blackElo:EloValue);
     DateTime(ts:Date);

@@ -1,7 +1,7 @@
 package services;
 
 import net.shared.TimeControlType;
-import net.shared.GameInfo;
+import net.shared.dataobj.GameInfo;
 import stored.PlayerData;
 import entities.UserSession;
 

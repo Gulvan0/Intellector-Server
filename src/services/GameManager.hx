@@ -1,15 +1,15 @@
 package services;
 
-import net.shared.OngoingGameInfo;
+import net.shared.dataobj.OngoingGameInfo;
 import net.shared.Constants;
 import services.util.SimpleAnyGame;
 import entities.util.GameLog;
 import utils.ds.CacheMap;
 import services.util.AnyGame;
 import services.util.GameMap;
-import net.shared.GameInfo;
+import net.shared.dataobj.GameInfo;
 import haxe.Timer;
-import struct.Piece;
+import net.shared.board.PieceData;
 import stored.PlayerData;
 import net.shared.TimeControlType;
 import net.shared.EloValue;
@@ -18,7 +18,7 @@ import net.GameAction;
 import net.shared.Outcome;
 import entities.CorrespondenceGame;
 import entities.FiniteTimeGame;
-import utils.MathUtils;
+import net.shared.utils.MathUtils;
 import net.shared.PieceColor;
 import struct.ChallengeParams;
 import entities.Challenge;

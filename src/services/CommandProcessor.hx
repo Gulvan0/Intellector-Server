@@ -1,9 +1,9 @@
 package services;
 
-import net.shared.UserRole;
+import net.shared.dataobj.UserRole;
 import services.util.AnyGame;
 import entities.Game;
-import utils.MathUtils;
+import net.shared.utils.MathUtils;
 import services.Storage.LogType;
 import entities.UserSession;
 

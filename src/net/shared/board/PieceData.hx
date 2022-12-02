@@ -1,15 +1,14 @@
-package struct;
+package net.shared.board;
 
-import net.shared.PieceColor;
-import net.shared.PieceType;
-
-class Piece
+class PieceData
 {
     public final type:PieceType;
     public final color:PieceColor;
 
     public function new(type:PieceType, color:PieceColor)
     {
+        if (type == null || color == null)
+            throw "type/color can't be null";
         this.type = type;
         this.color = color;
     }

@@ -7,13 +7,12 @@ import entities.util.GameOffers;
 import entities.util.GameState;
 import entities.util.GameSessions;
 import entities.util.GameLog;
-import net.shared.TimeReservesData;
+import net.shared.dataobj.TimeReservesData;
 import net.shared.PieceType;
 import haxe.Timer;
 import net.shared.PieceColor;
 import net.shared.ServerEvent;
-import struct.Situation;
-import struct.Ply;
+import net.shared.board.Situation;
 import struct.TimeControl;
 import services.Storage;
 

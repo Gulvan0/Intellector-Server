@@ -1,10 +1,11 @@
 package entities.util;
 
+import net.shared.board.RawPly;
 import struct.TimeControl;
-import struct.Situation;
+import net.shared.board.Situation;
 import net.shared.EloValue.deserialize;
 import net.shared.PieceType;
-import struct.HexCoords;
+import net.shared.board.HexCoords;
 import net.shared.PieceColor;
 import entities.util.GameLogEntry.Event;
 import net.shared.Outcome;
@@ -160,11 +161,12 @@ class GameLogTranslator
         var from:HexCoords = new HexCoords(Std.parseInt(splitted[0].charAt(0)), Std.parseInt(splitted[0].charAt(1)));
         var to:HexCoords = new HexCoords(Std.parseInt(splitted[0].charAt(2)), Std.parseInt(splitted[0].charAt(3)));
         var morphInto:Null<PieceType> = splitted[0].length > 4? PieceType.createByName(splitted[0].substr(4)) : null;
+        var rawPly:RawPly = RawPly.construct(from, to, morphInto);
 
         if (splitted.length == 3)
-            return Move(from, to, morphInto, Std.parseInt(splitted[1]), Std.parseInt(splitted[2]));
+            return Move(rawPly, Std.parseInt(splitted[1]), Std.parseInt(splitted[2]));
         else
-            return Move(from, to, morphInto, null, null);
+            return Move(rawPly, null, null);
     }
 
     private static function parseSpecialEntry(typeCode:String, body:String):GameLogEntry 
@@ -202,10 +204,10 @@ class GameLogTranslator
     {
         switch entry 
         {
-            case Move(from, to, morphInto, whiteMsLeft, blackMsLeft):
-                var base:String = '${from.i}${from.j}${to.i}${to.j}';
-                if (morphInto != null)
-                    base += morphInto.getName();
+            case Move(rawPly, whiteMsLeft, blackMsLeft):
+                var base:String = '${rawPly.from.i}${rawPly.from.j}${rawPly.to.i}${rawPly.to.j}';
+                if (rawPly.morphInto != null)
+                    base += rawPly.morphInto.getName();
                 if (whiteMsLeft != null && blackMsLeft != null)
                     base += '/$whiteMsLeft/$blackMsLeft';
                 return base;

@@ -1,20 +1,59 @@
-package struct;
+package net.shared.board;
 
-import net.shared.PieceColor;
-import net.shared.PieceType;
-import struct.Direction;
+import net.shared.board.Direction;
+
+//To handle null;null case nicely
+function equal(p1:Null<HexCoords>, p2:Null<HexCoords>):Bool
+{
+    if (p1 == null)
+        return p2 == null;
+    else if (p2 == null)
+        return false;
+    else 
+        return p1.equals(p2);
+}
 
 class HexCoords
 {
     public final i:Int;
     public final j:Int;
 
+    public static function enumerate():Array<HexCoords> 
+    {
+        return [for (i in 0...9) for (j in 0...(7 - i % 2)) new HexCoords(i, j)];
+    }
+
+    public static function enumerateScalar():Array<Int>
+    {
+        return [for (t in 0...hexCount()) t];
+    }
+
+    public static inline function hexCount():Int
+    {
+        return 59;
+    }
+
+    public function toRelative(color:PieceColor):HexCoords 
+    {
+        return color == White? copy() : invert();
+    }
+
+    public function invert():HexCoords
+    {
+        return new HexCoords(8 - i, 6 - j - i % 2);
+    }
+
+    public function copy():HexCoords
+    {
+        return new HexCoords(i, j);
+    }
+
     public function isFinal(color:PieceColor) 
     {
         if (color == White)
-            return j == 0;
+            return j == 0 && i % 2 == 0;
         else
-            return j == 6;
+            return j == 6 && i % 2 == 0;
     }
 
     public function equals(other:HexCoords):Bool 
@@ -71,9 +110,9 @@ class HexCoords
         return result;
     }
 
-    public function step(dir:Direction):HexCoords
+    public function step(dir:Direction, ?steps:Int = 1):HexCoords
     {
-        return switch dir 
+        var next:HexCoords = switch dir 
         {
             case Up: 
                 new HexCoords(i, j - 1);
@@ -100,6 +139,11 @@ class HexCoords
             case AgrRight:
                 new HexCoords(i + 2, j);
         }
+
+        if (steps > 1)
+            return next.step(dir, steps - 1);
+        else
+            return next;
     }
 
     public function isValid():Bool

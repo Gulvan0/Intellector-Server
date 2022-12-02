@@ -1,10 +1,11 @@
 package net;
 
+import net.shared.board.RawPly;
 import net.shared.PieceType;
 
 enum GameAction 
 {
-    Move(fromI:Int, toI:Int, fromJ:Int, toJ:Int, morphInto:Null<PieceType>); 
+    Move(rawPly:RawPly); 
     RequestTimeoutCheck; 
     Message(text:String);
     Resign; 
