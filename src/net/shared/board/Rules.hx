@@ -124,19 +124,13 @@ class Rules
         var movingPiece = situation.pieces.get(ply.from).piece();
 
         if (movingPiece == null || movingPiece.color != situation.turnColor)
-        {
-            trace(movingPiece);
             return false;
-        }
         else if (ply.morphInto != null && movingPiece.type == Progressor && ply.to.isFinal(movingPiece.color))
         {
             var impossiblePromotionType:Bool = ply.morphInto == Intellector || ply.morphInto == Progressor;
 
             if (impossiblePromotionType)
-            {
-                trace(impossiblePromotionType);
                 return false;
-            }
         }
         else if (ply.morphInto != null)
         {
@@ -145,10 +139,7 @@ class Rules
             var wrongChameleonType:Bool = ply.morphInto != situation.pieces.get(ply.to).type();
 
             if (intChameleon || noAura || wrongChameleonType)
-            {
-                trace(intChameleon, noAura, wrongChameleonType);
                 return false;
-            }
         }
 
         return getPossibleDestinations(ply.from, situation.pieces).exists(x -> x.equals(ply.to));
