@@ -67,9 +67,12 @@ class Rules
                         }
                     case Swap(partner):
                         var destination:HexCoords = departure.step(dir);
+                        if (!destination.isValid())
+                            continue;
+
                         var destinationHex:Hex = pieceArrangement.get(destination);
                         var desiredHex:Hex = Occupied(new PieceData(partner, departureHex.color()));
-                        if (destination.isValid() && destinationHex.equals(desiredHex))
+                        if (destinationHex.equals(desiredHex))
                             possibleDestinations.push(destination);
 
                 }
@@ -121,14 +124,19 @@ class Rules
         var movingPiece = situation.pieces.get(ply.from).piece();
 
         if (movingPiece == null || movingPiece.color != situation.turnColor)
+        {
+            trace(movingPiece);
             return false;
-        else if (ply.morphInto != null && movingPiece.type == Progressor)
+        }
+        else if (ply.morphInto != null && movingPiece.type == Progressor && ply.to.isFinal(movingPiece.color))
         {
             var impossiblePromotionType:Bool = ply.morphInto == Intellector || ply.morphInto == Progressor;
-            var notFinalHex:Bool = !ply.to.isFinal(movingPiece.color);
 
-            if (impossiblePromotionType || notFinalHex)
+            if (impossiblePromotionType)
+            {
+                trace(impossiblePromotionType);
                 return false;
+            }
         }
         else if (ply.morphInto != null)
         {
@@ -137,7 +145,10 @@ class Rules
             var wrongChameleonType:Bool = ply.morphInto != situation.pieces.get(ply.to).type();
 
             if (intChameleon || noAura || wrongChameleonType)
+            {
+                trace(intChameleon, noAura, wrongChameleonType);
                 return false;
+            }
         }
 
         return getPossibleDestinations(ply.from, situation.pieces).exists(x -> x.equals(ply.to));

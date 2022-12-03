@@ -54,7 +54,7 @@ class GameLogTranslator
                 return Resign;
             case "tim": 
                 return Timeout;
-            case "aba": 
+            case "aba", "unk": 
                 return Abandon;
             default:
                 throw 'Cannot decode decisive outcome: $str';
@@ -72,6 +72,8 @@ class GameLogTranslator
             case "agr":
                 return DrawAgreement;
             case "abo":
+                return Abort; 
+            case "unk":
                 return Abort; 
             default:
                 throw 'Cannot decode drawish outcome: $str';
