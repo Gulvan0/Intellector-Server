@@ -112,7 +112,7 @@ class ChallengeManager
         return false;
     }
 
-    private static function performPreliminaryChecks(requestAuthor:UserSession, challengeType:ChallengeType, compatibleIndicators:Array<String>, uniqIndicator:String):Bool
+    private static function performPreliminaryChecks(requestAuthor:UserSession, params:ChallengeParams, uniqIndicator:String):Bool
     {
         var authorRef:String = requestAuthor.getLogReference();
 
@@ -123,6 +123,16 @@ class ChallengeManager
             return false;
         }
 
+        if (params.customStartingSituation != null)
+            if (params.customStartingSituation.isDefaultStarting())
+                params.customStartingSituation = null;
+            else if (!params.customStartingSituation.isValidStarting())
+            {
+                Logger.serviceLog('CHALLENGE', 'Failed to create a challenge by $authorRef: invalid custom starting SIP: ${params.customStartingSituation.serialize()}');
+                requestAuthor.emit(CreateChallengeResult(Impossible));
+                return false;
+            }
+
         if (pendingChallengeIDByUniqIndicator.exists(uniqIndicator))
         {
             var anotherChallengeID:Int = pendingChallengeIDByUniqIndicator.get(uniqIndicator);
@@ -131,7 +141,9 @@ class ChallengeManager
             return false;
         }
 
-        switch challengeType
+        var compatibleIndicators:Array<String> = params.compatibleIndicators();
+
+        switch params.type
         {
             case Public:
                 var mergedWithOtherChallenge:Bool = tryMatchmaking(requestAuthor, compatibleIndicators);
@@ -169,7 +181,7 @@ class ChallengeManager
 
         var challenge:Challenge = new Challenge(lastChallengeID + 1, params, requestAuthor.login);
 
-        var creationNeeded:Bool = performPreliminaryChecks(requestAuthor, params.type, params.compatibleIndicators(), challenge.equivalenceIndicator());
+        var creationNeeded:Bool = performPreliminaryChecks(requestAuthor, params, challenge.equivalenceIndicator());
         if (!creationNeeded)
             return;
         
