@@ -6,4 +6,6 @@ enum GreetingResponseData
     Logged(token:String, incomingChallenges:Array<ChallengeData>, ongoingFiniteGame:Null<OngoingGameInfo>);
     Reconnected(missedEvents:Array<ServerEvent>);
     NotReconnected;
+    OutdatedClient;
+    OutdatedServer;
 }

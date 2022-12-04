@@ -1,5 +1,7 @@
 package net;
 
+import net.shared.utils.DateUtils;
+import net.shared.utils.Build;
 import services.LoginManager;
 import haxe.Timer;
 import haxe.CallStack;
@@ -116,8 +118,27 @@ class SocketHandler extends WebSocketHandler
 
         switch event
         {
-            case Greet(greeting):
+            case Greet(greeting, clientBuild, minServerBuild):
                 Logger.serviceLog("SOCKET", 'Greeting received from $id');
+                
+                if (clientBuild < Config.minClientVer)
+                {
+                    emit(GreetingResponse(OutdatedClient));
+                    var actualDatetime:String = DateUtils.strDatetimeFromSecs(clientBuild);
+                    var minDatetime:String = DateUtils.strDatetimeFromSecs(Config.minClientVer);
+                    Logger.serviceLog("SOCKET", 'Refusing to connect $id: outdated client ($actualDatetime < $minDatetime)');
+                    return;
+                }
+
+                if (Build.buildTime() < minServerBuild)
+                {
+                    emit(GreetingResponse(OutdatedServer));
+                    var actualDatetime:String = DateUtils.strDatetimeFromSecs(Build.buildTime());
+                    var minDatetime:String = DateUtils.strDatetimeFromSecs(minServerBuild);
+                    Logger.serviceLog("SOCKET", 'Refusing to connect $id: outdated server ($actualDatetime < $minDatetime)');
+                    return;
+                }
+
                 switch greeting 
                 {
                     case Simple:

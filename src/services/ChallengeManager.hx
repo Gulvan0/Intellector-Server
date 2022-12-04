@@ -75,7 +75,6 @@ class ChallengeManager
                         GameManager.addSpectator(requestAuthor, gameID, false);
                     case Past(log):
                         Logger.serviceLog('CHALLENGE', 'Challenge $id has been fullfilled, the corresponding game $gameID has already ended');
-                        requestAuthor.viewedGameID = gameID;
                         requestAuthor.emit(OpenChallengeGameEnded(gameID, log));
                     case NonExisting:
                         Logger.serviceLog('CHALLENGE', 'Challenge $id is linked to gameID = $gameID, but there\'s no game with such id');
@@ -179,6 +178,13 @@ class ChallengeManager
     {
         Logger.serviceLog('CHALLENGE', '${requestAuthor.getLogReference()} requested creating a new challenge');
 
+        if (Shutdown.isStopping())
+        {
+            Logger.serviceLog('CHALLENGE', 'Refusing to create a challenge (server is preparing to shutdown). Requested by: ${requestAuthor.getLogReference()}');
+            requestAuthor.emit(CreateChallengeResult(ServerShutdown));
+            return;
+        }
+
         var challenge:Challenge = new Challenge(lastChallengeID + 1, params, requestAuthor.login);
 
         var creationNeeded:Bool = performPreliminaryChecks(requestAuthor, params, challenge.equivalenceIndicator());
@@ -211,7 +217,7 @@ class ChallengeManager
         switch params.type 
         {
             case Public:
-                SpecialBroadcaster.broadcast(MainMenu, MainMenuNewOpenChallenge(challengeData));
+                PageManager.notifyPageViewers(MainMenu, MainMenuNewOpenChallenge(challengeData));
                 IntegrationManager.onPublicChallengeCreated(lastChallengeID, challengeData.ownerLogin, params);
             case Direct(calleeRef):
                 var callee:Null<UserSession> = Auth.getUserByInteractionReference(calleeRef);
@@ -236,7 +242,7 @@ class ChallengeManager
         {
             case Public:
                 pendingPublicChallengeByIndicator.remove(challenge.params.compatibilityIndicator());
-                SpecialBroadcaster.broadcast(MainMenu, MainMenuOpenChallengeRemoved(challenge.id));
+                PageManager.notifyPageViewers(MainMenu, MainMenuOpenChallengeRemoved(challenge.id));
             case Direct(calleeRef):
                 pendingDirectChallengeIDsByReceiverRef.pop(calleeRef, challenge.id);
                 var callee:Null<UserSession> = Auth.getUserByInteractionReference(calleeRef);
@@ -271,6 +277,13 @@ class ChallengeManager
 
     public static function accept(requestAuthor:UserSession, id:Int) 
     {
+        if (Shutdown.isStopping())
+        {
+            Logger.serviceLog('CHALLENGE', 'Refusing to accept challenge $id (server is preparing to shutdown). Requested by: ${requestAuthor.getLogReference()}');
+            requestAuthor.emit(ChallengeNotAcceptedServerShutdown);
+            return;
+        }
+
         var challenge:Null<Challenge> = pendingChallengeByID.get(id);
 
         if (challenge == null)
@@ -345,5 +358,13 @@ class ChallengeManager
     public static function handleDisconnection(user:UserSession) 
     {
         cancelAllOutgoingChallenges(user);
+    }
+
+    public static function cancelAllChallenges()
+    {
+        Logger.serviceLog('CHALLENGE', 'Cancelling all pending challenges by request');
+
+        for (challenge in pendingChallengeByID)
+            removeChallenge(challenge);
     }
 }

@@ -16,6 +16,11 @@ class GameMap
         return Lambda.map(finite, x -> x.getInfo());
     }
 
+    public function hasCurrentFiniteGames():Bool 
+    {
+        return !Lambda.empty(finite);
+    }
+
     public function get(id:Int):AnyGame 
     {
         if (finite.exists(id))

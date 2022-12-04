@@ -329,6 +329,12 @@ class Game
         }
     }
 
+    public function abortGame() 
+    {
+        endGame(Drawish(Abort));
+        Logger.serviceLog(serviceName, 'Aborted game $id by request');
+    }
+
     public function getInfo():GameInfo
     {
         var info:GameInfo = new GameInfo();

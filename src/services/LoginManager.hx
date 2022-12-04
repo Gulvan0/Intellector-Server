@@ -91,7 +91,6 @@ class LoginManager
                         else
                             user.emit(LoginResult(ReconnectionNeeded(incomingChallenges, info)));
 
-                        user.viewedGameID = finiteGameID;
                         GameManager.handleReconnection(user);
                     default:
                         user.ongoingFiniteGameID = null;

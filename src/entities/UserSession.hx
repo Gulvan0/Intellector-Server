@@ -1,5 +1,6 @@
 package entities;
 
+import services.PageManager;
 import services.SpecialBroadcaster;
 import net.shared.dataobj.GameInfo;
 import net.shared.ClientEvent;
@@ -28,13 +29,22 @@ class UserSession
     private var missedEvents:Array<ServerEvent> = [];
 
     @:isVar public var ongoingFiniteGameID(get, set):Null<Int>;
-    public var viewedGameID:Null<Int>;
+    public var viewedGameID(get, never):Null<Int>;
 
     private var skipDisconnectionProcessing:Bool = false; //If already processed or if aborted intentionally
 
     private function get_ongoingFiniteGameID():Null<Int>
     {
         return ongoingFiniteGameID;
+    }
+
+    private function get_viewedGameID():Null<Int>
+    {
+        return switch PageManager.getPage(this) 
+        {
+            case Game(id): id;
+            default: null;
+        }
     }
 
     private function set_ongoingFiniteGameID(id:Null<Int>):Null<Int>
@@ -171,6 +181,7 @@ class UserSession
         GameManager.handleSessionDestruction(this);
         LoginManager.handleSessionDestruction(this);
         SpecialBroadcaster.handleSessionDestruction(this);
+        PageManager.handleSessionDestruction(this);
     }
 
     public function isGuest():Bool

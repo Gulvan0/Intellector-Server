@@ -35,6 +35,8 @@ class GameManager
 
     private static var simpleRematchParamsByLogin:CacheMap<String, ChallengeParams> = new CacheMap([], [], 1000 * 60 * (Constants.minutesBeforeRematchExpires + 1));
 
+    private static var onAllFiniteGamesFinished:Null<Void->Void>;
+
     public static function getLastGameID():Int
     {
         return lastGameID;
@@ -101,7 +103,6 @@ class GameManager
             case Ongoing(game):
                 Logger.serviceLog('GAMEMGR', 'Adding ${session.getLogReference()} as a spectator to game $gameID');
                 leaveGame(session);
-                session.viewedGameID = gameID;
                 game.onSpectatorJoined(session);
                 if (sendSpectationData)
                     session.emit(SpectationData(OngoingGameInfo.create(game.id, game.getTime(), game.log.get())));
@@ -147,6 +148,12 @@ class GameManager
 
     public static function startGame(params:ChallengeParams, ownerSession:UserSession, acceptorSession:UserSession):Int
     {
+        if (Shutdown.isStopping())
+        {
+            Logger.serviceLog('GAMEMGR', 'Refusing to start a new game (server is preparing to shutdown). Created by: ${ownerSession.getLogReference()}, accepted by: ${acceptorSession.getLogReference()}');
+            return -1;
+        }
+
         lastGameID++;
         Storage.setServerDataField("lastGameID", lastGameID);
 
@@ -169,12 +176,9 @@ class GameManager
         for (session in playerSessions)
         {
             ChallengeManager.cancelAllOutgoingChallenges(session);
-            SpecialBroadcaster.removeObserver(MainMenu, session);
             
             stopFollowing(session);
             leaveGame(session);
-
-            session.viewedGameID = gameID;
 
             if (params.timeControl.isCorrespondence())
                 session.storedData.addOngoingCorrespondenceGame(gameID);
@@ -191,7 +195,7 @@ class GameManager
                 }
         }
 
-        SpecialBroadcaster.broadcast(MainMenu, MainMenuNewGame(game.getInfo()));
+        PageManager.notifyPageViewers(MainMenu, MainMenuNewGame(game.getInfo()));
 
         Logger.serviceLog('GAMEMGR', 'Game $gameID started successfully');
 
@@ -256,7 +260,10 @@ class GameManager
 
         game.sessions.announceToSpectators(GameEnded(outcome, false, game.log.msLeftOnOver, null));
 
-        SpecialBroadcaster.broadcast(MainMenu, MainMenuGameEnded(game.getInfo()));
+        PageManager.notifyPageViewers(MainMenu, MainMenuGameEnded(game.getInfo()));
+
+        if (onAllFiniteGamesFinished != null && !games.hasCurrentFiniteGames())
+            onAllFiniteGamesFinished();
     }
 
     public static function handleDisconnection(user:UserSession)
@@ -328,7 +335,41 @@ class GameManager
                     games.unloadDerelictCorrespondence(user.viewedGameID);
             default:
         }
+    }
 
-        user.viewedGameID = null;
+    public static function abortAllGames() 
+    {
+        Logger.serviceLog('GAMEMGR', 'Aborting all finite games...');
+
+        for (game in games.getCurrentFiniteGames())
+        {
+            switch games.getSimple(game.id) 
+            {
+                case Ongoing(game):
+                    game.abortGame();
+                case Past(_):
+                    Logger.logError('Game ${game.id} was found among current finite games, yet it is actually already over');
+                    games.removeEnded(game.id);
+                case NonExisting:
+                    Logger.logError('Game ${game.id} was found among current finite games, yet it does not exist');
+                    games.removeEnded(game.id);
+            }
+        }
+
+        Logger.serviceLog('GAMEMGR', 'All finite games aborted');
+    }
+
+    public static function callOnAllGamesFinished(callback:Void->Void) 
+    {
+        if (games.hasCurrentFiniteGames())
+        {
+            onAllFiniteGamesFinished = callback;
+            Logger.serviceLog('GAMEMGR', 'onAllFiniteGamesFinished callback has been set');
+        }
+        else
+        {
+            Logger.serviceLog('GAMEMGR', 'No finite games are in progress, invoking callback now');
+            callback();
+        }
     }
 }

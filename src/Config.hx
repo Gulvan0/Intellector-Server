@@ -20,6 +20,7 @@ class Config
     public static var sslKey:Null<Key>;
     public static var host:String = "localhost";
     public static var port:Int = 5000;
+    public static var minClientVer:Int = 0;
     public static var logMask:Int = 0;
     public static var printLog:Bool = false;
     public static var maxConnections:Int = 1000;
@@ -76,6 +77,9 @@ class Config
 
         if (data.exists("port"))
             port = data.get("port");
+
+        if (data.exists("min-client-ver"))
+            minClientVer = data.get("min-client-ver");
 
         if (data.exists("cert-path"))
             sslCert = Certificate.loadFile(data.get("cert-path"));

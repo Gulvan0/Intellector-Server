@@ -1,5 +1,6 @@
 package;
 
+import services.PageManager;
 import services.SpecialBroadcaster;
 import services.ProfileManager;
 import services.Auth;
@@ -26,14 +27,12 @@ class Orchestrator
         switch GameManager.getSimple(id) 
         {
             case Ongoing(game):
-                author.viewedGameID = id;
                 if (game.log.getColorByRef(author.getLogReference()) != null)
                     GameManager.handleReconnection(author);
                 else
                     GameManager.addSpectator(author, id, false);
                 author.emit(GameIsOngoing(game.getTime(), game.log.get()));
             case Past(log):
-                author.viewedGameID = id;
                 author.emit(GameIsOver(log));
             case NonExisting:
                 author.emit(GameNotFound);
@@ -55,7 +54,7 @@ class Orchestrator
 
         switch event 
         {
-            case Greet(_):
+            case Greet(_, _, _):
                 Logger.logError('Unexpected greeting from ${author.getLogReference()}');
                 return;
 
@@ -84,8 +83,6 @@ class Orchestrator
                     author.emit(PlayerNotFound);
             case StopFollowing:
                 GameManager.stopFollowing(author);
-            case LeaveGame(id):
-                GameManager.leaveGame(author, id);
 
             case Move(_) | RequestTimeoutCheck | Message(_) | Resign | OfferDraw | CancelDraw | AcceptDraw | DeclineDraw | OfferTakeback | CancelTakeback | AcceptTakeback | DeclineTakeback | AddTime:
                 GameManager.processAction(EventTransformer.asGameAction(event), author);
@@ -129,12 +126,8 @@ class Orchestrator
             case GetRecentGames:
                 author.emit(RecentGames(GameManager.getRecentGames()));
 
-            case MainMenuEntered:
-                author.emit(MainMenuData(ChallengeManager.getPublicChallenges(), GameManager.getCurrentFiniteTimeGames(), GameManager.getRecentGames()));
-                SpecialBroadcaster.addObserver(MainMenu, author);
-            case MainMenuLeft:
-                SpecialBroadcaster.removeObserver(MainMenu, author);
-
+            case PageUpdated(page):
+                PageManager.updatePage(author, page);
         }
     }
 
@@ -153,9 +146,9 @@ class Orchestrator
             case LogOut: logged;
             case Move(_) | RequestTimeoutCheck | Message(_) | Resign | OfferDraw | CancelDraw | AcceptDraw | DeclineDraw | OfferTakeback | CancelTakeback | AcceptTakeback | DeclineTakeback | AddTime: viewingGame;
             case CreateChallenge(_) | CancelChallenge(_) | SimpleRematch | CreateStudy(_) | OverwriteStudy(_, _) | DeleteStudy(_): notInGame && logged;
-            case GetOpenChallenge(_) | FollowPlayer(_) | AcceptChallenge(_) | DeclineDirectChallenge(_) | StopFollowing | GetGame(_) | GetStudy(_) | GetPlayerProfile(_) | GetGamesByLogin(_, _, _, _) | GetStudiesByLogin(_, _, _, _) | GetOngoingGamesByLogin(_) | GetOpenChallenges | GetCurrentGames | GetRecentGames | MainMenuEntered: notInGame;
-            case Greet(_): false;
-            case GetMiniProfile(_) | AddFriend(_) | RemoveFriend(_) | LeaveGame(_) | MainMenuLeft : true;
+            case GetOpenChallenge(_) | FollowPlayer(_) | AcceptChallenge(_) | DeclineDirectChallenge(_) | StopFollowing | GetGame(_) | GetStudy(_) | GetPlayerProfile(_) | GetGamesByLogin(_, _, _, _) | GetStudiesByLogin(_, _, _, _) | GetOngoingGamesByLogin(_) | GetOpenChallenges | GetCurrentGames | GetRecentGames : notInGame;
+            case Greet(_, _, _): false;
+            case GetMiniProfile(_) | AddFriend(_) | RemoveFriend(_) | PageUpdated(_) : true;
         }
     }
 }

@@ -258,20 +258,28 @@ class Storage
             overwrite(ServerConfig, "");
 
         if (!exists(ServerData))
-            overwrite(ServerData, Json.stringify({lastGameID: 0, lastStudyID: 0, lastRepairedLogID: 0}, null, "    "));
+            overwrite(ServerData, Json.stringify({
+                lastGameID: 0, 
+                lastStudyID: 0, 
+                lastRepairedLogID: 0, 
+                alertSubstrBlacklist: [],
+                alertRegexBlacklist: [],
+                logReaderSubstrBlacklist: [],
+                logReaderRegexBlacklist: []
+            }, null, "    "));
     }
-
-    public static function getServerDataField(fieldName:String):Int 
+    
+    public static function getServerDataField(fieldName:String):Dynamic
     {
         var data:Dynamic = Json.parse(read(ServerData));
 
         if (!Reflect.hasField(data, fieldName))
             throw 'Serverdata field not found: $fieldName';
 
-        return cast(Reflect.field(data, fieldName), Int);
+        return Reflect.field(data, fieldName);
     }
 
-    public static function setServerDataField(fieldName:String, value:Int)
+    public static function setServerDataField(fieldName:String, value:Dynamic)
     {
         var data:Dynamic = Json.parse(read(ServerData));
 
