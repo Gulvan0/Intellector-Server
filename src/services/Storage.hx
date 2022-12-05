@@ -128,9 +128,7 @@ class Storage
 
     public static function appendLog(log:LogType, entry:String) 
     {
-        var seconds:Float = Sys.time();
-        var suffix:String = '${seconds % 1}'.substr(1);
-        append(Log(log), '\n### ${Date.fromTime(seconds * 1000).toString()}$suffix ###\n\n$entry\n');
+        append(Log(log), entry);
     }
 
     public static function exists(file:DataFile):Bool
@@ -262,10 +260,7 @@ class Storage
                 lastGameID: 0, 
                 lastStudyID: 0, 
                 lastRepairedLogID: 0, 
-                alertSubstrBlacklist: [],
-                alertRegexBlacklist: [],
-                logReaderSubstrBlacklist: [],
-                logReaderRegexBlacklist: []
+                state: null
             }, null, "    "));
     }
     

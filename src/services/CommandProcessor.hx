@@ -11,45 +11,6 @@ using StringTools;
 
 class CommandProcessor 
 { 
-    private static var logEntryHeaderRegex:EReg = ~/### ([^#]*?) ###/; //TODO: Maybe change log format
-
-    private static var regexBlacklist:Array<String> = Storage.getServerDataField("logReaderRegexBlacklist");
-    private static var substrBlacklist:Array<String> = Storage.getServerDataField("logReaderSubstrBlacklist");
-
-    private static function log(callback:String->Void, args:Array<String>) 
-    {
-        var logText:String = Storage.read(Log(LogType.createByName(args[0])));
-        var lines:Array<String> = logText.split('\n');
-
-        var readFrom:String = args.length > 1? args[1] : "1970-01-01";
-        var readTo:String = args.length > 2? args[2] : "2099-12-12";
-
-        var i:Int = lines.length - 1;
-        var currentEntry:String = "";
-
-        callback('Reading logs from $readFrom to $readTo');
-
-        while (i >= 0)
-        {
-            var line:String = lines[i];
-
-            currentEntry = line + '\n' + currentEntry;
-
-            if (logEntryHeaderRegex.match(line))
-            {
-                var dateStr:String = logEntryHeaderRegex.matched(1);
-                if (dateStr < readFrom)
-                    break;
-                else if (dateStr <= readTo)
-                    callback(currentEntry);
-
-                currentEntry = "";
-            }
-
-            i--;
-        }
-    }
-
     private static function games(callback:String->Void, args:Array<String>)
     {
         for (gameInfo in GameManager.getCurrentFiniteTimeGames())
@@ -95,100 +56,56 @@ class CommandProcessor
 
     private static function addFilter(callback:String->Void, args:Array<String>) 
     {
+        if (args[1] != "re" && args[1] != "str")
+        {
+            callback("Invalid second arg: must be one of 're', 'str'");
+            return;
+        }
+
+        var entry:String = args.slice(2).join(' ');
+        var regexp:Bool = args[1] == "re";
+
         if (args[0] == "log")
-            if (args[1] == "re")
-            {
-                regexBlacklist.push(args.slice(2).join(' '));
-                Storage.setServerDataField("logReaderRegexBlacklist", regexBlacklist);
-            }
-            else if (args[1] == "str")
-            {
-                substrBlacklist.push(args.slice(2).join(' '));
-                Storage.setServerDataField("logReaderSubstrBlacklist", substrBlacklist);
-            }
-            else
-                callback("Invalid second arg: must be one of 're', 'str'");
+            LogReader.logFilter.addBlacklistEntry(entry, regexp);
         else if (args[0] == "alert")
-            if (args[1] == "re")
-            {
-                //TODO: Fill
-            }
-            else if (args[1] == "str")
-            {
-                //TODO: Fill
-            }
-            else
-                callback("Invalid second arg: must be one of 're', 'str'");
+            IntegrationManager.alertFilter.addBlacklistEntry(entry, regexp);
         else
             callback("Invalid first arg: must be one of 'log', 'alert'");
     }
 
     private static function removeFilter(callback:String->Void, args:Array<String>) 
     {
+        if (args[1] != "re" && args[1] != "str")
+        {
+            callback("Invalid second arg: must be one of 're', 'str'");
+            return;
+        }
+
+        var entry:String = args.slice(2).join(' ');
+        var regexp:Bool = args[1] == "re";
+
         if (args[0] == "log")
-            if (args[1] == "re")
-            {
-                var removed:Bool = regexBlacklist.remove(args.slice(2).join(' '));
-                if (removed)
-                {
-                    Storage.setServerDataField("logReaderRegexBlacklist", regexBlacklist);
-                    callback('Regex filter removed. Updated filter list: $regexBlacklist');
-                }
-                else
-                    callback('Regex filter not found. Current filters are: $regexBlacklist');
-            }
-            else if (args[1] == "str")
-            {
-                var removed:Bool = substrBlacklist.remove(args.slice(2).join(' '));
-                if (removed)
-                {
-                    Storage.setServerDataField("logReaderSubstrBlacklist", substrBlacklist);
-                    callback('Substr filter removed. Updated filter list: $substrBlacklist');
-                }
-                else
-                    callback('Substr filter not found. Current filters are: $substrBlacklist');
-            }
-            else
-                callback("Invalid second arg: must be one of 're', 'str'");
+            LogReader.logFilter.removeBlacklistEntry(entry, regexp);
         else if (args[0] == "alert")
-            if (args[1] == "re")
-            {
-                //TODO: Fill
-            }
-            else if (args[1] == "str")
-            {
-                //TODO: Fill
-            }
-            else
-                callback("Invalid second arg: must be one of 're', 'str'");
+            IntegrationManager.alertFilter.removeBlacklistEntry(entry, regexp);
         else
             callback("Invalid first arg: must be one of 'log', 'alert'");
     }
 
     private static function getFilters(callback:String->Void, args:Array<String>) 
     {
+        if (args[1] != "re" && args[1] != "str")
+        {
+            callback("Invalid second arg: must be one of 're', 'str'");
+            return;
+        }
+
+        var regexp:Bool = args[1] == "re";
+
         if (args[0] == "log")
-            if (args[1] == "re")
-            {
-                callback('Current regex filter list: $regexBlacklist');
-            }
-            else if (args[1] == "str")
-            {
-                callback('Current substr filter list: $substrBlacklist');
-            }
-            else
-                callback("Invalid second arg: must be one of 're', 'str'");
+            callback(LogReader.logFilter.getBlacklistEntries(regexp).join('\n'));
         else if (args[0] == "alert")
-            if (args[1] == "re")
-            {
-                //TODO: Fill
-            }
-            else if (args[1] == "str")
-            {
-                //TODO: Fill
-            }
-            else
-                callback("Invalid second arg: must be one of 're', 'str'");
+            callback(IntegrationManager.alertFilter.getBlacklistEntries(regexp).join('\n'));
         else
             callback("Invalid first arg: must be one of 'log', 'alert'");
     }
@@ -203,13 +120,30 @@ class CommandProcessor
 
         try 
         {
-            switch command //TODO: prev/next/prevday/nextday in log browsing; filters for logs; filters for alerts
+            switch command
             {
                 case "logged":
                     var users:Array<UserSession> = LoginManager.getLoggedUsers();
                     callback(users.map(x -> x.login).toString());
-                case "log" if (args.length > 0):
-                    log(callback, args);
+                case "lload" if (args.length > 0):
+                    LogReader.load(LogType.createByName(args[0]));
+                    callback("Loaded");
+                case "lskip" if (args.length > 0):
+                    callback(LogReader.skip(args[0]));
+                case "lprev":
+                    if (args.length > 0)
+                        callback(LogReader.prev(Std.parseInt(args[0])));
+                    else
+                        callback(LogReader.prev());
+                case "lnext":
+                    if (args.length > 0)
+                        callback(LogReader.next(Std.parseInt(args[0])));
+                    else
+                        callback(LogReader.next());
+                case "lprevdate":
+                    callback(LogReader.prevdate());
+                case "lnextdate":
+                    callback(LogReader.nextdate());
                 case "addfilter" if (args.length > 2):
                     addFilter(callback, args);
                 case "rmfilter" if (args.length > 2):

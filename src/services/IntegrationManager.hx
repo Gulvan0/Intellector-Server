@@ -1,13 +1,31 @@
 package services;
 
+import utils.StringFilter;
+import integration.Telegram;
 import struct.ChallengeParams;
 import integration.Vk;
 import integration.Discord;
 import utils.ds.AutoQueue;
+using StringTools;
 
 class IntegrationManager 
 {
     private static var notificationTimestamps:Map<String, AutoQueue<Float>> = [];
+
+    public static var alertFilter:StringFilter;
+
+    public static function init() 
+    {
+        alertFilter = new StringFilter("alert");    
+    }
+
+    public static function notifyAdmin(message:String) 
+    {
+        if (alertFilter.match(message))
+            return;
+        
+        Telegram.notifyAdmin(message);
+    }
 
     private static function getNotificationTimestamps(login:String):AutoQueue<Float>
     {
