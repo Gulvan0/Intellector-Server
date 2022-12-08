@@ -1,5 +1,7 @@
 package tests;
 
+import entities.util.GameLogEntry;
+import net.shared.board.PerformPlyResult;
 import entities.util.GameLog;
 import net.shared.board.Situation;
 import services.GameManager;
@@ -11,31 +13,74 @@ class SimpleTests
 {
     public static function validateGames() 
     {
-        for (i in 2173...GameManager.getLastGameID())
+        for (i in 0...GameManager.getLastGameID())
         {
-            trace('$i processed');
+            //trace('$i processed');
 
-            if ([931, 932, 965, 1050, 1209, 1215, 1354, 1435, 1438, 1890, 1947, 2173].has(i + 1))
-                continue;
+            //if ([931, 932, 965, 1050, 1209, 1215, 1354, 1435, 1438, 1890, 1947, 2173].has(i + 1))
+                //continue;
 
-            var log:GameLog = GameLog.load(i + 1);
+            var log:GameLog = null;
 
-            if (log == null || log.get().contains("0000;"))
+            try 
+            {
+                log = GameLog.load(i + 1);
+            }
+            catch (e)
+            {
+                trace('Got exception (${i+1})');
+                trace(e);
+            }
+
+            if (log == null)
                 continue;
 
             var situation:Situation = Situation.defaultStarting();
             var ended:Bool = false;
             var movesPlayed:Int = 0;
-            for (entry in log.getEntries())
+            
+            var entries:Array<GameLogEntry> = null;
+
+            try 
+            {
+                entries = log.getEntries();
+            }
+            catch (e)
+            {
+                trace('Got exception (${i+1})');
+                trace(e);
+            }
+
+            for (entry in entries)
             {
                 switch entry 
                 {
                     case Move(rawPly, _, _):
                         if (!rawPly.from.isValid() || !rawPly.to.isValid())
-                            throw 'Invalid from/to: ${i+1}:${movesPlayed+1} $rawPly';
+                        {
+                            trace('Invalid from/to: ${i+1}:${movesPlayed+1} $rawPly');
+                            break;
+                        }
+
                         if (ended)
-                            throw 'Move after ended: ${i+1}:${movesPlayed+1}';
-                        var result = situation.performRawPly(rawPly);
+                        {
+                            trace('Move after ended: ${i+1}:${movesPlayed+1}');
+                            break;
+                        }
+
+                        var result:PerformPlyResult = null;
+
+                        try 
+                        {
+                            result = situation.performRawPly(rawPly);
+                        }
+                        catch (e)
+                        {
+                            trace('Got exception (${i+1}:${movesPlayed+1})');
+                            trace(e);
+                            break;
+                        }
+
                         switch result 
                         {
                             case NormalPlyPerformed(_), ProgressivePlyPerformed(_):
@@ -43,9 +88,8 @@ class SimpleTests
                             case MateReached, BreakthroughReached:
                                 ended = true;
                             case FailedToPerform:
-                                trace(rawPly);
-                                if (!log.playerRefs.has('intellector'))
-                                    throw 'Failed to perform: ${i+1}:${movesPlayed+1}';
+                                trace('Failed to perform rawPly (${i+1}:${movesPlayed+1})');
+                                break;
                         }
                     default:
                 }

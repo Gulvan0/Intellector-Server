@@ -1,5 +1,7 @@
 package;
 
+import services.LogReader;
+import services.IntegrationManager;
 import services.CommandProcessor;
 import sys.thread.Thread;
 import integration.Telegram;
@@ -15,6 +17,9 @@ class Routines
     public static function onStartup() 
     {
         Serializer.USE_ENUM_INDEX = true;
+
+        IntegrationManager.init();
+        LogReader.init();
         
         Storage.createMissingFiles();
         Config.load();

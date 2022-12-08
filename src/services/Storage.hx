@@ -269,7 +269,7 @@ class Storage
         var data:Dynamic = Json.parse(read(ServerData));
 
         if (!Reflect.hasField(data, fieldName))
-            throw 'Serverdata field not found: $fieldName';
+            return null;
 
         return Reflect.field(data, fieldName);
     }
