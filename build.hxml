@@ -5,3 +5,4 @@
 --library hxWebSockets
 --library argparse
 --library yaml
+--library haxe-strings

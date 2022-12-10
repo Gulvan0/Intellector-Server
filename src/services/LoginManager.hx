@@ -26,7 +26,7 @@ class LoginManager
         {
             Logger.serviceLog('LOGIN', 'Failed to log ${user.getLogReference()} in as $login: user does not exist');
             if (asGreeting)
-                user.emit(GreetingResponse(ConnectedAsGuest(user.reconnectionToken, true)));
+                user.emit(GreetingResponse(ConnectedAsGuest(user.reconnectionToken, true, Shutdown.isStopping())));
             else
                 user.emit(LoginResult(Fail));
         }
@@ -34,7 +34,7 @@ class LoginManager
         {
             Logger.serviceLog('LOGIN', 'Failed to log ${user.getLogReference()} in as $login: invalid password');
             if (asGreeting)
-                user.emit(GreetingResponse(ConnectedAsGuest(user.reconnectionToken, true)));
+                user.emit(GreetingResponse(ConnectedAsGuest(user.reconnectionToken, true, Shutdown.isStopping())));
             else
                 user.emit(LoginResult(Fail));
         }
@@ -59,7 +59,7 @@ class LoginManager
                 else
                 {
                     Logger.serviceLog('LOGIN', 'A session for player $login already exists (last message $intervalSeconds secs ago), refusing to log other session in');
-                    user.emit(GreetingResponse(ConnectedAsGuest(user.reconnectionToken, false)));
+                    user.emit(GreetingResponse(ConnectedAsGuest(user.reconnectionToken, false, Shutdown.isStopping())));
                     return;
                 }
             }
@@ -74,7 +74,7 @@ class LoginManager
             {
                 Logger.serviceLog('LOGIN', 'Login successful for $login. Sent ${incomingChallenges.length} incoming challenges');
                 if (asGreeting)
-                    user.emit(GreetingResponse(Logged(user.reconnectionToken, incomingChallenges, null)));
+                    user.emit(GreetingResponse(Logged(user.reconnectionToken, incomingChallenges, null, Shutdown.isStopping())));
                 else
                     user.emit(LoginResult(Success(incomingChallenges)));
             }
@@ -87,7 +87,7 @@ class LoginManager
                         
                         var info:OngoingGameInfo = OngoingGameInfo.create(finiteGameID, game.getTime(), game.log.get());
                         if (asGreeting)
-                            user.emit(GreetingResponse(Logged(user.reconnectionToken, incomingChallenges, info)));
+                            user.emit(GreetingResponse(Logged(user.reconnectionToken, incomingChallenges, info, Shutdown.isStopping())));
                         else
                             user.emit(LoginResult(ReconnectionNeeded(incomingChallenges, info)));
 
@@ -96,7 +96,7 @@ class LoginManager
                         user.ongoingFiniteGameID = null;
                         Logger.serviceLog('LOGIN', 'Login successful for $login. Sent ${incomingChallenges.length} incoming challenges');
                         if (asGreeting)
-                            user.emit(GreetingResponse(Logged(user.reconnectionToken, incomingChallenges, null)));
+                            user.emit(GreetingResponse(Logged(user.reconnectionToken, incomingChallenges, null, Shutdown.isStopping())));
                         else
                             user.emit(LoginResult(Success(incomingChallenges)));
                 }

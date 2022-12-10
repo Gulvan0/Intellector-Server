@@ -1,5 +1,6 @@
 package net;
 
+import services.Shutdown;
 import net.shared.utils.DateUtils;
 import net.shared.utils.Build;
 import services.LoginManager;
@@ -143,7 +144,7 @@ class SocketHandler extends WebSocketHandler
                 {
                     case Simple:
                         this.user = Auth.createSession(this);
-                        emit(GreetingResponse(ConnectedAsGuest(user.reconnectionToken, false)));
+                        emit(GreetingResponse(ConnectedAsGuest(user.reconnectionToken, false, Shutdown.isStopping())));
                     case Login(login, password):
                         this.user = Auth.createSession(this);
                         LoginManager.login(user, login, password, true);
