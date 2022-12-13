@@ -54,7 +54,7 @@ class ChallengeManager
 
     public static function getOpenChallenge(requestAuthor:UserSession, id:Int) 
     {
-        Logger.serviceLog('CHALLENGE', '${requestAuthor.getLogReference()} requested info for challenge $id');
+        Logger.serviceLog('CHALLENGE', '$requestAuthor requested info for challenge $id');
 
         var challenge:Null<Challenge> = pendingChallengeByID.get(id);
         if (challenge == null)
@@ -71,8 +71,11 @@ class ChallengeManager
                 {
                     case Ongoing(game):
                         Logger.serviceLog('CHALLENGE', 'Challenge $id has been fullfilled, the corresponding game $gameID is still in progress');
+                        if (game.log.getColorByRef(requestAuthor) != null)
+                            game.onPlayerJoined(requestAuthor);
+                        else
+                            game.onSpectatorJoined(requestAuthor);
                         requestAuthor.emit(OpenChallengeHostPlaying(OngoingGameInfo.create(game.id, game.getTime(), game.log.get())));
-                        GameManager.addSpectator(requestAuthor, gameID, false);
                     case Past(log):
                         Logger.serviceLog('CHALLENGE', 'Challenge $id has been fullfilled, the corresponding game $gameID has already ended');
                         requestAuthor.emit(OpenChallengeGameEnded(gameID, log));
@@ -113,7 +116,7 @@ class ChallengeManager
 
     private static function performPreliminaryChecks(requestAuthor:UserSession, params:ChallengeParams, uniqIndicator:String):Bool
     {
-        var authorRef:String = requestAuthor.getLogReference();
+        var authorRef:String = requestAuthor.getReference();
 
         if (requestAuthor.getState() != Browsing)
         {
@@ -149,7 +152,7 @@ class ChallengeManager
                 if (mergedWithOtherChallenge)
                     return false;
             case Direct(calleeRef):
-                if (requestAuthor.getInteractionReference() == calleeRef)
+                if (requestAuthor.getReference() == calleeRef)
                 {
                     Logger.serviceLog('CHALLENGE', 'Failed to create a challenge by $authorRef: caller and callee are the same person');
                     requestAuthor.emit(CreateChallengeResult(ToOneself));
@@ -170,17 +173,17 @@ class ChallengeManager
             default:
         }
 
-        Logger.serviceLog('CHALLENGE', 'Challenge has passed all the preliminary checks (author: ${requestAuthor.getLogReference()})');
+        Logger.serviceLog('CHALLENGE', 'Challenge has passed all the preliminary checks (author: $requestAuthor)');
         return true;
     }
 
     public static function create(requestAuthor:UserSession, params:ChallengeParams) 
     {
-        Logger.serviceLog('CHALLENGE', '${requestAuthor.getLogReference()} requested creating a new challenge');
+        Logger.serviceLog('CHALLENGE', '$requestAuthor requested creating a new challenge');
 
         if (Shutdown.isStopping())
         {
-            Logger.serviceLog('CHALLENGE', 'Refusing to create a challenge (server is preparing to shutdown). Requested by: ${requestAuthor.getLogReference()}');
+            Logger.serviceLog('CHALLENGE', 'Refusing to create a challenge (server is preparing to shutdown). Requested by: $requestAuthor');
             requestAuthor.emit(CreateChallengeResult(ServerShutdown));
             return;
         }
@@ -220,7 +223,7 @@ class ChallengeManager
                 PageManager.notifyPageViewers(MainMenu, MainMenuNewOpenChallenge(challengeData));
                 IntegrationManager.onPublicChallengeCreated(lastChallengeID, challengeData.ownerLogin, params);
             case Direct(calleeRef):
-                var callee:Null<UserSession> = Auth.getUserByInteractionReference(calleeRef);
+                var callee:Null<UserSession> = Auth.getUserByRef(calleeRef);
                 if (callee != null)
                     callee.emit(IncomingDirectChallenge(challengeData));
             default:
@@ -245,7 +248,7 @@ class ChallengeManager
                 PageManager.notifyPageViewers(MainMenu, MainMenuOpenChallengeRemoved(challenge.id));
             case Direct(calleeRef):
                 pendingDirectChallengeIDsByReceiverRef.pop(calleeRef, challenge.id);
-                var callee:Null<UserSession> = Auth.getUserByInteractionReference(calleeRef);
+                var callee:Null<UserSession> = Auth.getUserByRef(calleeRef);
                 if (callee != null)
                     callee.emit(DirectChallengeCancelled(challenge.id));
             default:
@@ -272,14 +275,14 @@ class ChallengeManager
         gameIDByFormerChallengeID.set(challenge.id, gameID);
         ownerLoginByFormerChallengeID.set(challenge.id, challenge.ownerLogin);
         
-        Logger.serviceLog('CHALLENGE', 'Challenge ${challenge.id} has been fulfilled. Acceptor: ${acceptorSession.getLogReference()}. See game $gameID');
+        Logger.serviceLog('CHALLENGE', 'Challenge ${challenge.id} has been fulfilled. Acceptor: $acceptorSession. See game $gameID');
     }
 
     public static function accept(requestAuthor:UserSession, id:Int) 
     {
         if (Shutdown.isStopping())
         {
-            Logger.serviceLog('CHALLENGE', 'Refusing to accept challenge $id (server is preparing to shutdown). Requested by: ${requestAuthor.getLogReference()}');
+            Logger.serviceLog('CHALLENGE', 'Refusing to accept challenge $id (server is preparing to shutdown). Requested by: $requestAuthor');
             requestAuthor.emit(ChallengeNotAcceptedServerShutdown);
             return;
         }
@@ -324,7 +327,7 @@ class ChallengeManager
 
     public static function decline(requestAuthor:UserSession, id:Int) 
     {
-        Logger.serviceLog('CHALLENGE', '${requestAuthor.getLogReference()} attempted to decline challenge $id');
+        Logger.serviceLog('CHALLENGE', '$requestAuthor attempted to decline challenge $id');
 
         var challenge:Null<Challenge> = pendingChallengeByID.get(id);
 

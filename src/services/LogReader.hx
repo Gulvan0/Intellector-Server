@@ -25,7 +25,7 @@ class LogReader
         logFilter = new StringFilter("logReader");    
     }
 
-    public static function load(log:LogType) 
+    public static function load(log:LogType):String 
     {
         loadedLog = [];
         totalEntries = 0;
@@ -61,122 +61,141 @@ class LogReader
         }
 
         cursor = totalEntries - 1;
+
+        if (totalEntries > 0)
+            return 'Loaded successfully\n\n' + current();
+        else
+            return 'Loaded, but no entries found';
+    }
+
+    public static function current():String
+    {
+        return 'Entry ${cursor+1}/$totalEntries\n\n' + loadedLog[cursor].entry;
     }
 
     public static function prev(?n:Int = 1):String
     {
         var slice:Array<String> = [];
         var cnt:Int = 0;
+        var to:Int = cursor;
 
-        while (cnt < n && cursor >= 0)
+        while (cnt < n && cursor > 0)
         {
             cursor--;
 
             var currentEntry:String = loadedLog[cursor].entry;
-            if (!logFilter.match(currentEntry))
+            if (logFilter.passes(currentEntry))
             {
                 slice.unshift(currentEntry);
                 cnt++;
             }
         }
 
-        return slice.join('\n\n');
+        if (Lambda.empty(slice))
+            return 'No entries. Current: ${cursor+1}/$totalEntries';
+        else
+            return 'Entries ${cursor+1}-$to of $totalEntries\n\n' + slice.join('\n\n');
     }
 
     public static function next(?n:Int = 1):String
     {
         var slice:Array<String> = [];
         var cnt:Int = 0;
+        var from:Int = cursor + 2;
 
-        while (cnt < n && cursor < totalEntries)
+        while (cnt < n && cursor < totalEntries - 1)
         {
             cursor++;
 
             var currentEntry:String = loadedLog[cursor].entry;
-            if (!logFilter.match(currentEntry))
+            if (logFilter.passes(currentEntry))
             {
                 slice.push(currentEntry);
                 cnt++;
             }
         }
 
-        return slice.join('\n\n');
+        if (Lambda.empty(slice))
+            return 'No entries. Current: ${cursor+1}/$totalEntries';
+        else
+            return 'Entries $from-${cursor+1} of $totalEntries\n\n' + slice.join('\n\n');
     }
 
     public static function skip(interval:TimeInterval):String
     {
         var backwards:Bool = interval.isNegative();
-        var current:LogEntryData = loadedLog[cursor];
+        var currentData:LogEntryData = loadedLog[cursor];
 
-        var desiredTS:Int = current.ts + Math.floor(interval.toSeconds());
-        var currentEntry:String = current.entry;
+        var desiredTS:Int = currentData.ts + Math.floor(interval.toSeconds());
+        var currentEntry:String = currentData.entry;
         
-        while (cursor >= 0 && cursor < totalEntries)
-        {
-            if (backwards)
+        if (backwards)
+            while (cursor > 0)
+            {
                 cursor--;
-            else
+
+                currentData = loadedLog[cursor];
+                currentEntry = currentData.entry;
+
+                if (currentData.ts < desiredTS && logFilter.passes(currentEntry))
+                    break;
+            }
+        else
+            while (cursor < totalEntries - 1)
+            {
                 cursor++;
 
-            current = loadedLog[cursor];
-            currentEntry = current.entry;
+                currentData = loadedLog[cursor];
+                currentEntry = currentData.entry;
 
-            if (backwards)
-            {
-                if (current.ts > desiredTS && !logFilter.match(currentEntry))
+                if (currentData.ts > desiredTS && logFilter.passes(currentEntry))
                     break;
             }
-            else
-            {
-                if (current.ts < desiredTS && !logFilter.match(currentEntry))
-                    break;
-            }
-        }
 
-        return currentEntry;
+        return current();
     }
 
     public static function prevdate():String
     {
-        var current:LogEntryData = loadedLog[cursor];
+        var currentData:LogEntryData = loadedLog[cursor];
 
-        var minTS:Int = current.ts - UnixSecs.Day;
-        var thisDate:Int = Date.fromTime(current.ts * 1000).getDate();
+        var minTS:Int = currentData.ts - UnixSecs.Day;
+        var thisDate:Int = Date.fromTime(currentData.ts * 1000).getDate();
         var currentEntry:String = "Reached the end";
         
-        while (cursor >= 0)
+        while (cursor > 0)
         {
             cursor--;
 
-            var current = loadedLog[cursor];
-            currentEntry = current.entry;
+            currentData = loadedLog[cursor];
+            currentEntry = currentData.entry;
 
-            if ((current.ts < minTS || Date.fromTime(current.ts * 1000).getDate() != thisDate) && !logFilter.match(currentEntry))
+            if ((currentData.ts < minTS || Date.fromTime(currentData.ts * 1000).getDate() != thisDate) && logFilter.passes(currentEntry))
                 break;
         }
 
-        return currentEntry;
+        return current();
     }
 
     public static function nextdate():String
     {
-        var current:LogEntryData = loadedLog[cursor];
+        var currentData:LogEntryData = loadedLog[cursor];
 
-        var maxTS:Int = current.ts + UnixSecs.Day;
-        var thisDate:Int = Date.fromTime(current.ts * 1000).getDate();
+        var maxTS:Int = currentData.ts + UnixSecs.Day;
+        var thisDate:Int = Date.fromTime(currentData.ts * 1000).getDate();
         var currentEntry:String = "Reached the end";
         
-        while (cursor < totalEntries)
+        while (cursor < totalEntries - 1)
         {
             cursor++;
 
-            var current = loadedLog[cursor];
-            currentEntry = current.entry;
+            currentData = loadedLog[cursor];
+            currentEntry = currentData.entry;
 
-            if ((current.ts > maxTS || Date.fromTime(current.ts * 1000).getDate() != thisDate) && !logFilter.match(currentEntry))
+            if ((currentData.ts > maxTS || Date.fromTime(currentData.ts * 1000).getDate() != thisDate) && logFilter.passes(currentEntry))
                 break;
         }
 
-        return currentEntry;
+        return current();
     }
 }

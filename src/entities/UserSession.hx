@@ -24,7 +24,7 @@ class UserSession
 
     public var storedData(default, null):PlayerData;
 
-    public var reconnectionToken(default, null):String;
+    public var sessionID(default, null):Int;
     private var reconnectionTimer:Timer;
     private var missedEvents:Array<ServerEvent> = [];
 
@@ -77,7 +77,7 @@ class UserSession
         var ids:Array<Int> = [];
 
         if (storedData != null)
-            storedData.getOngoingGameIDs();
+            ids = storedData.getOngoingGameIDs();
         
         if (ongoingFiniteGameID == null && viewedGameID != null)
             ids.push(viewedGameID);
@@ -85,18 +85,10 @@ class UserSession
         return ids;
     }
 
-    public function getInteractionReference():String 
+    public function getReference():String 
     {
         if (login == null)
-            return reconnectionToken;
-        else
-            return login;
-    }
-
-    public function getLogReference():String
-    {
-        if (login == null)
-            return "_" + Auth.getSessionID(reconnectionToken);
+            return '_$sessionID';
         else
             return login;
     }
@@ -111,14 +103,14 @@ class UserSession
 
     public function abortConnection(preventReconnection:Bool) 
     {
-        Logger.serviceLog("SESSION", 'Aborting connection for ${getInteractionReference()} (preventReconnection = $preventReconnection)');
+        Logger.serviceLog("SESSION", 'Aborting connection for $this (preventReconnection = $preventReconnection)');
 
         if (reconnectionTimer != null)
             reconnectionTimer.stop();
 
         reconnectionTimer = null;
 
-        Auth.detachSession(reconnectionToken);
+        Auth.detachSession(sessionID);
 
         ChallengeManager.handleDisconnection(this);
         GameManager.handleDisconnection(this);
@@ -138,7 +130,7 @@ class UserSession
 
     public function onDisconnected()
     {
-        Logger.serviceLog("SESSION", '${getInteractionReference()} disconnected (skipDisconnectionProcessing = $skipDisconnectionProcessing)');
+        Logger.serviceLog("SESSION", '$this disconnected (skipDisconnectionProcessing = $skipDisconnectionProcessing)');
 
         if (skipDisconnectionProcessing)
             return;
@@ -156,7 +148,7 @@ class UserSession
 
     public function onReconnected(connection:SocketHandler):Array<ServerEvent>
     {
-        Logger.serviceLog("SESSION", '${getInteractionReference()} reconnected');
+        Logger.serviceLog("SESSION", '$this reconnected');
         skipDisconnectionProcessing = false;
 
         if (reconnectionTimer != null)
@@ -174,9 +166,9 @@ class UserSession
 
     private function onReconnectionTimeOut() 
     {
-        Logger.serviceLog("SESSION", '${getInteractionReference()} failed to reconnect in time, the session is to be destroyed');
+        Logger.serviceLog("SESSION", '$this failed to reconnect in time, the session is to be destroyed');
         reconnectionTimer = null;
-        Auth.detachSession(reconnectionToken);
+        Auth.detachSession(sessionID);
 
         GameManager.handleSessionDestruction(this);
         LoginManager.handleSessionDestruction(this);
@@ -186,7 +178,7 @@ class UserSession
 
     public function isGuest():Bool
     {
-        return Auth.isGuest(getInteractionReference());    
+        return Auth.isGuest(getReference());    
     }
 
     public function onLoggedIn(login:String) 
@@ -203,9 +195,14 @@ class UserSession
         this.ongoingFiniteGameID = null;
     }
 
-    public function new(connection:SocketHandler, token:String)
+    public inline function toString():String
+    {
+        return getReference();    
+    }
+
+    public function new(connection:SocketHandler, sessionID:Int)
     {
         this.connection = connection;
-        this.reconnectionToken = token;
+        this.sessionID = sessionID;
     }
 }

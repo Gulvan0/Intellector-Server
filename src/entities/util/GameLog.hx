@@ -33,8 +33,10 @@ class GameLog
         return entries.copy();    
     }
 
-    public function getColorByRef(ref:String):Null<PieceColor> 
+    public function getColorByRef(user:UserSession):Null<PieceColor> 
     {
+        var ref:String = user.getReference();
+
         if (playerRefs.get(White) == ref)
             return White;
         else if (playerRefs.get(Black) == ref)
@@ -159,7 +161,7 @@ class GameLog
             if (player != null && player.login != null && player.storedData != null)
                 eloValues[color] = player.storedData.getELO(timeControlType);
         
-        log.append(Players(players[White].getLogReference(), players[Black].getLogReference()), false);
+        log.append(Players(players[White].getReference(), players[Black].getReference()), false);
         if (rated)
             log.append(Elo(eloValues[White], eloValues[Black]), false);
         log.append(DateTime(Date.now()), false);

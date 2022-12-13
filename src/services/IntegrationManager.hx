@@ -21,10 +21,8 @@ class IntegrationManager
 
     public static function notifyAdmin(message:String) 
     {
-        if (alertFilter.match(message))
-            return;
-        
-        Telegram.notifyAdmin(message);
+        if (alertFilter.passes(message))
+            Telegram.notifyAdmin(message);
     }
 
     private static function getNotificationTimestamps(login:String):AutoQueue<Float>

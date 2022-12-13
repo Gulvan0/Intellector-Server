@@ -32,7 +32,10 @@ class StringFilter
     public function addBlacklistEntry(entry:String, regex:Bool) 
     {
         if (regex)
-            regexBlacklist.set(entry, new EReg(entry, ""));
+            if (entry.startsWith("+"))
+                regexBlacklist.set(entry, new EReg(entry.substr(1), ""));
+            else
+                regexBlacklist.set(entry, new EReg(entry, ""));
         else
             substrBlacklist.push(entry);
         saveBlacklist(regex);
@@ -56,17 +59,33 @@ class StringFilter
         saveBlacklist(regex);
     }
 
-    public function match(s:String):Bool
+    public function passes(s:String):Bool
     {
         for (sub in substrBlacklist)
-            if (s.contains(sub))
-                return true;
+            if (sub.startsWith("+"))
+            {
+                if (!s.contains(sub.substr(1)))
+                    return false;
+            }
+            else
+            {
+                if (s.contains(sub))
+                    return false;
+            }
 
-        for (re in regexBlacklist)
-            if (re.match(s))
-                return true;
+        for (reStr => re in regexBlacklist.keyValueIterator())
+            if (reStr.startsWith("+"))
+            {
+                if (!re.match(s))
+                    return false;
+            }
+            else
+            {
+                if (re.match(s))
+                    return false;
+            }
 
-        return false;
+        return true;
     }
 
     public function new(filterName:String) 

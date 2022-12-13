@@ -12,16 +12,20 @@ class PageManager
 
     public static function getPage(session:UserSession):Null<ViewedScreen>
     {
-        return pageByUserRef.get(session.getInteractionReference());
+        return pageByUserRef.get(session.getReference());
     }
 
     public static function updatePage(session:UserSession, page:ViewedScreen) 
     {
         var previousPage = getPage(session);
-        if (previousPage != null)
-            onPageLeft(session, previousPage);
 
-        pageByUserRef.set(session.getInteractionReference(), page);
+        if (previousPage != null)
+            if (samePage(previousPage, page))
+                return;
+            else
+                onPageLeft(session, previousPage, false);
+
+        pageByUserRef.set(session.getReference(), page);
         sessionsByPage.push(page, session);
 
         onPageEntered(session, page);
@@ -32,11 +36,11 @@ class PageManager
         var previousPage = getPage(session);
         if (previousPage != null)
         {
-            onPageLeft(session, previousPage);
+            onPageLeft(session, previousPage, true);
             sessionsByPage.pop(previousPage, session);
         }
 
-        pageByUserRef.remove(session.getInteractionReference());
+        pageByUserRef.remove(session.getReference());
     }
 
     public static function notifyPageViewers(page:ViewedScreen, event:ServerEvent) 
@@ -45,14 +49,24 @@ class PageManager
             session.emit(event);
     }
 
-    private static function onPageLeft(session:UserSession, page:ViewedScreen) 
+    private static function onPageLeft(session:UserSession, page:ViewedScreen, wasLastPage:Bool) 
     {
         switch page 
         {
             case MainMenu:
                 //* Do nothing
             case Game(id):
-                GameManager.leaveGame(session, id);
+                if (!wasLastPage)
+                {
+                    Logger.serviceLog('GAMEMGR', '$session leaves game $id');
+
+                    switch GameManager.getSimple(id) 
+                    {
+                        case Ongoing(game):
+                            game.onUserLeftToOtherPage(session);
+                        default:
+                    }
+                }
             case Analysis:
                 //* Do nothing
             case Profile(ownerLogin):
@@ -76,6 +90,26 @@ class PageManager
                 //* Do nothing
             case Other:
                 //* Do nothing
+        }
+    }
+
+    private static function samePage(screen1:ViewedScreen, screen2:ViewedScreen):Bool
+    {
+        return switch screen1 
+        {
+            case MainMenu: screen2 == MainMenu;
+            case Game(id1): switch screen2 
+            {
+                case Game(id2): id1 == id2;
+                default: false;
+            }
+            case Analysis: screen2 == Analysis;
+            case Profile(ownerLogin1): switch screen2 
+            {
+                case Profile(ownerLogin2): ownerLogin1.toLowerCase() == ownerLogin2.toLowerCase();
+                default: false;
+            }
+            case Other: screen2 == Other;
         }
     }
 }

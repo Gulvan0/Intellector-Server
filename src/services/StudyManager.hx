@@ -21,7 +21,7 @@ class StudyManager
         Storage.saveStudyData(lastStudyID, data);
         playerData.addStudy(lastStudyID);
         author.emit(StudyCreated(lastStudyID, info));
-        Logger.serviceLog(serviceName, 'Study created (ID = $lastStudyID) by ${author.getLogReference()}');
+        Logger.serviceLog(serviceName, 'Study created (ID = $lastStudyID) by $author');
     }
 
     public static function overwrite(author:UserSession, id:Int, info:StudyInfo) 
@@ -31,24 +31,24 @@ class StudyManager
         if (data.isAuthor(author.login))
         {
             Storage.saveStudyData(lastStudyID, StudyData.fromStudyInfo(author.login, info));
-            Logger.serviceLog(serviceName, 'Study overwritten (ID = $lastStudyID; requested by ${author.getLogReference()})');
+            Logger.serviceLog(serviceName, 'Study overwritten (ID = $lastStudyID; requested by $author)');
         }
         else
-            Logger.logError('${author.getLogReference()} attempted to overwrite a study (ID = $lastStudyID), but its author (${data.getAuthor()}) is different');
+            Logger.logError('$author attempted to overwrite a study (ID = $lastStudyID), but its author (${data.getAuthor()}) is different');
     }
 
     public static function delete(author:UserSession, id:Int) 
     {
         author.storedData.removeStudy(id); //Here, we just make the study inaccessible, but not delete its data completely. Just in case
-        Logger.serviceLog(serviceName, 'Study detached (ID = $lastStudyID; requested by ${author.getLogReference()})');
+        Logger.serviceLog(serviceName, 'Study detached (ID = $lastStudyID; requested by $author)');
     }
 
     public static function get(author:UserSession, id:Int)
     {
-        var info = Storage.getStudyData(id);
-        if (info == null)
+        var data = Storage.getStudyData(id);
+        if (data == null)
             author.emit(StudyNotFound);
         else
-            author.emit(SingleStudy(info));
+            author.emit(SingleStudy(data.toStudyInfo()));
     }
 }

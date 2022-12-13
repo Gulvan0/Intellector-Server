@@ -144,7 +144,7 @@ class SocketHandler extends WebSocketHandler
                 {
                     case Simple:
                         this.user = Auth.createSession(this);
-                        emit(GreetingResponse(ConnectedAsGuest(user.reconnectionToken, false, Shutdown.isStopping())));
+                        emit(GreetingResponse(ConnectedAsGuest(user.sessionID, Auth.getTokenBySessionID(user.sessionID), false, Shutdown.isStopping())));
                     case Login(login, password):
                         this.user = Auth.createSession(this);
                         LoginManager.login(user, login, password, true);

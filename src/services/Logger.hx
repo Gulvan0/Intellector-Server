@@ -10,12 +10,12 @@ class Logger
 {
     public static function logIncomingEvent(event:ClientEvent, senderID:String, ?sender:Null<UserSession>) 
     {
-        var userStr:String = sender != null? sender.getLogReference() : senderID;
+        var userStr:String = sender != null? sender.getReference() : senderID;
         var eventStr:String = switch event 
         {
             case Login(login, _): 'Login($login, ***)';
             case Register(login, _): 'Register($login, ***)';
-            case Greet(Login(login, _), _, _): 'Greet(Login($login, ***))';
+            case Greet(Login(login, _), clientBuild, minServerBuild): 'Greet(Login($login, ***), $clientBuild, $minServerBuild)';
             default: '${event.getName()}(${event.getParameters().join(', ')})';
         }
         
@@ -25,7 +25,7 @@ class Logger
 
     public static function logOutgoingEvent(event:ServerEvent, receiverID:String, ?receiver:Null<UserSession>) 
     {
-        var userStr:String = receiver != null? receiver.getLogReference() : receiverID;
+        var userStr:String = receiver != null? receiver.getReference() : receiverID;
         var eventStr:String = '${event.getName()}(${event.getParameters().join(', ')})';
 
         var message:String = '$userStr | $eventStr';

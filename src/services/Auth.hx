@@ -13,31 +13,53 @@ class Auth
 
     private static var passwordHashes:Map<String, String>;
 
+    private static var tokenBySessionID:Map<Int, String> = [];
     private static var userByToken:Map<String, UserSession> = [];
+    private static var userBySessionID:Map<Int, UserSession> = [];
 
     private static var lastSessionID:Int = 0;
 
-    public static function createSession(connection:SocketHandler):UserSession
+    public static function createSession(connection:SocketHandler)
     {
+        var id:Int = ++lastSessionID;
         var token:String = generateSessionToken();
-        var user:UserSession = new UserSession(connection, token);
+        var user:UserSession = new UserSession(connection, id);
+
+        tokenBySessionID.set(id, token);
         userByToken.set(token, user);
-        Logger.serviceLog(serviceName, 'Session created for ${user.getLogReference()}: $token');
+        userBySessionID.set(id, user);
+
+        Logger.serviceLog(serviceName, 'Session created for $user: $token');
         return user;
     }
 
-    public static function detachSession(token:String) 
+    public static function detachSession(id:Int) 
     {
+        var token:String = tokenBySessionID.get(id);
+
+        if (token == null)
+        {
+            Logger.logError('Failed to detach session with id $id: not found');
+            return;
+        }
+
+        tokenBySessionID.remove(id);
         userByToken.remove(token);
-        Logger.serviceLog(serviceName, 'Session detached by timeout: $token');
+        userBySessionID.remove(id);
+        Logger.serviceLog(serviceName, 'Session detached by timeout: $id');
     }
 
-    public static function getUserByInteractionReference(userRef:String):Null<UserSession>
+    public static function getUserByRef(userRef:String):Null<UserSession>
     {
         if (isGuest(userRef))
-            return getUserBySessionToken(userRef);
+            return getUserBySessionID(Std.parseInt(userRef.substr(1)));
         else
             return LoginManager.getUser(userRef);
+    }
+
+    public static function getUserBySessionID(id:Int):Null<UserSession> 
+    {
+        return userBySessionID.get(id);
     }
 
     public static function getUserBySessionToken(token:String):Null<UserSession>
@@ -45,26 +67,23 @@ class Auth
         return userByToken.get(token);
     }
 
+    public static function getTokenBySessionID(id:Int):Null<String> 
+    {
+        return tokenBySessionID.get(id);
+    }
+
     private static function generateSessionToken():String
     {
-        var sessionID:Int = ++lastSessionID;
-
         var token:String = "_";
-        token += sessionID + "_";
         for (i in 0...25)
             token += String.fromCharCode(MathUtils.randomInt(33, 126));
         
-        return token;
+        return userByToken.exists(token)? generateSessionToken() : token;
     }
 
     public static function isGuest(userRef:String) 
     {
         return userRef.charAt(0) == '_';    
-    }
-
-    public static function getSessionID(token:String):Int
-    {
-        return Std.parseInt(token.split("_")[1]);    
     }
 
     public static function isValid(login:String, password:String):Bool 

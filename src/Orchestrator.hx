@@ -27,10 +27,10 @@ class Orchestrator
         switch GameManager.getSimple(id) 
         {
             case Ongoing(game):
-                if (game.log.getColorByRef(author.getLogReference()) != null)
-                    GameManager.handleReconnection(author);
+                if (game.log.getColorByRef(author) != null)
+                    game.onPlayerJoined(author);
                 else
-                    GameManager.addSpectator(author, id, false);
+                    game.onSpectatorJoined(author);
                 author.emit(GameIsOngoing(game.getTime(), game.log.get()));
             case Past(log):
                 author.emit(GameIsOver(log));
@@ -45,7 +45,7 @@ class Orchestrator
 
         if (!isEventRelevant(event, authorState))
         {
-            Logger.logError('Skipping irrelevant event ${event.getName()} for author ${author.getLogReference()} (state = ${authorState.getName()})');
+            Logger.logError('Skipping irrelevant event ${event.getName()} for author $author (state = ${authorState.getName()})');
             return;
         }
         
@@ -55,7 +55,7 @@ class Orchestrator
         switch event 
         {
             case Greet(_, _, _):
-                Logger.logError('Unexpected greeting from ${author.getLogReference()}');
+                Logger.logError('Unexpected greeting from $author');
                 return;
 
             case Login(login, password):

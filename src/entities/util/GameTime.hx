@@ -68,7 +68,8 @@ class GameTime implements IGameTime
 
         if (timeMap[turnColor] > 0)
         {
-            timeMap[turnColor] += timeControl.incrementSecs;
+            if (moveNum >= 2)
+                timeMap[turnColor] += timeControl.incrementSecs;
             secondsLeftOnMoveStart.push(timeMap);
             moveStartTimestamp = timeData.timestamp;
 

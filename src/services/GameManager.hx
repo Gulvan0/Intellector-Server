@@ -93,33 +93,14 @@ class GameManager
         }
     }
 
-    public static function addSpectator(session:UserSession, gameID:Int, sendSpectationData:Bool) 
-    {
-        if (gameID == session.viewedGameID || session.ongoingFiniteGameID != null)
-            return;
-
-        switch games.getSimple(gameID) 
-        {
-            case Ongoing(game):
-                Logger.serviceLog('GAMEMGR', 'Adding ${session.getLogReference()} as a spectator to game $gameID');
-                leaveGame(session);
-                game.onSpectatorJoined(session);
-                if (sendSpectationData)
-                    session.emit(SpectationData(OngoingGameInfo.create(game.id, game.getTime(), game.log.get())));
-                else
-                    session.emit(FollowSuccess);
-            default:
-        }
-    }
-
     public static function addFollower(session:UserSession, followedPlayerLogin:String) 
     {
-        var followerRef:String = session.getInteractionReference();
+        var followerRef:String = session.getReference();
 
         if (followedPlayerLogin == followedPlayerLoginByFollowerRef.get(followerRef))
             return;
 
-        Logger.serviceLog('GAMEMGR', 'Adding ${session.getLogReference()} to the list of $followedPlayerLogin\'s followers');
+        Logger.serviceLog('GAMEMGR', 'Adding $session to the list of $followedPlayerLogin\'s followers');
 
         stopFollowing(session);
 
@@ -129,18 +110,27 @@ class GameManager
         var followedUser = LoginManager.getUser(followedPlayerLogin);
 
         if (followedUser != null && followedUser.ongoingFiniteGameID != session.viewedGameID)
-            addSpectator(session, followedUser.ongoingFiniteGameID, true);
+        {
+            switch games.getSimple(followedUser.ongoingFiniteGameID)
+            {
+                case Ongoing(game):
+                    game.onSpectatorJoined(session);
+                    session.emit(SpectationData(OngoingGameInfo.create(game.id, game.getTime(), game.log.get())));
+                default:
+                    session.emit(FollowSuccess);
+            }
+        }
     }
 
     public static function stopFollowing(session:UserSession) 
     {
-        var followerRef:String = session.getInteractionReference();
+        var followerRef:String = session.getReference();
         var followedPlayerLogin:String = followedPlayerLoginByFollowerRef.get(followerRef);
 
         if (followedPlayerLogin == null)
             return;
 
-        Logger.serviceLog('GAMEMGR', 'Removing ${session.getLogReference()} from the list of $followedPlayerLogin\'s followers');
+        Logger.serviceLog('GAMEMGR', 'Removing $session from the list of $followedPlayerLogin\'s followers');
         
         playerFollowersByLogin.remove(followedPlayerLogin);
         followedPlayerLoginByFollowerRef.remove(followerRef);
@@ -150,7 +140,7 @@ class GameManager
     {
         if (Shutdown.isStopping())
         {
-            Logger.serviceLog('GAMEMGR', 'Refusing to start a new game (server is preparing to shutdown). Created by: ${ownerSession.getLogReference()}, accepted by: ${acceptorSession.getLogReference()}');
+            Logger.serviceLog('GAMEMGR', 'Refusing to start a new game (server is preparing to shutdown). Created by: $ownerSession, accepted by: $acceptorSession');
             return -1;
         }
 
@@ -160,7 +150,7 @@ class GameManager
         var gameID:Int = lastGameID;
         var acceptorColor:PieceColor = params.calculateActualAcceptorColor();
 
-        Logger.serviceLog('GAMEMGR', 'Starting new game with ID $gameID. Created by: ${ownerSession.getLogReference()}, accepted by: ${acceptorSession.getLogReference()}');
+        Logger.serviceLog('GAMEMGR', 'Starting new game with ID $gameID. Created by: $ownerSession, accepted by: $acceptorSession');
 
         var playerSessions:Map<PieceColor, UserSession>;
         if (acceptorColor == White)
@@ -178,7 +168,6 @@ class GameManager
             ChallengeManager.cancelAllOutgoingChallenges(session);
             
             stopFollowing(session);
-            leaveGame(session);
 
             if (params.timeControl.isCorrespondence())
                 session.storedData.addOngoingCorrespondenceGame(gameID);
@@ -190,8 +179,8 @@ class GameManager
             if (session.login != null)
                 for (follower in playerFollowersByLogin.get(session.login))
                 {
+                    game.onSpectatorJoined(session);
                     follower.emit(GameStarted(gameID, logPreamble));
-                    addSpectator(follower, gameID, false);
                 }
         }
 
@@ -231,10 +220,10 @@ class GameManager
 
         for (color in PieceColor.createAll())
         {
-            var gameRef:String = game.log.playerRefs.get(color);
-            var login:Null<String> = Auth.isGuest(gameRef)? null : gameRef;
+            var playerRef:String = game.log.playerRefs.get(color);
+            var login:Null<String> = Auth.isGuest(playerRef)? null : playerRef;
             var data:Null<PlayerData> = login != null? Storage.loadPlayerData(login) : null;
-            var session:Null<UserSession> = game.sessions.getPresentPlayerSession(color);
+            var session:Null<UserSession> = Auth.getUserByRef(playerRef);
             
             var newElo:Null<EloValue> = null;
 
@@ -293,14 +282,10 @@ class GameManager
         stopFollowing(user);
 
         for (gameID in user.getRelevantGameIDs())
-            switch games.get(gameID) 
+            switch games.getSimple(gameID) 
             {
-                case OngoingFinite(game):
+                case Ongoing(game):
                     game.onSessionDestroyed(user);
-                case OngoingCorrespondence(game):
-                    game.onSessionDestroyed(user);
-                    if (game.sessions.isDerelict())
-                        games.unloadDerelictCorrespondence(gameID);
                 default:
             }
     }        
@@ -312,29 +297,10 @@ class GameManager
         if (params != null)
         {
             ChallengeManager.create(author, params);
-            Logger.serviceLog('GAMEMGR', 'Simple rematch challenge (${params.type}) by ${author.getLogReference()}');
+            Logger.serviceLog('GAMEMGR', 'Simple rematch challenge (${params.type}) by $author');
         }
         else
             author.emit(CreateChallengeResult(RematchExpired));
-    }
-
-    public static function leaveGame(user:UserSession, ?id:Int) 
-    {
-        if (user == null || user.viewedGameID == null || (id != null && id != user.viewedGameID))
-            return;
-
-        Logger.serviceLog('GAMEMGR', '${user.getLogReference()} leaves game ${user.viewedGameID}');
-
-        switch games.get(user.viewedGameID) 
-        {
-            case OngoingFinite(game):
-                game.onUserLeft(user);
-            case OngoingCorrespondence(game):
-                game.onUserLeft(user);
-                if (game.sessions.isDerelict())
-                    games.unloadDerelictCorrespondence(user.viewedGameID);
-            default:
-        }
     }
 
     public static function abortAllGames() 
@@ -371,5 +337,10 @@ class GameManager
             Logger.serviceLog('GAMEMGR', 'No finite games are in progress, invoking callback now');
             callback();
         }
+    }
+
+    public static function unloadDerelictCorrespondence(id:Int) 
+    {
+        games.unloadDerelictCorrespondence(id);
     }
 }

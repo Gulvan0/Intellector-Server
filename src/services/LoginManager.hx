@@ -21,20 +21,20 @@ class LoginManager
 
     public static function login(user:UserSession, login:String, password:String, ?asGreeting:Bool = false) 
     {
-        Logger.serviceLog('LOGIN', '${user.getLogReference()} attempts logging in as $login');
+        Logger.serviceLog('LOGIN', '$user attempts logging in as $login');
         if (!Auth.userExists(login))
         {
-            Logger.serviceLog('LOGIN', 'Failed to log ${user.getLogReference()} in as $login: user does not exist');
+            Logger.serviceLog('LOGIN', 'Failed to log $user in as $login: user does not exist');
             if (asGreeting)
-                user.emit(GreetingResponse(ConnectedAsGuest(user.reconnectionToken, true, Shutdown.isStopping())));
+                user.emit(GreetingResponse(ConnectedAsGuest(user.sessionID, Auth.getTokenBySessionID(user.sessionID), true, Shutdown.isStopping())));
             else
                 user.emit(LoginResult(Fail));
         }
         else if (!Auth.isValid(login, password))
         {
-            Logger.serviceLog('LOGIN', 'Failed to log ${user.getLogReference()} in as $login: invalid password');
+            Logger.serviceLog('LOGIN', 'Failed to log $user in as $login: invalid password');
             if (asGreeting)
-                user.emit(GreetingResponse(ConnectedAsGuest(user.reconnectionToken, true, Shutdown.isStopping())));
+                user.emit(GreetingResponse(ConnectedAsGuest(user.sessionID, Auth.getTokenBySessionID(user.sessionID), true, Shutdown.isStopping())));
             else
                 user.emit(LoginResult(Fail));
         }
@@ -59,7 +59,7 @@ class LoginManager
                 else
                 {
                     Logger.serviceLog('LOGIN', 'A session for player $login already exists (last message $intervalSeconds secs ago), refusing to log other session in');
-                    user.emit(GreetingResponse(ConnectedAsGuest(user.reconnectionToken, false, Shutdown.isStopping())));
+                    user.emit(GreetingResponse(ConnectedAsGuest(user.sessionID, Auth.getTokenBySessionID(user.sessionID), false, Shutdown.isStopping())));
                     return;
                 }
             }
@@ -74,7 +74,7 @@ class LoginManager
             {
                 Logger.serviceLog('LOGIN', 'Login successful for $login. Sent ${incomingChallenges.length} incoming challenges');
                 if (asGreeting)
-                    user.emit(GreetingResponse(Logged(user.reconnectionToken, incomingChallenges, null, Shutdown.isStopping())));
+                    user.emit(GreetingResponse(Logged(user.sessionID, Auth.getTokenBySessionID(user.sessionID), incomingChallenges, null, Shutdown.isStopping())));
                 else
                     user.emit(LoginResult(Success(incomingChallenges)));
             }
@@ -85,18 +85,21 @@ class LoginManager
                     case OngoingFinite(game):
                         Logger.serviceLog('LOGIN', 'Login successful for $login, but reconnection to game $finiteGameID is needed. Additionally sent ${incomingChallenges.length} incoming challenges');
                         
+                        game.onPlayerJoined(user);
+
                         var info:OngoingGameInfo = OngoingGameInfo.create(finiteGameID, game.getTime(), game.log.get());
                         if (asGreeting)
-                            user.emit(GreetingResponse(Logged(user.reconnectionToken, incomingChallenges, info, Shutdown.isStopping())));
+                            user.emit(GreetingResponse(Logged(user.sessionID, Auth.getTokenBySessionID(user.sessionID), incomingChallenges, info, Shutdown.isStopping())));
                         else
                             user.emit(LoginResult(ReconnectionNeeded(incomingChallenges, info)));
 
-                        GameManager.handleReconnection(user);
                     default:
-                        user.ongoingFiniteGameID = null;
                         Logger.serviceLog('LOGIN', 'Login successful for $login. Sent ${incomingChallenges.length} incoming challenges');
+
+                        user.ongoingFiniteGameID = null;
+
                         if (asGreeting)
-                            user.emit(GreetingResponse(Logged(user.reconnectionToken, incomingChallenges, null, Shutdown.isStopping())));
+                            user.emit(GreetingResponse(Logged(user.sessionID, Auth.getTokenBySessionID(user.sessionID), incomingChallenges, null, Shutdown.isStopping())));
                         else
                             user.emit(LoginResult(Success(incomingChallenges)));
                 }
@@ -106,7 +109,7 @@ class LoginManager
 
     public static function register(user:UserSession, login:String, password:String) 
     {
-        Logger.serviceLog('LOGIN', '${user.getLogReference()} attempts registering as $login');
+        Logger.serviceLog('LOGIN', '$user attempts registering as $login');
         if (!Auth.userExists(login))
         {
             Auth.addCredentials(login, password);
@@ -118,7 +121,7 @@ class LoginManager
         else
         {
             user.emit(RegisterResult(Fail));
-            Logger.serviceLog('LOGIN', 'Registration failed for ${user.getLogReference()}: user $login already exists');
+            Logger.serviceLog('LOGIN', 'Registration failed for $user: user $login already exists');
         }
     }
 
@@ -129,7 +132,7 @@ class LoginManager
 
         loggedUserByLogin.remove(user.login);
         user.onLoggedOut();
-        Logger.serviceLog('LOGIN', 'Logged $login (${user.getLogReference()}) out');
+        Logger.serviceLog('LOGIN', 'Logged ${user.login} ($user) out');
     }
 
     public static function handleSessionDestruction(user:UserSession)

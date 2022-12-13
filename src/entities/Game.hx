@@ -41,6 +41,8 @@ class Game
     public var state:GameState;
     public var time:IGameTime;
 
+    private var temporarilyOfflineUserRefs:Array<String> = [];
+
     public function getTime():Null<TimeReservesData> 
     {
         return time.getTime(state.turnColor(), state.moveNum);
@@ -66,33 +68,34 @@ class Game
     private function performMove(author:UserSession, rawPly:RawPly) 
     {
         var turnColor:PieceColor = state.turnColor();
+        var authorColor:PieceColor = log.getColorByRef(author);
         var result:TryPlyResult = state.tryPly(rawPly);
 
         switch result 
         {
             case Performed:
-                Logger.serviceLog(serviceName, '${author.getInteractionReference()} ($turnColor) successfully performed a move');
+                Logger.serviceLog(serviceName, '$author ($authorColor) successfully performed a move');
                 onMoveSuccessful(author, turnColor, state.moveNum - 1, rawPly);
             case GameEnded(outcome):
-                Logger.serviceLog(serviceName, '${author.getInteractionReference()} ($turnColor) successfully performed a game-finishing move');
+                Logger.serviceLog(serviceName, '$author ($authorColor) successfully performed a game-finishing move');
                 onMoveSuccessful(author, turnColor, state.moveNum - 1, rawPly);
                 endGame(outcome);
             case Failed:
-                Logger.serviceLog(serviceName, '${author.getInteractionReference()} ($turnColor) attempted to perform invalid move: $rawPly; board SIP: ${state.getSIP()}');
-                sessions.tellPlayer(turnColor, InvalidMove);
+                Logger.serviceLog(serviceName, '$author ($authorColor) attempted to perform invalid move: $rawPly; board SIP: ${state.getSIP()}');
+                sessions.tellPlayer(authorColor, InvalidMove);
         }
     }
 
     private function sendMessage(author:UserSession, text:String) 
     {
-        var authorColor:Null<PieceColor> = sessions.getPresentPlayerColor(author);
+        var authorColor:Null<PieceColor> = log.getColorByRef(author);
         if (authorColor != null)
         {
             log.append(PlayerMessage(authorColor, text));
-            sessions.broadcast(Message(author.getLogReference(), text), author);
+            sessions.broadcast(Message(author.getReference(), text), author);
         }
         else
-            sessions.broadcast(SpectatorMessage(author.getLogReference(), text), author);
+            sessions.broadcast(SpectatorMessage(author.getReference(), text), author);
     }
 
     private function endGame(outcome:Outcome) 
@@ -127,7 +130,7 @@ class Game
 
     public function processAction(action:GameAction, issuer:UserSession) 
     {
-        var issuerColor:Null<PieceColor> = sessions.getPresentPlayerColor(issuer);
+        var issuerColor:Null<PieceColor> = log.getColorByRef(issuer);
 
         if (issuerColor == null && !action.match(Message(_) | RequestTimeoutCheck))
             return;
@@ -137,113 +140,113 @@ class Game
             case Move(rawPly):
                 performMove(issuer, rawPly);
             case RequestTimeoutCheck:
-                Logger.serviceLog(serviceName, '${issuer.getInteractionReference()} ($issuerColor) demanded timeout check; performing');
+                Logger.serviceLog(serviceName, '$issuer ($issuerColor) demanded timeout check; performing');
                 time.checkTime(state.turnColor(), state.moveNum);
             case Message(text):
                 sendMessage(issuer, text);
             case Resign:
                 if (state.moveNum >= 2)
                 {
-                    Logger.serviceLog(serviceName, '${issuer.getInteractionReference()} ($issuerColor) resigned on move ${state.moveNum} => resigning');
+                    Logger.serviceLog(serviceName, '$issuer ($issuerColor) resigned on move ${state.moveNum} => resigning');
                     endGame(Decisive(Resign, opposite(issuerColor)));
                 }
                 else
                 {
-                    Logger.serviceLog(serviceName, '${issuer.getInteractionReference()} ($issuerColor) resigned on move ${state.moveNum} => aborting');
+                    Logger.serviceLog(serviceName, '$issuer ($issuerColor) resigned on move ${state.moveNum} => aborting');
                     endGame(Drawish(Abort));
                 }
             case OfferDraw:
                 if (state.moveNum < 2)
                 {
-                    Logger.serviceLog(serviceName, '${issuer.getInteractionReference()} ($issuerColor) offered draw too early: at move ${state.moveNum}');
+                    Logger.serviceLog(serviceName, '$issuer ($issuerColor) offered draw too early: at move ${state.moveNum}');
                     return;
                 }
 
                 if (offers.offerDraw(issuerColor))
                 {
-                    Logger.serviceLog(serviceName, '${issuer.getInteractionReference()} ($issuerColor) offered draw. Success');
+                    Logger.serviceLog(serviceName, '$issuer ($issuerColor) offered draw. Success');
                     log.append(Event(DrawOffered(issuerColor)));
                     sessions.broadcast(DrawOffered(issuerColor), issuer);
                 }
                 else
-                    Logger.serviceLog(serviceName, '${issuer.getInteractionReference()} ($issuerColor) tried to offer a draw, but failed');
+                    Logger.serviceLog(serviceName, '$issuer ($issuerColor) tried to offer a draw, but failed');
             case CancelDraw:
                 if (offers.cancelDraw(issuerColor))
                 {
-                    Logger.serviceLog(serviceName, '${issuer.getInteractionReference()} ($issuerColor) cancelled draw. Success');
+                    Logger.serviceLog(serviceName, '$issuer ($issuerColor) cancelled draw. Success');
                     log.append(Event(DrawCanceled(issuerColor)));
                     sessions.broadcast(DrawCancelled(issuerColor), issuer);
                 }
                 else
-                    Logger.serviceLog(serviceName, '${issuer.getInteractionReference()} ($issuerColor) tried to cancel a draw, but failed');
+                    Logger.serviceLog(serviceName, '$issuer ($issuerColor) tried to cancel a draw, but failed');
             case AcceptDraw:
                 if (offers.acceptDraw(issuerColor))
                 {
-                    Logger.serviceLog(serviceName, '${issuer.getInteractionReference()} ($issuerColor) accepted draw. Success');
+                    Logger.serviceLog(serviceName, '$issuer ($issuerColor) accepted draw. Success');
                     log.append(Event(DrawAccepted(issuerColor)));
                     sessions.broadcast(DrawAccepted(issuerColor), issuer);
                 }
                 else
-                    Logger.serviceLog(serviceName, '${issuer.getInteractionReference()} ($issuerColor) tried to accept a draw, but failed');
+                    Logger.serviceLog(serviceName, '$issuer ($issuerColor) tried to accept a draw, but failed');
             case DeclineDraw:
                 if (offers.declineDraw(issuerColor))
                 {
-                    Logger.serviceLog(serviceName, '${issuer.getInteractionReference()} ($issuerColor) declined draw. Success');
+                    Logger.serviceLog(serviceName, '$issuer ($issuerColor) declined draw. Success');
                     log.append(Event(DrawDeclined(issuerColor)));
                     sessions.broadcast(DrawDeclined(issuerColor), issuer);
                 }
                 else
-                    Logger.serviceLog(serviceName, '${issuer.getInteractionReference()} ($issuerColor) tried to decline a draw, but failed');
+                    Logger.serviceLog(serviceName, '$issuer ($issuerColor) tried to decline a draw, but failed');
             case OfferTakeback:
                 if (state.moveNum == 0 || (state.moveNum == 1 && state.turnColor() == issuerColor))
                 {
-                    Logger.serviceLog(serviceName, '${issuer.getInteractionReference()} ($issuerColor) offered a takeback too early: on move ${state.moveNum}');
+                    Logger.serviceLog(serviceName, '$issuer ($issuerColor) offered a takeback too early: on move ${state.moveNum}');
                     return;
                 }
 
                 if (offers.offerTakeback(issuerColor))
                 {
-                    Logger.serviceLog(serviceName, '${issuer.getInteractionReference()} ($issuerColor) offered a takeback. Success');
+                    Logger.serviceLog(serviceName, '$issuer ($issuerColor) offered a takeback. Success');
                     log.append(Event(TakebackOffered(issuerColor)));
                     sessions.broadcast(TakebackOffered(issuerColor), issuer);
                 }
                 else
-                    Logger.serviceLog(serviceName, '${issuer.getInteractionReference()} ($issuerColor) tried to offer a takeback, but failed');
+                    Logger.serviceLog(serviceName, '$issuer ($issuerColor) tried to offer a takeback, but failed');
             case CancelTakeback:
                 if (offers.cancelTakeback(issuerColor))
                 {
-                    Logger.serviceLog(serviceName, '${issuer.getInteractionReference()} ($issuerColor) cancelled a takeback. Success');
+                    Logger.serviceLog(serviceName, '$issuer ($issuerColor) cancelled a takeback. Success');
                     log.append(Event(TakebackCanceled(issuerColor)));
                     sessions.broadcast(TakebackCancelled(issuerColor), issuer);
                 }
                 else
-                    Logger.serviceLog(serviceName, '${issuer.getInteractionReference()} ($issuerColor) tried to cancel a takeback, but failed');
+                    Logger.serviceLog(serviceName, '$issuer ($issuerColor) tried to cancel a takeback, but failed');
             case AcceptTakeback:
                 if (offers.acceptTakeback(issuerColor))
                 {
-                    Logger.serviceLog(serviceName, '${issuer.getInteractionReference()} ($issuerColor) accepted a takeback. Success');
+                    Logger.serviceLog(serviceName, '$issuer ($issuerColor) accepted a takeback. Success');
                     log.append(Event(TakebackAccepted(issuerColor)));
                     sessions.broadcast(TakebackAccepted(issuerColor), issuer);
                 }
                 else
-                    Logger.serviceLog(serviceName, '${issuer.getInteractionReference()} ($issuerColor) tried to accept a takeback, but failed');
+                    Logger.serviceLog(serviceName, '$issuer ($issuerColor) tried to accept a takeback, but failed');
             case DeclineTakeback:
                 if (offers.declineTakeback(issuerColor))
                 {
-                    Logger.serviceLog(serviceName, '${issuer.getInteractionReference()} ($issuerColor) declined a takeback. Success');
+                    Logger.serviceLog(serviceName, '$issuer ($issuerColor) declined a takeback. Success');
                     log.append(Event(TakebackDeclined(issuerColor)));
                     sessions.broadcast(TakebackDeclined(issuerColor), issuer);
                 }
                 else
-                    Logger.serviceLog(serviceName, '${issuer.getInteractionReference()} ($issuerColor) tried to decline a takeback, but failed');
+                    Logger.serviceLog(serviceName, '$issuer ($issuerColor) tried to decline a takeback, but failed');
             case AddTime:
                 if (state.moveNum == 0)
                 {
-                    Logger.serviceLog(serviceName, '${issuer.getInteractionReference()} ($issuerColor) tried to add time too early: on move ${state.moveNum}');
+                    Logger.serviceLog(serviceName, '$issuer ($issuerColor) tried to add time too early: on move ${state.moveNum}');
                     return;
                 }
                 
-                Logger.serviceLog(serviceName, '${issuer.getInteractionReference()} ($issuerColor) added some time to their opponent (+ ${Constants.msAddedByOpponent} ms)');
+                Logger.serviceLog(serviceName, '$issuer ($issuerColor) added some time to their opponent (+ ${Constants.msAddedByOpponent} ms)');
                 var receiverColor:PieceColor = opposite(issuerColor);
                 log.addTime(receiverColor);
                 time.addTime(receiverColor, state.turnColor(), state.moveNum);
@@ -251,28 +254,39 @@ class Game
         }
     }
 
-    public function onUserLeft(user:UserSession) 
+    public function onUserLeftToOtherPage(user:UserSession) 
     {
-        var playerColor:Null<PieceColor> = sessions.getPresentPlayerColor(user);
+        var playerColor:Null<PieceColor> = log.getColorByRef(user);
 
         if (playerColor != null)
         {
-            Logger.serviceLog(serviceName, 'Player ${user.getLogReference()} ($playerColor) left');
+            Logger.serviceLog(serviceName, 'Player $user ($playerColor) left');
             sessions.removePlayer(playerColor);
             log.append(Event(PlayerDisconnected(playerColor)));
             sessions.broadcast(PlayerDisconnected(playerColor));
         }
         else
         {
-            Logger.serviceLog(serviceName, 'Spectator ${user.getLogReference()} left');
+            Logger.serviceLog(serviceName, 'Spectator $user left');
             sessions.removeSpectator(user);
-            sessions.broadcast(SpectatorLeft(user.getLogReference()));
+            sessions.broadcast(SpectatorLeft(user.getReference()));
         }
+
+        checkDerelictness();
     }
 
-    public function onPlayerJoined(playerColor:PieceColor, session:UserSession) 
+    public function onPlayerJoined(session:UserSession) 
     {
-        Logger.serviceLog(serviceName, 'Player ${session.getLogReference()} ($playerColor) joined');
+        var playerColor:Null<PieceColor> = log.getColorByRef(session);
+
+        if (playerColor == null)
+        {
+            Logger.logError('$session is not a player in game $id, but onPlayerJoined() was called');
+            onSpectatorJoined(session);
+            return;
+        }
+
+        Logger.serviceLog(serviceName, 'Player $session ($playerColor) joined');
         sessions.attachPlayer(playerColor, session);
         log.append(Event(PlayerReconnected(playerColor)));
         sessions.broadcast(PlayerReconnected(playerColor));
@@ -280,53 +294,90 @@ class Game
 
     public function onSpectatorJoined(spectator:UserSession) 
     {
-        Logger.serviceLog(serviceName, 'Spectator ${spectator.getLogReference()} joined');
+        Logger.serviceLog(serviceName, 'Spectator $spectator joined');
         sessions.addSpectator(spectator);
-        sessions.broadcast(NewSpectator(spectator.getLogReference()));
+        sessions.broadcast(NewSpectator(spectator.getReference()));
     }
 
     public function onPresentUserDisconnected(user:UserSession) 
     {
-        var playerColor:Null<PieceColor> = sessions.getPresentPlayerColor(user);
+        if (temporarilyOfflineUserRefs.contains(user.getReference()))
+            return;
+
+        var playerColor:Null<PieceColor> = log.getColorByRef(user);
+        
         if (playerColor != null)
         {
-            Logger.serviceLog(serviceName, 'Player ${user.getLogReference()} ($playerColor) disconnected');
+            if (!sessions.playerIngame(playerColor))
+                return;
+            
+            Logger.serviceLog(serviceName, 'Player $user ($playerColor) disconnected');
             log.append(Event(PlayerDisconnected(playerColor)));
             sessions.broadcast(PlayerDisconnected(playerColor));
         }
         else
         {
-            Logger.serviceLog(serviceName, 'Spectator ${user.getLogReference()} disconnected');
-            sessions.broadcast(SpectatorLeft(user.getLogReference()));
+            if (!sessions.spectatorIngame(user))
+                return;
+
+            Logger.serviceLog(serviceName, 'Spectator $user disconnected');
+            sessions.broadcast(SpectatorLeft(user.getReference()));
         }
+
+        temporarilyOfflineUserRefs.push(user.getReference());
     }
 
     public function onPresentUserReconnected(user:UserSession) 
     {
-        var playerColor:Null<PieceColor> = sessions.getPresentPlayerColor(user);
+        if (!temporarilyOfflineUserRefs.contains(user.getReference()))
+            return;
+
+        var playerColor:Null<PieceColor> = log.getColorByRef(user);
         if (playerColor != null)
         {
-            Logger.serviceLog(serviceName, 'Player ${user.getLogReference()} ($playerColor) reconnected');
+            Logger.serviceLog(serviceName, 'Player $user ($playerColor) reconnected');
             log.append(Event(PlayerReconnected(playerColor)));
             sessions.broadcast(PlayerReconnected(playerColor));
         }
         else
         {
-            Logger.serviceLog(serviceName, 'Spectator ${user.getLogReference()} reconnected');
-            sessions.broadcast(NewSpectator(user.getLogReference()));
+            Logger.serviceLog(serviceName, 'Spectator $user reconnected');
+            sessions.broadcast(NewSpectator(user.getReference()));
         }
+
+        temporarilyOfflineUserRefs.remove(user.getReference());
     }
 
     public function onSessionDestroyed(user:UserSession) 
     {
-        Logger.serviceLog(serviceName, 'Removing session ${user.getLogReference()} as it was destroyed');
-        var playerColor:Null<PieceColor> = sessions.getPresentPlayerColor(user); 
+        Logger.serviceLog(serviceName, 'Attempting to remove session $user as it was destroyed');
+
+        var playerColor:Null<PieceColor> = log.getColorByRef(user);
+
+        if (playerColor != null && !sessions.playerIngame(playerColor))
+            return;
+        else if (playerColor == null && !sessions.spectatorIngame(user))
+            return;
+
+        Logger.serviceLog(serviceName, 'Removing session $user as it was destroyed');
+        temporarilyOfflineUserRefs.remove(user.getReference());
         sessions.removeSession(user);
+
         if (playerColor != null && user.isGuest())
         {
-            Logger.serviceLog(serviceName, 'The destroyed session ${user.getLogReference()} belongs to a guest, ending the game as well');
+            Logger.serviceLog(serviceName, 'The destroyed session $user belongs to a guest, ending the game as well');
             endGame(Decisive(Abandon, opposite(playerColor)));
         }
+        else
+            checkDerelictness();
+    }
+
+    private function checkDerelictness()
+    {
+        if (sessions.isDerelict(true) && state.moveNum < 2)
+            abortGame();
+        else if (sessions.isDerelict() && log.timeControl.isCorrespondence())
+            GameManager.unloadDerelictCorrespondence(id);
     }
 
     public function abortGame() 
@@ -349,16 +400,14 @@ class Game
 
         for (color in PieceColor.createAll())
         {
-            var playerLogin:String = log.playerRefs.get(color);
-            var opponent:Null<UserSession> = sessions.getPresentPlayerSession(opposite(color));
+            var playerRef:String = log.playerRefs.get(color);
+            var opponentRef:String = log.playerRefs.get(opposite(color));
 
-            if (Auth.isGuest(playerLogin) || opponent == null)
+            if (Auth.isGuest(playerRef))
                 continue;
 
-            var opponentRef:String = opponent.getInteractionReference();
             var params:ChallengeParams = new ChallengeParams(log.timeControl, Direct(opponentRef), color, log.customStartingSituation, log.rated);
-
-            map.set(playerLogin, params);
+            map.set(playerRef, params);
         }
 
         return map;

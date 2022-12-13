@@ -9,11 +9,11 @@ class ProfileManager
 {
     public static function addFriend(author:UserSession, login:String) 
     {
-        Logger.serviceLog('PROFILEMGR', '${author.getLogReference()} wants to add $login as a friend');
+        Logger.serviceLog('PROFILEMGR', '$author wants to add $login as a friend');
         if (Auth.userExists(login))
         {
             author.storedData.addFriend(login);
-            Logger.serviceLog('PROFILEMGR', 'Success: ${author.getLogReference()} and $login are now friends');
+            Logger.serviceLog('PROFILEMGR', 'Success: $author and $login are now friends');
         }
         else
         {
@@ -24,11 +24,11 @@ class ProfileManager
 
     public static function removeFriend(author:UserSession, login:String) 
     {
-        Logger.serviceLog('PROFILEMGR', '${author.getLogReference()} wants to remove $login from their friend list');
+        Logger.serviceLog('PROFILEMGR', '$author wants to remove $login from their friend list');
         if (Auth.userExists(login))
         {
             author.storedData.removeFriend(login);
-            Logger.serviceLog('PROFILEMGR', 'Success: ${author.getLogReference()} and $login are no longer friends');
+            Logger.serviceLog('PROFILEMGR', 'Success: $author and $login are no longer friends');
         }
         else
         {
