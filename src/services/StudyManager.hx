@@ -49,6 +49,6 @@ class StudyManager
         if (data == null)
             author.emit(StudyNotFound);
         else
-            author.emit(SingleStudy(data.toStudyInfo()));
+            author.emit(SingleStudy(data.toStudyInfo(), data.getAuthor()));
     }
 }
