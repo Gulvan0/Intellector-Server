@@ -7,12 +7,12 @@ import entities.UserSession;
 
 class PageManager 
 {
-    private static var pageByUserRef:Map<String, ViewedScreen> = [];
+    private static var pageBySessionID:Map<Int, ViewedScreen> = [];
     private static var sessionsByPage:DefaultArrayMap<ViewedScreen, UserSession> = new DefaultArrayMap([]);
 
     public static function getPage(session:UserSession):Null<ViewedScreen>
     {
-        return pageByUserRef.get(session.getReference());
+        return pageBySessionID.get(session.sessionID);
     }
 
     public static function updatePage(session:UserSession, page:ViewedScreen) 
@@ -25,7 +25,7 @@ class PageManager
             else
                 onPageLeft(session, previousPage, false);
 
-        pageByUserRef.set(session.getReference(), page);
+            pageBySessionID.set(session.sessionID, page);
         sessionsByPage.push(page, session);
 
         onPageEntered(session, page);
@@ -40,7 +40,7 @@ class PageManager
             sessionsByPage.pop(previousPage, session);
         }
 
-        pageByUserRef.remove(session.getReference());
+        pageBySessionID.remove(session.sessionID);
     }
 
     public static function notifyPageViewers(page:ViewedScreen, event:ServerEvent) 

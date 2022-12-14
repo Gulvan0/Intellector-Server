@@ -208,7 +208,7 @@ class GameManager
 
     public static function onGameEnded(outcome:Outcome, game:Game) 
     {
-        Logger.serviceLog('GAMEMGR', 'Ending game ${game.id} with outcome $outcome');
+        Logger.serviceLog('GAMEMGR', 'Game ${game.id} ended with outcome $outcome, performing cleanup');
         
         games.removeEnded(game.id);
 

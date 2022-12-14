@@ -47,9 +47,9 @@ class GameSessions
     {
         var sessionRef:String = session.getReference();
 
-        if (playerSessions.get(White).getReference() == sessionRef)
+        if (playerSessions.get(White) != null && playerSessions.get(White).getReference() == sessionRef)
             removePlayer(White);
-        else if (playerSessions.get(Black).getReference() == sessionRef)
+        else if (playerSessions.get(Black) != null && playerSessions.get(Black).getReference() == sessionRef)
             removePlayer(Black);
         else 
             removeSpectator(session);

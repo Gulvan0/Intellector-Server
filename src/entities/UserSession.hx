@@ -78,6 +78,8 @@ class UserSession
 
         if (storedData != null)
             ids = storedData.getOngoingGameIDs();
+        else if (ongoingFiniteGameID != null)
+            ids = [ongoingFiniteGameID];
         
         if (ongoingFiniteGameID == null && viewedGameID != null)
             ids.push(viewedGameID);
@@ -142,7 +144,7 @@ class UserSession
         ChallengeManager.handleDisconnection(this);
         GameManager.handleDisconnection(this);
 
-        var fiveMinutes:Int = 5 * 60 * 1000;
+        var fiveMinutes:Int = 1 * 60 * 1000; //TODO: Revert to five minutes after testing
         reconnectionTimer = Timer.delay(onReconnectionTimeOut, fiveMinutes);
     }
 

@@ -78,8 +78,8 @@ class Config
         if (data.exists("port"))
             port = data.get("port");
 
-        if (data.exists("min-client-ver"))
-            minClientVer = data.get("min-client-ver");
+        if (data.exists("min-client-build"))
+            minClientVer = data.get("min-client-build");
 
         if (data.exists("cert-path"))
             sslCert = Certificate.loadFile(data.get("cert-path"));
