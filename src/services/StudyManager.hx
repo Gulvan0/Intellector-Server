@@ -30,17 +30,17 @@ class StudyManager
 
         if (data.isAuthor(author.login))
         {
-            Storage.saveStudyData(lastStudyID, StudyData.fromStudyInfo(author.login, info));
-            Logger.serviceLog(serviceName, 'Study overwritten (ID = $lastStudyID; requested by $author)');
+            Storage.saveStudyData(id, StudyData.fromStudyInfo(author.login, info));
+            Logger.serviceLog(serviceName, 'Study overwritten (ID = $id; requested by $author)');
         }
         else
-            Logger.logError('$author attempted to overwrite a study (ID = $lastStudyID), but its author (${data.getAuthor()}) is different');
+            Logger.logError('$author attempted to overwrite a study (ID = $id), but its author (${data.getAuthor()}) is different');
     }
 
     public static function delete(author:UserSession, id:Int) 
     {
         author.storedData.removeStudy(id); //Here, we just make the study inaccessible, but not delete its data completely. Just in case
-        Logger.serviceLog(serviceName, 'Study detached (ID = $lastStudyID; requested by $author)');
+        Logger.serviceLog(serviceName, 'Study detached (ID = $id; requested by $author)');
     }
 
     public static function get(author:UserSession, id:Int)
