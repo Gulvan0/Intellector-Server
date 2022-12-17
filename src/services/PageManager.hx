@@ -1,5 +1,7 @@
 package services;
 
+import net.shared.dataobj.ChallengeData;
+import net.shared.dataobj.GameInfo;
 import net.shared.ServerEvent;
 import utils.ds.DefaultArrayMap;
 import net.shared.dataobj.ViewedScreen;
@@ -81,7 +83,10 @@ class PageManager
         switch page 
         {
             case MainMenu:
-                session.emit(MainMenuData(ChallengeManager.getPublicChallenges(), GameManager.getCurrentFiniteTimeGames(), GameManager.getRecentGames()));
+                var challenges:Array<ChallengeData> = ChallengeManager.getPublicPendingChallenges().map(x -> x.toChallengeData());
+                var currentGames:Array<GameInfo> = GameManager.getCurrentFiniteTimeGames();
+                var recentGames:Array<GameInfo> = GameManager.getRecentGames();
+                session.emit(MainMenuData(challenges, currentGames, recentGames));
             case Game(id):
                 //* Do nothing (spectation, participation, other things are processed in the other managers)
             case Analysis:

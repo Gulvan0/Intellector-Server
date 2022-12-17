@@ -120,7 +120,8 @@ class Orchestrator
                 ProfileManager.getOngoingGames(author, login);
                 
             case GetOpenChallenges:
-                author.emit(OpenChallenges(ChallengeManager.getPublicChallenges()));
+                var challengeData = ChallengeManager.getPublicPendingChallenges().map(x -> x.toChallengeData());
+                author.emit(OpenChallenges(challengeData));
             case GetCurrentGames:
                 author.emit(CurrentGames(GameManager.getCurrentFiniteTimeGames()));
             case GetRecentGames:

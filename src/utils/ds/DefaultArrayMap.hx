@@ -5,7 +5,7 @@ abstract DefaultArrayMap<K, V>(Map<K, Array<V>>) from Map<K, Array<V>> to Map<K,
 {
     public function get(key:K):Array<V>
     {
-        return this.exists(key)? this[key] : [];
+        return this.exists(key)? this[key].copy() : [];
     }
 
     public function push(key:K, value:V)

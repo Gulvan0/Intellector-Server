@@ -30,42 +30,6 @@ class ChallengeParams
         return new ChallengeParams(timeControl, type, acceptorColor, customStartingSituation, rated);
     }
 
-    public function compatibilityIndicator():Null<String> 
-    {
-        if (type != Public)
-            return null;
-
-        var colorStr = switch acceptorColor 
-        {
-            case null: "";
-            case White: "w";
-            case Black: "b";
-        }
-
-        var sitStr = customStartingSituation == null? "" : customStartingSituation.serialize();
-        var ratedStr = rated? "t" : "";
-
-        return colorStr + ";" + timeControl.startSecs + ";" + timeControl.incrementSecs + ";" + sitStr + ";" + ratedStr;
-    }
-
-    public function compatibleIndicators():Array<String> 
-    {
-        if (type != Public)
-            return [];
-        
-        var sitStr = customStartingSituation == null? "" : customStartingSituation.serialize();
-        var ratedStr = rated? "t" : "";
-
-        var mainPart:String = ";" + timeControl.startSecs + ";" + timeControl.incrementSecs + ";" + sitStr + ";" + ratedStr;
-
-        return switch acceptorColor 
-        {
-            case null: ["w" + mainPart, "b" + mainPart, mainPart];
-            case White: ["b" + mainPart, mainPart];
-            case Black: ["w" + mainPart, mainPart];
-        }
-    }
-
     public function serialize():String
     {
         var typeStr:String = switch type 

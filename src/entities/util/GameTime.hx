@@ -73,7 +73,7 @@ class GameTime implements IGameTime
             secondsLeftOnMoveStart.push(timeMap);
             moveStartTimestamp = timeData.timestamp;
 
-            restartTimer(opposite(turnColor), moveNum + 1, Math.round(timeMap[opposite(turnColor)] * 1000));
+            restartTimer(opposite(turnColor), moveNum + 1, timeMap[opposite(turnColor)] * 1000);
         }
         else
             onTimeout(turnColor);
@@ -111,7 +111,7 @@ class GameTime implements IGameTime
         var msPassed:Float = moveNum < 2? 0 : timestamp - moveStartTimestamp;
 
         var secsLeft:Map<PieceColor, Float> = secondsLeftOnMoveStart.last();
-        var secsLeftWhite:Float = secsLeft[turnColor] - msPassed * 1000;
+        var secsLeftWhite:Float = secsLeft[turnColor] - msPassed / 1000;
         var secsLeftBlack:Float = secsLeft[opposite(turnColor)];
 
         return new TimeReservesData(secsLeftWhite, secsLeftBlack, timestamp);
