@@ -99,11 +99,11 @@ class ChallengeManager
         for (anotherChallenge in getPublicPendingChallenges())
             if (anotherChallenge.isCompatibleWith(challenge))
             {
-                Logger.serviceLog('CHALLENGE', 'Found compatible challenge ${challenge.id}, accepting it...');
+                Logger.serviceLog('CHALLENGE', 'Found compatible challenge ${anotherChallenge.id}, accepting it...');
 
                 requestAuthor.emit(CreateChallengeResult(Merged));
 
-                accept(requestAuthor, challenge.id);
+                accept(requestAuthor, anotherChallenge.id);
                 return true;
             }
 
@@ -115,9 +115,15 @@ class ChallengeManager
         var authorRef:String = requestAuthor.getReference();
         var params:ChallengeParams = challenge.params;
 
-        if (requestAuthor.getState() != Browsing)
+        if (requestAuthor.login == null)
         {
-            Logger.serviceLog('CHALLENGE', 'Failed to create a challenge by $authorRef: user state ${requestAuthor.getState()} != Browsing');
+            Logger.serviceLog('CHALLENGE', 'Failed to create a challenge by $authorRef: not logged');
+            requestAuthor.emit(CreateChallengeResult(Impossible));
+            return false;
+        }
+        else if (requestAuthor.ongoingFiniteGameID != null)
+        {
+            Logger.serviceLog('CHALLENGE', 'Failed to create a challenge by $authorRef: busy (game ${requestAuthor.ongoingFiniteGameID})');
             requestAuthor.emit(CreateChallengeResult(Impossible));
             return false;
         }
@@ -287,7 +293,7 @@ class ChallengeManager
                 requestAuthor.emit(ChallengeCancelledByOwner);
             else if (ownerSession == null)
                 requestAuthor.emit(ChallengeOwnerOffline(ownerLogin));
-            else if (ownerSession.getState().match(PlayingFiniteGame(_)))
+            else if (ownerSession.ongoingFiniteGameID != null)
                 requestAuthor.emit(ChallengeOwnerInGame(ownerLogin));
             else
                 requestAuthor.emit(ChallengeCancelledByOwner);

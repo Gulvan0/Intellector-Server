@@ -137,12 +137,12 @@ class PlayerData
     {
         var user:Null<UserSession> = LoginManager.getUser(login);
 
-        if (user == null || user.getState() == AwaitingReconnection || user.getState() == NotLogged)
+        if (user == null || user.connection == null || user.login == null)
             return Offline(Math.round((Date.now().getTime() - lastMessageTimestamp) / 1000));
-        else if (user.getState() == Browsing)
-            return Online;
-        else
+        else if (user.ongoingFiniteGameID != null)
             return InGame;
+        else
+            return Online;
     }
 
     public function toMiniProfileData(author:UserSession):MiniProfileData

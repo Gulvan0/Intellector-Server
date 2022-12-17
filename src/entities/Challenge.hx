@@ -42,13 +42,17 @@ class Challenge
         var bracketsAgree:Bool = anotherParams.rated == thisParams.rated;
         var timeControlsAgree:Bool = anotherParams.timeControl.incrementSecs == thisParams.timeControl.incrementSecs && anotherParams.timeControl.startSecs == thisParams.timeControl.startSecs;
         var colorsAgree:Bool = anotherParams.acceptorColor == null || thisParams.acceptorColor == null || anotherParams.acceptorColor == opposite(anotherParams.acceptorColor);
-        var startingSIPsAgree:Bool = anotherParams.customStartingSituation == null || thisParams.customStartingSituation == null || anotherParams.customStartingSituation.getHash() == thisParams.customStartingSituation.getHash();
+        var startingSIPsAgree:Bool = (anotherParams.customStartingSituation == null && thisParams.customStartingSituation == null) || anotherParams.customStartingSituation != null && thisParams.customStartingSituation != null && anotherParams.customStartingSituation.getHash() == thisParams.customStartingSituation.getHash();
         
         return differentOwners && matchmakingEnabled && colorsAgree && startingSIPsAgree && bracketsAgree && timeControlsAgree;
     }
 
     public function isEquivalentTo(challenge:Challenge):Bool 
     {
+        var thisParams:ChallengeParams = this.params;
+        var anotherParams:ChallengeParams = challenge.params;
+        
+        var sameOwners:Bool = challenge.ownerLogin != this.ownerLogin;
         var sameType:Bool = switch challenge.params.type 
         {
             case Public: params.type == Public;
@@ -59,8 +63,12 @@ class Challenge
                 default: false;
             }
         }
-
-        return ownerLogin == challenge.ownerLogin && sameType && params.acceptorColor == challenge.params.acceptorColor && params.rated == challenge.params.rated && params.timeControl.startSecs == challenge.params.timeControl.startSecs && params.timeControl.incrementSecs == challenge.params.timeControl.incrementSecs && params.customStartingSituation.getHash() == challenge.params.customStartingSituation.getHash();
+        var sameBrackets:Bool = anotherParams.rated == thisParams.rated;
+        var sameTCs:Bool = anotherParams.timeControl.incrementSecs == thisParams.timeControl.incrementSecs && anotherParams.timeControl.startSecs == thisParams.timeControl.startSecs;
+        var sameColors:Bool = (anotherParams.acceptorColor == null && thisParams.acceptorColor == null) || anotherParams.acceptorColor == anotherParams.acceptorColor;
+        var sameSSIPs:Bool = (anotherParams.customStartingSituation == null && thisParams.customStartingSituation == null) || anotherParams.customStartingSituation != null && thisParams.customStartingSituation != null && anotherParams.customStartingSituation.getHash() == thisParams.customStartingSituation.getHash();
+        
+        return sameOwners && sameType && sameBrackets && sameTCs && sameColors && sameSSIPs;
     }
 
     public function new(id:Int, params:ChallengeParams, ownerLogin:String) 

@@ -51,7 +51,7 @@ class LoginManager
                     Logger.serviceLog('LOGIN', 'A session for player $login already exists (last message $intervalSeconds secs ago), aborting the connection and destroying');
                     alreadyExistingSession.abortConnection(true);
                 }
-                else if (alreadyExistingSession.getState() == AwaitingReconnection)
+                else if (alreadyExistingSession.connection == null)
                 {
                     Logger.serviceLog('LOGIN', 'A session for player $login already exists, but not connected (last message $intervalSeconds secs ago), aborting the connection and destroying');
                     alreadyExistingSession.abortConnection(true);

@@ -14,7 +14,6 @@ import services.ChallengeManager;
 import services.Storage;
 import haxe.Json;
 import net.shared.ServerEvent;
-import entities.util.UserState;
 import net.SocketHandler;
 
 class UserSession
@@ -56,20 +55,6 @@ class UserSession
                 storedData.addOngoingFiniteGame(id);
 
         return ongoingFiniteGameID = id;
-    }
-
-    public function getState():UserState
-    {
-        if (connection == null)
-            return AwaitingReconnection;
-        else if (login == null)
-            return NotLogged;
-        else if (ongoingFiniteGameID != null)
-            return PlayingFiniteGame(ongoingFiniteGameID);
-        else if (viewedGameID != null)
-            return ViewingGame(viewedGameID);
-        else
-            return Browsing;
     }
 
     public function getRelevantGameIDs():Array<Int> 

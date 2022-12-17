@@ -15,7 +15,6 @@ import services.GameManager;
 import struct.ChallengeParams;
 import services.ChallengeManager;
 import services.LoginManager;
-import entities.util.UserState;
 import services.Logger;
 import entities.UserSession;
 import net.shared.ClientEvent;
@@ -41,11 +40,9 @@ class Orchestrator
 
     public static function processEvent(event:ClientEvent, author:UserSession)
     {
-        var authorState:UserState = author.getState();
-
-        if (!isEventRelevant(event, authorState))
+        if (!isEventRelevant(event, author))
         {
-            Logger.logError('Skipping irrelevant event ${event.getName()} for author $author (state = ${authorState.getName()})');
+            Logger.logError('Skipping irrelevant event ${event.getName()} for author $author (login = ${author.login}, viewedGame = ${author.viewedGameID}, currentFiniteGame = ${author.ongoingFiniteGameID})');
             return;
         }
         
@@ -132,24 +129,21 @@ class Orchestrator
         }
     }
 
-    private static function isEventRelevant(event:ClientEvent, state:UserState) 
+    private static function isEventRelevant(event:ClientEvent, session:UserSession) 
     {
-        if (state.match(AwaitingReconnection))
-            return false;
-
-        var logged:Bool = !state.match(NotLogged);
-        var viewingGame:Bool = state.match(ViewingGame(_) | PlayingFiniteGame(_));
-        var notInGame:Bool = !state.match(PlayingFiniteGame(_));
+        var logged:Bool = session.login != null;
+        var playingFiniteGame:Bool = session.ongoingFiniteGameID != null;
+        var viewingGame:Bool = playingFiniteGame || session.viewedGameID != null;
 
         return switch event 
         {
             case Login(_, _) | Register(_, _): !logged;
-            case LogOut: logged;
+            case LogOut | AddFriend(_) | RemoveFriend(_): logged;
             case Move(_) | RequestTimeoutCheck | Message(_) | Resign | OfferDraw | CancelDraw | AcceptDraw | DeclineDraw | OfferTakeback | CancelTakeback | AcceptTakeback | DeclineTakeback | AddTime: viewingGame;
-            case CreateChallenge(_) | CancelChallenge(_) | SimpleRematch | CreateStudy(_) | OverwriteStudy(_, _) | DeleteStudy(_): notInGame && logged;
-            case GetOpenChallenge(_) | FollowPlayer(_) | AcceptChallenge(_) | DeclineDirectChallenge(_) | StopFollowing | GetGame(_) | GetStudy(_) | GetPlayerProfile(_) | GetGamesByLogin(_, _, _, _) | GetStudiesByLogin(_, _, _, _) | GetOngoingGamesByLogin(_) | GetOpenChallenges | GetCurrentGames | GetRecentGames : notInGame;
+            case CreateChallenge(_) | CancelChallenge(_) | SimpleRematch | CreateStudy(_) | OverwriteStudy(_, _) | DeleteStudy(_): !playingFiniteGame && logged;
+            case GetOpenChallenge(_) | FollowPlayer(_) | AcceptChallenge(_) | DeclineDirectChallenge(_) | StopFollowing | GetGame(_) | GetStudy(_) | GetPlayerProfile(_) | GetGamesByLogin(_, _, _, _) | GetStudiesByLogin(_, _, _, _) | GetOngoingGamesByLogin(_) | GetOpenChallenges | GetCurrentGames | GetRecentGames : !playingFiniteGame;
             case Greet(_, _, _): false;
-            case GetMiniProfile(_) | AddFriend(_) | RemoveFriend(_) | PageUpdated(_) : true;
+            case GetMiniProfile(_) | PageUpdated(_) : true;
         }
     }
 }
