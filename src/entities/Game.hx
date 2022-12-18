@@ -132,16 +132,13 @@ class Game
     {
         var issuerColor:Null<PieceColor> = log.getColorByRef(issuer);
 
-        if (issuerColor == null && !action.match(Message(_) | RequestTimeoutCheck))
+        if (issuerColor == null && !action.match(Message(_)))
             return;
 
         switch action 
         {
             case Move(rawPly):
                 performMove(issuer, rawPly);
-            case RequestTimeoutCheck:
-                Logger.serviceLog(serviceName, '$issuer ($issuerColor) demanded timeout check; performing');
-                time.checkTime(state.turnColor(), state.moveNum);
             case Message(text):
                 sendMessage(issuer, text);
             case Resign:
@@ -248,7 +245,7 @@ class Game
                 
                 Logger.serviceLog(serviceName, '$issuer ($issuerColor) added some time to their opponent (+ ${Constants.msAddedByOpponent} ms)');
                 var receiverColor:PieceColor = opposite(issuerColor);
-                log.addTime(receiverColor);
+                log.append(Event(TimeAdded(receiverColor)));
                 time.addTime(receiverColor, state.turnColor(), state.moveNum);
                 sessions.broadcast(TimeAdded(receiverColor, getTime()));
         }

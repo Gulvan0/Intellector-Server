@@ -6,7 +6,6 @@ import net.shared.PieceType;
 enum GameAction 
 {
     Move(rawPly:RawPly); 
-    RequestTimeoutCheck; 
     Message(text:String);
     Resign; 
     OfferDraw; 

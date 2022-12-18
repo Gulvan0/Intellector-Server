@@ -71,7 +71,7 @@ class GameLog
             case TimeControl(tc):
                 timeControl = tc;
             case CustomStartingSituation(situation):
-                customStartingSituation = situation;
+                customStartingSituation = situation.copy();
             case MsLeft(whiteMs, blackMs):
                 msLeftOnOver = [White => whiteMs, Black => blackMs];
             case Result(_):
@@ -81,28 +81,6 @@ class GameLog
 
         if (saveToStorage)
             save();
-    }
-
-    public function addTime(bonusTimeReceiverColor:PieceColor) 
-    {
-        var i:Int = entries.length - 1;
-
-        while (i >= 0)
-        {
-            var entry:GameLogEntry = entries[i];
-            switch entry 
-            {
-                case Move(rawPly, msLeftWhite, msLeftBlack):
-                    if (bonusTimeReceiverColor == White)
-                        entries[i] = Move(rawPly, msLeftWhite + Constants.msAddedByOpponent, msLeftBlack);
-                    else
-                        entries[i] = Move(rawPly, msLeftWhite, msLeftBlack + Constants.msAddedByOpponent);
-                    entries.push(Event(TimeAdded(bonusTimeReceiverColor)));
-                    saveFromEntryArray();
-                    return;
-                default:
-            }
-        }
     }
 
     public function rollback(moveCnt:Int) 
@@ -144,7 +122,7 @@ class GameLog
             log.append(entry, false);
 
         if (log.timeControl == null)
-            log.timeControl = TimeControl.correspondence();
+            log.timeControl = new TimeControl(600, 5);
 
         return log;
     }

@@ -161,7 +161,13 @@ class ChallengeManager
                 }
                 else if (!Auth.isGuest(calleeRef) && !Auth.userExists(calleeRef))
                 {
-                    Logger.serviceLog('CHALLENGE', 'Failed to create a challenge by $authorRef: callee not found');
+                    Logger.serviceLog('CHALLENGE', 'Failed to create a challenge by $authorRef: player not found');
+                    requestAuthor.emit(CreateChallengeResult(PlayerNotFound));
+                    return false;
+                }
+                else if (Auth.isGuest(calleeRef) && !Auth.guestSessionExists(calleeRef))
+                {
+                    Logger.serviceLog('CHALLENGE', 'Failed to create a challenge by $authorRef: guest not found or has already left');
                     requestAuthor.emit(CreateChallengeResult(PlayerNotFound));
                     return false;
                 }
@@ -345,22 +351,38 @@ class ChallengeManager
         if (user.login == null)
             return;
 
-        Logger.serviceLog('CHALLENGE', 'Cancelling all challenges for ${user.login}');
+        Logger.serviceLog('CHALLENGE', 'Cancelling all outgoing challenges for ${user.login}');
 
         var ids:Array<Int> = pendingChallengeIDsByOwnerLogin.get(user.login);
 
         for (id in ids)
             cancel(user, id);
     }
+
+    public static function declineAllIncomingChallenges(user:UserSession)
+    {
+        Logger.serviceLog('CHALLENGE', 'Declining all incoming challenges for ${user.login}');
+
+        var ids:Array<Int> = pendingDirectChallengeIDsByReceiverRef.get(user.getReference());
+
+        for (id in ids)
+            decline(user, id);
+    }
     
     public static function handleDisconnection(user:UserSession) 
     {
         cancelAllOutgoingChallenges(user);
     }
+    
+    public static function handleSessionDestruction(user:UserSession) 
+    {
+        if (user.isGuest())
+            declineAllIncomingChallenges(user);
+    }
 
     public static function cancelAllChallenges()
     {
-        Logger.serviceLog('CHALLENGE', 'Cancelling all pending challenges by request');
+        Logger.serviceLog('CHALLENGE', 'Cancelling all pending challenges');
 
         for (challenge in pendingChallengeByID)
             removeChallenge(challenge);

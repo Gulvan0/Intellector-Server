@@ -10,7 +10,6 @@ using utils.ds.ArrayTools;
 
 interface IGameTime 
 {
-    public function checkTime(turnColor:PieceColor, moveNum:Int):Void;
     public function stopTime(turnColor:PieceColor, moveNum:Int):Void;
     public function addTime(color:PieceColor, turnColor:PieceColor, moveNum:Int):Void;
     public function onMoveMade(movedPlayerColor:PieceColor, moveNum:Int):Void;
@@ -23,7 +22,6 @@ private class Nil implements IGameTime
 {
     public function onMoveMade(movedPlayerColor:PieceColor, moveNum:Int) {} 
     public function onRollback(moveCnt:Int, newTurnColor:PieceColor, newMoveNum:Int) {} 
-    public function checkTime(turnColor:PieceColor, moveNum:Int) {} 
     public function stopTime(turnColor:PieceColor, moveNum:Int) {} 
     public function addTime(color:PieceColor, turnColor:PieceColor, moveNum:Int) {}
 
@@ -89,7 +87,7 @@ class GameTime implements IGameTime
     {
         stopTimer();
         if (moveNum >= 2)
-            timeoutTerminationTimer = Timer.delay(checkTime.bind(turnColor, moveNum), Math.ceil(playerMsLeft) + 100);
+            timeoutTerminationTimer = Timer.delay(checkTime.bind(turnColor, moveNum), Math.ceil(playerMsLeft));
     }
 
     public function onRollback(moveCnt:Int, newTurnColor:PieceColor, newMoveNum:Int) 
@@ -110,23 +108,26 @@ class GameTime implements IGameTime
         var timestamp:Float = Sys.time() * 1000;
         var msPassed:Float = moveNum < 2? 0 : timestamp - moveStartTimestamp;
 
-        var secsLeft:Map<PieceColor, Float> = secondsLeftOnMoveStart.last();
-        var secsLeftWhite:Float = secsLeft[turnColor] - msPassed / 1000;
-        var secsLeftBlack:Float = secsLeft[opposite(turnColor)];
+        var secsLeft:Map<PieceColor, Float> = secondsLeftOnMoveStart.last().copy();
+        secsLeft[turnColor] -= msPassed / 1000;
+
+        var secsLeftWhite:Float = Math.max(secsLeft[White], 0);
+        var secsLeftBlack:Float = Math.max(secsLeft[Black], 0);
 
         return new TimeReservesData(secsLeftWhite, secsLeftBlack, timestamp);
     } 
 
-    public function checkTime(turnColor:PieceColor, moveNum:Int) 
+    private function checkTime(turnColor:PieceColor, moveNum:Int) 
     {
         var timeMap = getTime(turnColor, moveNum).secsLeftMap();
+        var movingPlayerSecsLeft = timeMap[turnColor];
 
-        for (color in PieceColor.createAll())
-            if (timeMap[color] <= 0)
-            {
-                onTimeout(color);
-                return;
-            }
+        if (movingPlayerSecsLeft <= 0)
+            onTimeout(turnColor);
+        else if (timeMap[opposite(turnColor)] <= 0)
+            onTimeout(opposite(turnColor));
+        else if (moveNum >= 2)
+            timeoutTerminationTimer = Timer.delay(checkTime.bind(turnColor, moveNum), Math.ceil(movingPlayerSecsLeft * 1000));
     }
 
     public function stopTime(turnColor:PieceColor, moveNum:Int) 
@@ -139,7 +140,7 @@ class GameTime implements IGameTime
     {
         secondsLeftOnMoveStart.last()[color] += Constants.msAddedByOpponent / 1000;
         if (color == turnColor)
-            restartTimer(turnColor, moveNum, getTime(turnColor, moveNum).secsLeftMap()[turnColor]);
+            restartTimer(turnColor, moveNum, getTime(turnColor, moveNum).secsLeftMap()[turnColor] * 1000);
     }
 
     public static function nil():IGameTime

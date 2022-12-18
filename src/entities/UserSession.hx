@@ -102,6 +102,7 @@ class UserSession
         ChallengeManager.handleDisconnection(this);
         GameManager.handleDisconnection(this);
 
+        ChallengeManager.handleSessionDestruction(this);
         GameManager.handleSessionDestruction(this);
         LoginManager.handleSessionDestruction(this);
         SpecialBroadcaster.handleSessionDestruction(this);
@@ -157,6 +158,7 @@ class UserSession
         reconnectionTimer = null;
         Auth.detachSession(sessionID);
 
+        ChallengeManager.handleSessionDestruction(this);
         GameManager.handleSessionDestruction(this);
         LoginManager.handleSessionDestruction(this);
         SpecialBroadcaster.handleSessionDestruction(this);

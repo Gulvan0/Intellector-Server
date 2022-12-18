@@ -72,6 +72,17 @@ class Auth
         return tokenBySessionID.get(id);
     }
 
+    public static function sessionExists(id:Int):Bool
+    {
+        return userBySessionID.exists(id);
+    }
+
+    public static function guestSessionExists(ref:String):Bool
+    {
+        var id:Null<Int> = Std.parseInt(ref.substr(1));
+        return isGuest(ref) && id != null && sessionExists(id);
+    }
+
     private static function generateSessionToken():String
     {
         var token:String = "_";

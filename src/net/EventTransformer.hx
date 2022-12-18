@@ -40,7 +40,6 @@ class EventTransformer
         return switch event
         {
             case Move(rawPly): Move(rawPly);
-            case RequestTimeoutCheck: RequestTimeoutCheck;
             case Message(text): Message(text);
             case Resign: Resign;
             case OfferDraw: OfferDraw;
