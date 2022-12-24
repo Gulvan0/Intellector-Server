@@ -52,7 +52,7 @@ class GameLog
 
     private function saveFromEntryArray() 
     {
-        log = GameLogTranslator.fromEntries(entries);
+        log = GameLogTranslator.fromEntries(entries, !ongoing);
         save();
     }
 
@@ -104,7 +104,7 @@ class GameLog
             i--;
         }
 
-        log = GameLogTranslator.join(splittedLog); //Entries have already been filtered inside the loop above
+        log = GameLogTranslator.join(splittedLog, false); //Entries have already been filtered inside the loop above
 
         Storage.overwrite(GameData(gameID), log);
     }

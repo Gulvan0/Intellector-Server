@@ -241,9 +241,12 @@ class GameLogTranslator
         return log.split(separator).map(StringTools.trim).filter(x -> x.length > 0);
     }
 
-    public static function join(encodedEntries:Array<String>):String 
+    public static function join(encodedEntries:Array<String>, ended:Bool):String 
     {
-        return encodedEntries.join(separator + '\n');
+        if (ended)
+            return encodedEntries.join(separator + '\n');
+        else
+            return encodedEntries.join(separator + '\n') + separator + '\n';
     }
 
     public static function concat(log:String, newEntry:GameLogEntry):String 
@@ -251,8 +254,8 @@ class GameLogTranslator
         return log + encode(newEntry) + separator + '\n';
     }
 
-    public static function fromEntries(entries:Array<GameLogEntry>):String
+    public static function fromEntries(entries:Array<GameLogEntry>, ended:Bool):String
     {
-        return join(entries.map(encode));
+        return join(entries.map(encode), ended);
     }
 }
