@@ -319,6 +319,12 @@ class ChallengeManager
             Logger.serviceLog('CHALLENGE', 'Failed to accept challenge $id: caller = callee (${requestAuthor.login})');
             return;
         }
+
+        if (challenge.params.rated && requestAuthor.isGuest())
+        {
+            Logger.serviceLog('CHALLENGE', 'Failed to accept challenge $id: callee (${requestAuthor.login}) is guest, but the challenge is rated');
+            return;
+        }
         
         var ownerSession = LoginManager.getUser(challenge.ownerLogin);
 

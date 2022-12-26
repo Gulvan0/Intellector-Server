@@ -34,7 +34,9 @@ class Logger
 
     public static function addAntifraudEntry(playerLogin:String, valueName:String, oldValue:Float, newValue:Float) 
     {
-        var message:String = '$valueName $playerLogin: $oldValue -> $newValue (${newValue - oldValue})';
+        var delta:Float = newValue - oldValue;
+        var deltaStr:String = delta > 0? '+$delta' : '$delta';
+        var message:String = '$valueName $playerLogin: $oldValue -> $newValue ($deltaStr)';
         appendLog(Antifraud, message, '$');
     }
 

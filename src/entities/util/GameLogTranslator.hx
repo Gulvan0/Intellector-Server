@@ -3,6 +3,7 @@ package entities.util;
 import net.shared.board.RawPly;
 import struct.TimeControl;
 import net.shared.board.Situation;
+import net.shared.EloValue.serialize;
 import net.shared.EloValue.deserialize;
 import net.shared.PieceType;
 import net.shared.board.HexCoords;
@@ -216,7 +217,7 @@ class GameLogTranslator
             case Players(whiteRef, blackRef):
                 return '#P|$whiteRef/$blackRef';
             case Elo(whiteElo, blackElo):
-                return '#e|$whiteElo/$blackElo';
+                return '#e|${serialize(whiteElo)}/${serialize(blackElo)}';
             case DateTime(ts):
                 return '#D|${Math.ffloor(ts.getTime() / 1000)}';
             case MsLeft(whiteMs, blackMs):

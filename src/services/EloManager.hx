@@ -18,11 +18,11 @@ class EloManager
 
     public static function recalculateElo(formerElo:EloValue, formerOpponentElo:EloValue, outcome:PersonalOutcome, totalPriorGames:Int):EloValue
     {
-        var score:Int = switch outcome 
+        var score:Float = switch outcome 
         {
             case Win(_): 1;
-            case Loss(_): -1;
-            case Draw(_): 0;
+            case Loss(_): 0;
+            case Draw(_): 0.5;
         }
 
         var calibrationGamesLeft:Int = MathUtils.maxInt(Config.calibrationGamesCount - totalPriorGames, 0); 
