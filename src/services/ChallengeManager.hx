@@ -69,11 +69,17 @@ class ChallengeManager
                 {
                     case Ongoing(game):
                         Logger.serviceLog('CHALLENGE', 'Challenge $id has been fullfilled, the corresponding game $gameID is still in progress');
-                        if (game.log.getColorByRef(requestAuthor) != null)
+                        var isParticipant:Bool = game.log.getColorByRef(requestAuthor) != null;
+
+                        if (isParticipant)
                             game.onPlayerJoined(requestAuthor);
                         else
                             game.onSpectatorJoined(requestAuthor);
+
                         requestAuthor.emit(OpenChallengeHostPlaying(OngoingGameInfo.create(game.id, game.getTime(), game.log.get())));
+
+                        if (isParticipant)
+                            game.resendPendingOffers(requestAuthor);
                     case Past(log):
                         Logger.serviceLog('CHALLENGE', 'Challenge $id has been fullfilled, the corresponding game $gameID has already ended');
                         requestAuthor.emit(OpenChallengeGameEnded(gameID, log));

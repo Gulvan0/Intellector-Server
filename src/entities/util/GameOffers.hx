@@ -10,6 +10,16 @@ class GameOffers
     private var onDrawAchieved:Void->Void;
     private var onRollbackNeeded:PieceColor->Void;
     
+    public function hasIncomingDrawRequest(color:PieceColor) 
+    {
+        return hasPendingDrawRequest[opposite(color)];
+    }
+
+    public function hasIncomingTakebackRequest(color:PieceColor) 
+    {
+        return hasPendingTakebackRequest[opposite(color)];
+    }
+
     public function offerDraw(requestedBy:PieceColor):Bool
     {
         if (hasPendingDrawRequest[requestedBy])

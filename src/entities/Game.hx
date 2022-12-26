@@ -251,6 +251,18 @@ class Game
         }
     }
 
+    public function resendPendingOffers(receiver:UserSession) 
+    {
+        var receiverColor:Null<PieceColor> = log.getColorByRef(receiver);
+        if (receiverColor == null)
+            return;
+        
+        if (offers.hasIncomingDrawRequest(receiverColor))
+            sessions.tellPlayer(receiverColor, DrawOffered(opposite(receiverColor)));
+        if (offers.hasIncomingTakebackRequest(receiverColor))
+            sessions.tellPlayer(receiverColor, TakebackOffered(opposite(receiverColor)));
+    }
+
     public function onUserLeftToOtherPage(user:UserSession) 
     {
         var playerColor:Null<PieceColor> = log.getColorByRef(user);

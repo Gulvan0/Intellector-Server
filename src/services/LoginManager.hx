@@ -93,6 +93,7 @@ class LoginManager
                         else
                             user.emit(LoginResult(ReconnectionNeeded(incomingChallenges, info)));
 
+                        game.resendPendingOffers(user);
                     default:
                         Logger.serviceLog('LOGIN', 'Login successful for $login. Sent ${incomingChallenges.length} incoming challenges');
 

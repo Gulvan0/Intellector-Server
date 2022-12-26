@@ -1,5 +1,6 @@
 package;
 
+import net.shared.PieceColor;
 import services.PageManager;
 import services.SpecialBroadcaster;
 import services.ProfileManager;
@@ -26,11 +27,17 @@ class Orchestrator
         switch GameManager.getSimple(id) 
         {
             case Ongoing(game):
-                if (game.log.getColorByRef(author) != null)
+                var isParticipant:Bool = game.log.getColorByRef(author) != null;
+
+                if (isParticipant)
                     game.onPlayerJoined(author);
                 else
                     game.onSpectatorJoined(author);
+
                 author.emit(GameIsOngoing(game.getTime(), game.log.get()));
+
+                if (isParticipant)
+                    game.resendPendingOffers(author);
             case Past(log):
                 author.emit(GameIsOver(log));
             case NonExisting:
