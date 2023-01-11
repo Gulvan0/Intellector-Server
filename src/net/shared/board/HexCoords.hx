@@ -49,12 +49,22 @@ class HexCoords
         return new HexCoords(i, j);
     }
 
-    public function isFinal(color:PieceColor) 
+    public function isFinal(color:PieceColor):Bool
     {
         if (color == White)
             return j == 0 && i % 2 == 0;
         else
             return j == 6 && i % 2 == 0;
+    }
+
+    public function isDark():Bool
+    {
+        if (j % 3 == 2)
+            return false;
+        else if (j % 3 == 0)
+            return i % 2 == 0;
+        else 
+            return i % 2 == 1;
     }
 
     public function equals(other:HexCoords):Bool 
