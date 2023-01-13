@@ -25,7 +25,7 @@ class UserSession
 
     public var sessionID(default, null):Int;
     private var reconnectionTimer:Timer;
-    private var missedEvents:Array<ServerEvent> = [];
+    private var latestEvents:Array<{ts:Float, event:ServerEvent}> = [];
 
     @:isVar public var ongoingFiniteGameID(get, set):Null<Int>;
     public var viewedGameID(get, never):Null<Int>;
@@ -84,8 +84,8 @@ class UserSession
     {
         if (connection != null)
             connection.emit(event);
-        else
-            missedEvents.push(event);
+        
+        latestEvents.push({ts: Sys.time() * 1000, event: event});
     }
 
     public function abortConnection(preventReconnection:Bool) 
@@ -134,7 +134,7 @@ class UserSession
         reconnectionTimer = Timer.delay(onReconnectionTimeOut, fiveMinutes);
     }
 
-    public function onReconnected(connection:SocketHandler):Array<ServerEvent>
+    public function onReconnected(connection:SocketHandler, lastProcessedMessageTS:Float):Array<ServerEvent>
     {
         Logger.serviceLog("SESSION", '$this reconnected');
         skipDisconnectionProcessing = false;
@@ -147,9 +147,20 @@ class UserSession
 
         GameManager.handleReconnection(this);
 
-        var returnedEvents = missedEvents;
-        missedEvents = [];
+        var returnedEvents = [];
+
+        for (entry in latestEvents)
+            if (entry.ts > lastProcessedMessageTS)
+                returnedEvents.push(entry.event);
+
+        latestEvents = [];
+
         return returnedEvents;
+    }
+
+    public function flushLatestEvents() 
+    {
+        latestEvents = [];    
     }
 
     private function onReconnectionTimeOut() 

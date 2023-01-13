@@ -25,6 +25,8 @@ class SocketHandler extends WebSocketHandler
     private var isNew:Bool = true;
     private var user:UserSession;
     private var silentConnectionDropTimer:Timer;
+    private var ownHeartbeatTimer:Timer;
+    private var clientHeartbeatTimeoutTimer:Timer;
 
     public function emit(event:ServerEvent) 
     {
@@ -40,6 +42,19 @@ class SocketHandler extends WebSocketHandler
     private function onClosed()
     {
         Logger.serviceLog("SOCKET", '$id closed');
+
+        if (silentConnectionDropTimer != null)
+            silentConnectionDropTimer.stop();
+        silentConnectionDropTimer = null;
+
+        if (ownHeartbeatTimer != null)
+            ownHeartbeatTimer.stop();
+        ownHeartbeatTimer = null;
+
+        if (clientHeartbeatTimeoutTimer != null)
+            clientHeartbeatTimeoutTimer.stop();
+        clientHeartbeatTimeoutTimer = null;
+
         if (user != null)
             user.onDisconnected();
     }
@@ -100,6 +115,14 @@ class SocketHandler extends WebSocketHandler
             
             if (isNew)
                 processFirstEvent(event);
+            else if (event.match(KeepAliveBeat))
+            {
+                if (clientHeartbeatTimeoutTimer != null)
+                    clientHeartbeatTimeoutTimer.stop();
+                clientHeartbeatTimeoutTimer = Timer.delay(onClientBeatTimeout, Config.keepAliveClientBeatTimeoutMs);
+                if (user != null)
+                    user.flushLatestEvents();
+            }
             else
                 Orchestrator.processEvent(event, user);
         }
@@ -148,24 +171,36 @@ class SocketHandler extends WebSocketHandler
                     case Login(login, password):
                         this.user = Auth.createSession(this);
                         LoginManager.login(user, login, password, true);
-                    case Reconnect(token):
+                    case Reconnect(token, lastProcessedMessageTS):
                         var restoredUser:Null<UserSession> = Auth.getUserBySessionToken(token);
                         if (restoredUser != null)
                         {
                             this.user = restoredUser;
-                            var missedEvents = user.onReconnected(this);
+                            var missedEvents = user.onReconnected(this, lastProcessedMessageTS);
                             emit(GreetingResponse(Reconnected(missedEvents)));
                         }
                         else
                         {
                             emit(GreetingResponse(NotReconnected));
                             Logger.serviceLog("SOCKET", '$id attempted to restore a session with a wrong token: $token');
+                            return;
                         }
                 }
+
+                ownHeartbeatTimer = new Timer(Config.keepAliveOwnBeatIntervalMs);
+                ownHeartbeatTimer.run = emit.bind(KeepAliveBeat);
+
+                clientHeartbeatTimeoutTimer = Timer.delay(onClientBeatTimeout, Config.keepAliveClientBeatTimeoutMs);
             default:
                 Logger.serviceLog("SOCKET", '$id sent an event without greeting, closing');
                 close();
         }
+    }
+
+    private function onClientBeatTimeout() 
+    {
+        Logger.serviceLog("SOCKET", 'Stopped receiving heartbeat from $id, closing');
+        close();
     }
 
     private function onNoGreetingAfterTimeout() 

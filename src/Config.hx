@@ -37,6 +37,9 @@ class Config
     public static var normalEloLogSlope:Float = 4.0;
     public static var calibrationGamesCount:Int = 12;
 
+    public static var keepAliveOwnBeatIntervalMs:Int = 5000;
+    public static var keepAliveClientBeatTimeoutMs:Int = 10000;
+
     public static var secsAddedManually:Int = 15;
 
     public static function hasSSL():Bool
@@ -116,6 +119,17 @@ class Config
 
             if (rulesMap.exists("secs-added-manually"))
                 secsAddedManually = rulesMap.get("secs-added-manually");
+        }
+
+        if (data.exists("keep-alive"))
+        {
+            var kaMap:AnyObjectMap = data.get("keep-alive");
+
+            if (kaMap.exists("beat-interval-ms"))
+                keepAliveOwnBeatIntervalMs = kaMap.get("beat-interval-ms");
+
+            if (kaMap.exists("timeout-ms"))
+                keepAliveClientBeatTimeoutMs = kaMap.get("timeout-ms");
         }
 
         if (data.exists("integrations"))

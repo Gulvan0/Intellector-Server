@@ -11,12 +11,20 @@ class Logger
     public static function logIncomingEvent(event:ClientEvent, senderID:String, ?sender:Null<UserSession>) 
     {
         var userStr:String = sender != null? sender.getReference() : senderID;
-        var eventStr:String = switch event 
+        var eventStr:String = "";
+        
+        switch event 
         {
-            case Login(login, _): 'Login($login, ***)';
-            case Register(login, _): 'Register($login, ***)';
-            case Greet(Login(login, _), clientBuild, minServerBuild): 'Greet(Login($login, ***), $clientBuild, $minServerBuild)';
-            default: '${event.getName()}(${event.getParameters().join(', ')})';
+            case KeepAliveBeat: 
+                return;
+            case Login(login, _): 
+                eventStr = 'Login($login, ***)';
+            case Register(login, _): 
+                eventStr = 'Register($login, ***)';
+            case Greet(Login(login, _), clientBuild, minServerBuild): 
+                eventStr = 'Greet(Login($login, ***), $clientBuild, $minServerBuild)';
+            default: 
+                eventStr = '${event.getName()}(${event.getParameters().join(', ')})';
         }
         
         var message:String = '$userStr | $eventStr';
@@ -26,7 +34,15 @@ class Logger
     public static function logOutgoingEvent(event:ServerEvent, receiverID:String, ?receiver:Null<UserSession>) 
     {
         var userStr:String = receiver != null? receiver.getReference() : receiverID;
-        var eventStr:String = '${event.getName()}(${event.getParameters().join(', ')})';
+        var eventStr:String = "";
+        
+        switch event 
+        {
+            case KeepAliveBeat: 
+                return;
+            default: 
+                eventStr = '${event.getName()}(${event.getParameters().join(', ')})';
+        }
 
         var message:String = '$userStr | $eventStr';
         appendLog(Event, message, '<');
