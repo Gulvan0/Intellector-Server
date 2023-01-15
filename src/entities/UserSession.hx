@@ -124,7 +124,6 @@ class UserSession
 
         Auth.detachSession(sessionID);
 
-        ChallengeManager.handleDisconnection(this);
         GameManager.handleDisconnection(this);
 
         ChallengeManager.handleSessionDestruction(this);
@@ -152,7 +151,6 @@ class UserSession
 
         this.connection = null;
 
-        ChallengeManager.handleDisconnection(this);
         GameManager.handleDisconnection(this);
 
         var fiveMinutes:Int = 1 * 60 * 1000; //TODO: Revert to five minutes after testing

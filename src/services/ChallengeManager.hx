@@ -381,15 +381,12 @@ class ChallengeManager
             decline(user, id);
     }
     
-    public static function handleDisconnection(user:UserSession) 
-    {
-        cancelAllOutgoingChallenges(user);
-    }
-    
     public static function handleSessionDestruction(user:UserSession) 
     {
         if (user.isGuest())
             declineAllIncomingChallenges(user);
+        else
+            cancelAllOutgoingChallenges(user);
     }
 
     public static function cancelAllChallenges()
