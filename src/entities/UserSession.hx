@@ -1,5 +1,6 @@
 package entities;
 
+import net.shared.ServerMessage;
 import services.PageManager;
 import services.SpecialBroadcaster;
 import net.shared.dataobj.GameInfo;
@@ -25,7 +26,11 @@ class UserSession
 
     public var sessionID(default, null):Int;
     private var reconnectionTimer:Timer;
-    private var latestEvents:Array<{ts:Float, event:ServerEvent}> = [];
+
+    private var sentEvents:Map<Int, ServerEvent> = [];
+    public var lastSentServerEventID(default, null):Int = 0;
+    public var lastProcessedClientEventID:Int = 0;
+    public var lastReceivedClientEventID:Int = 0;
 
     @:isVar public var ongoingFiniteGameID(get, set):Null<Int>;
     public var viewedGameID(get, never):Null<Int>;
@@ -82,10 +87,30 @@ class UserSession
 
     public function emit(event:ServerEvent) 
     {
+        var msg:ServerMessage;
+
+        switch event 
+        {
+            case DontReconnect | KeepAliveBeat | ResendRequest(_, _) | MissedEvents(_):
+                msg = new ServerMessage(-1, event);
+            default:
+                lastSentServerEventID++;
+                sentEvents.set(lastSentServerEventID, event);
+                msg = new ServerMessage(lastSentServerEventID, event);
+        }
+
         if (connection != null)
-            connection.emit(event);
-        
-        latestEvents.push({ts: Sys.time() * 1000, event: event});
+            connection.emit(msg);
+    }
+
+    public function resendMessages(from:Int, to:Int) 
+    {
+        var map:Map<Int, ServerEvent> = [];
+
+        for (i in from...(to+1))
+            map.set(i, sentEvents.get(i));
+
+        emit(MissedEvents(map));
     }
 
     public function abortConnection(preventReconnection:Bool) 
@@ -134,7 +159,7 @@ class UserSession
         reconnectionTimer = Timer.delay(onReconnectionTimeOut, fiveMinutes);
     }
 
-    public function onReconnected(connection:SocketHandler, lastProcessedMessageTS:Float):Array<ServerEvent>
+    public function onReconnected(connection:SocketHandler, lastProcessedMessageID:Int):Map<Int, ServerEvent>
     {
         Logger.serviceLog("SESSION", '$this reconnected');
         skipDisconnectionProcessing = false;
@@ -147,20 +172,16 @@ class UserSession
 
         GameManager.handleReconnection(this);
 
-        var returnedEvents = [];
+        var nextEventID:Int = lastProcessedMessageID + 1;
+        var missedEvents:Map<Int, ServerEvent> = [];
 
-        for (entry in latestEvents)
-            if (entry.ts > lastProcessedMessageTS)
-                returnedEvents.push(entry.event);
+        while (sentEvents.exists(nextEventID))
+        {
+            missedEvents.set(nextEventID, sentEvents.get(nextEventID));
+            nextEventID++;
+        }
 
-        latestEvents = [];
-
-        return returnedEvents;
-    }
-
-    public function flushLatestEvents() 
-    {
-        latestEvents = [];    
+        return missedEvents;
     }
 
     private function onReconnectionTimeOut() 

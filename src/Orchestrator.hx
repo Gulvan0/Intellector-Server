@@ -58,11 +58,8 @@ class Orchestrator
 
         switch event 
         {
-            case Greet(_, _, _):
-                Logger.logError('Unexpected greeting from $author');
-                return;
-            case KeepAliveBeat:
-                Logger.logError('Unexpected KeepAliveBeat from $author');
+            case Greet(_, _, _) | KeepAliveBeat | MissedEvents(_) | ResendRequest(_, _):
+                Logger.logError('Unexpected event $event from $author');
                 return;
 
             case Login(login, password):
@@ -152,7 +149,7 @@ class Orchestrator
             case Move(_) | Message(_) | Resign | OfferDraw | CancelDraw | AcceptDraw | DeclineDraw | OfferTakeback | CancelTakeback | AcceptTakeback | DeclineTakeback | AddTime: viewingGame;
             case CreateChallenge(_) | CancelChallenge(_) | SimpleRematch | CreateStudy(_) | OverwriteStudy(_, _) | DeleteStudy(_): !playingFiniteGame && logged;
             case GetOpenChallenge(_) | FollowPlayer(_) | AcceptChallenge(_) | DeclineDirectChallenge(_) | StopFollowing | GetGame(_) | GetStudy(_) | GetPlayerProfile(_) | GetGamesByLogin(_, _, _, _) | GetStudiesByLogin(_, _, _, _) | GetOngoingGamesByLogin(_) | GetOpenChallenges | GetCurrentGames | GetRecentGames : !playingFiniteGame;
-            case Greet(_, _, _) | KeepAliveBeat: false;
+            case Greet(_, _, _) | KeepAliveBeat | MissedEvents(_) | ResendRequest(_, _): false;
             case GetMiniProfile(_) | PageUpdated(_) : true;
         }
     }
