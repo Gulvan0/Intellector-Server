@@ -23,7 +23,14 @@ class Telegram
         try
         {
             Thread.create(() -> {
-                useMethod('sendMessage', ['chat_id' => Config.tgChatID, 'text' => message, 'parse_mode' => 'MarkdownV2']);
+                try
+                {
+                    useMethod('sendMessage', ['chat_id' => Config.tgChatID, 'text' => message, 'parse_mode' => 'MarkdownV2']);
+                }
+                catch (e)
+                {
+                    Logger.logError('Failed to notify admin (message = $message):\n$e', false);
+                }
             });
         }
         catch (e)
@@ -55,21 +62,29 @@ class Telegram
     {
         if (listStr == '{"ok":true,"result":[]}')
             return;
-        
-        var list:Array<Dynamic> = Json.parse(listStr).result;
 
-        var maxID:Null<Int> = null;
-        for (update in list)
+        try
         {
-            if (Std.string(update.message.chat.id) == Config.tgChatID)
-                CommandProcessor.processCommand(update.message.text, notifyAdmin);
+            var list:Array<Dynamic> = Json.parse(listStr).result;
 
-            if (maxID == null || update.update_id > maxID)
-                maxID = update.update_id;
+            var maxID:Null<Int> = null;
+            for (update in list)
+            {
+                if (Std.string(update.message.chat.id) == Config.tgChatID)
+                    CommandProcessor.processCommand(update.message.text, notifyAdmin);
+    
+                if (maxID == null || update.update_id > maxID)
+                    maxID = update.update_id;
+            }
+    
+            if (maxID != null)
+                httpRequest.setParameter('offset', '${maxID + 1}');
         }
-
-        if (maxID != null)
-            httpRequest.setParameter('offset', '${maxID + 1}');
+        catch (e)
+        {
+            Logger.logError('Failed to process updates for Telegram admin chat\nData: $listStr \nReason: $e', false);
+        }
+        
     }
 
     private static function useMethod(methodName:String, params:Map<String, String>, ?onError:Http->String->Void) 

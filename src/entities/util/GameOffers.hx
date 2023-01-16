@@ -38,7 +38,7 @@ class GameOffers
         return true;
     }
 
-    public function acceptDraw(requestedBy:PieceColor):Bool
+    public function acceptDraw(requestedBy:PieceColor, ?asActualization:Bool = false):Bool
     {
         if (!hasPendingDrawRequest[opposite(requestedBy)])
             return false;
@@ -46,7 +46,8 @@ class GameOffers
         hasPendingDrawRequest = [White => false, Black => false];
         hasPendingTakebackRequest = [White => false, Black => false];
 
-        onDrawAchieved();
+        if (!asActualization)
+            onDrawAchieved();
         return true;
     }
 
@@ -77,7 +78,7 @@ class GameOffers
         return true;
     }
 
-    public function acceptTakeback(requestedBy:PieceColor):Bool 
+    public function acceptTakeback(requestedBy:PieceColor, ?asActualization:Bool = false):Bool 
     {
         if (!hasPendingTakebackRequest[opposite(requestedBy)])
             return false;
@@ -85,7 +86,8 @@ class GameOffers
         hasPendingDrawRequest = [White => false, Black => false];
         hasPendingTakebackRequest = [White => false, Black => false];
 
-        onRollbackNeeded(opposite(requestedBy));
+        if (!asActualization)
+            onRollbackNeeded(opposite(requestedBy));
         return true;
     }
 
@@ -118,7 +120,7 @@ class GameOffers
                 case Event(DrawCanceled(offerOwnerColor)):
                     offers.cancelDraw(offerOwnerColor);
                 case Event(DrawAccepted(offerReceiverColor)):
-                    offers.acceptDraw(offerReceiverColor);
+                    offers.acceptDraw(offerReceiverColor, true);
                 case Event(DrawDeclined(offerReceiverColor)):
                     offers.declineDraw(offerReceiverColor);
                 case Event(TakebackOffered(offerOwnerColor)):
@@ -126,7 +128,7 @@ class GameOffers
                 case Event(TakebackCanceled(offerOwnerColor)):
                     offers.cancelTakeback(offerOwnerColor);
                 case Event(TakebackAccepted(offerReceiverColor)):
-                    offers.acceptTakeback(offerReceiverColor);
+                    offers.acceptTakeback(offerReceiverColor, true);
                 case Event(TakebackDeclined(offerReceiverColor)):
                     offers.declineTakeback(offerReceiverColor);
                 default:

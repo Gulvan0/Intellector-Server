@@ -10,48 +10,46 @@ import net.shared.ClientEvent;
 
 class Logger
 {
+    public static function stringifyClientEvent(event:ClientEvent):String 
+    {
+        return switch event 
+        {
+            case Login(login, _): 'Login($login, ***)';
+            case Register(login, _): 'Register($login, ***)';
+            case Greet(Login(login, _), clientBuild, minServerBuild): 'Greet(Login($login, ***), $clientBuild, $minServerBuild)';
+            case MissedEvents(map): 'MissedEvents(${[for (key in map.keys()) key].join(', ')})';
+            default: '${event.getName()}(${event.getParameters().join(', ')})';
+        }
+    }
+
+    public static function stringifyServerEvent(event:ServerEvent):String 
+    {
+        return switch event
+        {
+            case GreetingResponse(Reconnected(missedEvents)): 'GreetingResponse(Reconnected(${[for (key in missedEvents.keys()) key].join(', ')}))';
+            case MissedEvents(map): 'MissedEvents(${[for (key in map.keys()) key].join(', ')})';
+            default: '${event.getName()}(${event.getParameters().join(', ')})';
+        }
+    }
+
     public static function logIncomingMessage(message:ClientMessage, senderID:String, ?sender:Null<UserSession>) 
     {
+        if (message.event.match(KeepAliveBeat))
+            return;
+
         var userStr:String = sender != null? sender.getReference() : senderID;
-        var eventStr:String = "";
-        
-        switch message.event 
-        {
-            case KeepAliveBeat: 
-                return;
-            case Login(login, _): 
-                eventStr = 'Login($login, ***)';
-            case Register(login, _): 
-                eventStr = 'Register($login, ***)';
-            case Greet(Login(login, _), clientBuild, minServerBuild): 
-                eventStr = 'Greet(Login($login, ***), $clientBuild, $minServerBuild)';
-            case MissedEvents(map):
-                eventStr = 'MissedEvents(${[for (key in map.keys()) key].join(', ')})';
-            default: 
-                eventStr = '${message.event.getName()}(${message.event.getParameters().join(', ')})';
-        }
-        
+        var eventStr:String = stringifyClientEvent(message.event);
         var entry:String = '$userStr | ${message.id} | $eventStr';
         appendLog(Event, entry, '>');
     }
 
     public static function logOutgoingMessage(message:ServerMessage, receiverID:String, ?receiver:Null<UserSession>) 
     {
-        var userStr:String = receiver != null? receiver.getReference() : receiverID;
-        var eventStr:String = "";
-        
-        switch message.event 
-        {
-            case KeepAliveBeat: 
-                return;
-            case GreetingResponse(Reconnected(missedEvents)):
-                eventStr = 'GreetingResponse(Reconnected(${[for (key in missedEvents.keys()) key].join(', ')}))';
-            case MissedEvents(map):
-                eventStr = 'MissedEvents(${[for (key in map.keys()) key].join(', ')})';
-            default: 
-                eventStr = '${message.event.getName()}(${message.event.getParameters().join(', ')})';
-        }
+        if (message.event.match(KeepAliveBeat))
+            return;
 
+        var userStr:String = receiver != null? receiver.getReference() : receiverID;
+        var eventStr:String = stringifyServerEvent(message.event);
         var entry:String = '$userStr | ${message.id} | $eventStr';
         appendLog(Event, entry, '<');
     }

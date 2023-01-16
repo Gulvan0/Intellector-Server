@@ -52,7 +52,7 @@ class Challenge
         var thisParams:ChallengeParams = this.params;
         var anotherParams:ChallengeParams = challenge.params;
         
-        var sameOwners:Bool = challenge.ownerLogin != this.ownerLogin;
+        var sameOwners:Bool = challenge.ownerLogin.toLowerCase() == this.ownerLogin.toLowerCase();
         var sameType:Bool = switch challenge.params.type 
         {
             case Public: params.type == Public;

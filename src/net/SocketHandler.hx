@@ -81,11 +81,12 @@ class SocketHandler extends WebSocketHandler
             case DeserializationError(message, exception):
                 Logger.logError('Event deserialization failed:\nUUID: $id\nOriginal message: $message\nException:\n${exception.message}\nNative:\n${exception.native}\nPrevious:\n${exception.previous}\nStack:${exception.stack}');
             case ProcessingError(event, exception, stack):
+                var eventStr:String = Logger.stringifyClientEvent(event);
                 if (user != null)
-                    user.emit(ServerError('Timestamp: ${Sys.time()}\nEvent: $event\nException: ${exception.message} $stack'));
+                    user.emit(ServerError('Timestamp: ${Sys.time()}\nEvent: $eventStr\nException: ${exception.message} $stack'));
                 else
-                    emit(new ServerMessage(1, ServerError('Timestamp: ${Sys.time()}\nEvent: $event\nException: ${exception.message} $stack')));
-                Logger.logError('Error during event processing:\nUUID: $id\nEvent: $event\nException:\n${exception.message}\nNative:\n${exception.native}\nPrevious:\n${exception.previous}\nStack:$stack');
+                    emit(new ServerMessage(1, ServerError('Timestamp: ${Sys.time()}\nEvent: $eventStr\nException: ${exception.message} $stack')));
+                Logger.logError('Error during event processing:\nUUID: $id\nEvent: $eventStr\nException:\n${exception.message}\nNative:\n${exception.native}\nPrevious:\n${exception.previous}\nStack:$stack');
         }
     }
 
