@@ -153,7 +153,7 @@ class UserSession
 
         GameManager.handleDisconnection(this);
 
-        var fiveMinutes:Int = 1 * 60 * 1000; //TODO: Revert to five minutes after testing
+        var fiveMinutes:Int = 5 * 60 * 1000;
         reconnectionTimer = Timer.delay(onReconnectionTimeOut, fiveMinutes);
     }
 
