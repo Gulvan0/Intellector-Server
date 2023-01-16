@@ -33,7 +33,7 @@ class SocketHandler extends WebSocketHandler
 
     public function emit(msg:ServerMessage) 
     {
-        Logger.logOutgoingEvent(msg.event, id, user);
+        Logger.logOutgoingMessage(msg, id, user);
         send(Serializer.run(msg));
     }
 
@@ -81,7 +81,10 @@ class SocketHandler extends WebSocketHandler
             case DeserializationError(message, exception):
                 Logger.logError('Event deserialization failed:\nUUID: $id\nOriginal message: $message\nException:\n${exception.message}\nNative:\n${exception.native}\nPrevious:\n${exception.previous}\nStack:${exception.stack}');
             case ProcessingError(event, exception, stack):
-                user.emit(ServerError('Timestamp: ${Sys.time()}\nEvent: $event\nException: ${exception.message} $stack'));
+                if (user != null)
+                    user.emit(ServerError('Timestamp: ${Sys.time()}\nEvent: $event\nException: ${exception.message} $stack'));
+                else
+                    emit(new ServerMessage(1, ServerError('Timestamp: ${Sys.time()}\nEvent: $event\nException: ${exception.message} $stack')));
                 Logger.logError('Error during event processing:\nUUID: $id\nEvent: $event\nException:\n${exception.message}\nNative:\n${exception.native}\nPrevious:\n${exception.previous}\nStack:$stack');
         }
     }
@@ -114,7 +117,7 @@ class SocketHandler extends WebSocketHandler
         try
         {
             var event:ClientEvent = EventTransformer.normalizeLogin(clientMessage.event);
-            Logger.logIncomingEvent(event, id, user);
+            Logger.logIncomingMessage(clientMessage, id, user);
             
             if (isNew)
             {
@@ -189,7 +192,10 @@ class SocketHandler extends WebSocketHandler
                 
                 if (clientBuild < Config.minClientVer)
                 {
-                    user.emit(GreetingResponse(OutdatedClient));
+                    if (user != null)
+                        user.emit(GreetingResponse(OutdatedClient));
+                    else
+                        emit(new ServerMessage(-1, GreetingResponse(OutdatedClient)));
                     var actualDatetime:String = DateUtils.strDatetimeFromSecs(clientBuild);
                     var minDatetime:String = DateUtils.strDatetimeFromSecs(Config.minClientVer);
                     Logger.serviceLog("SOCKET", 'Refusing to connect $id: outdated client ($actualDatetime < $minDatetime)');
@@ -198,7 +204,10 @@ class SocketHandler extends WebSocketHandler
 
                 if (Build.buildTime() < minServerBuild)
                 {
-                    user.emit(GreetingResponse(OutdatedServer));
+                    if (user != null)
+                        user.emit(GreetingResponse(OutdatedServer));
+                    else
+                        emit(new ServerMessage(-1, GreetingResponse(OutdatedServer)));
                     var actualDatetime:String = DateUtils.strDatetimeFromSecs(Build.buildTime());
                     var minDatetime:String = DateUtils.strDatetimeFromSecs(minServerBuild);
                     Logger.serviceLog("SOCKET", 'Refusing to connect $id: outdated server ($actualDatetime < $minDatetime)');
@@ -223,7 +232,10 @@ class SocketHandler extends WebSocketHandler
                         }
                         else
                         {
-                            user.emit(GreetingResponse(NotReconnected));
+                            if (user != null)
+                                user.emit(GreetingResponse(NotReconnected));
+                            else
+                                emit(new ServerMessage(-1, GreetingResponse(NotReconnected)));
                             Logger.serviceLog("SOCKET", '$id attempted to restore a session with a wrong token: $token');
                             return;
                         }

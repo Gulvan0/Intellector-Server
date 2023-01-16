@@ -109,17 +109,20 @@ class GameManager
         
         var followedUser = LoginManager.getUser(followedPlayerLogin);
 
-        if (followedUser != null && followedUser.ongoingFiniteGameID != session.viewedGameID)
-        {
-            switch games.getSimple(followedUser.ongoingFiniteGameID)
+        if (followedUser != null)
+            if (followedUser.ongoingFiniteGameID != session.viewedGameID)
             {
-                case Ongoing(game):
-                    game.onSpectatorJoined(session);
-                    session.emit(SpectationData(OngoingGameInfo.create(game.id, game.getTime(), game.log.get())));
-                default:
-                    session.emit(FollowSuccess);
+                switch games.getSimple(followedUser.ongoingFiniteGameID)
+                {
+                    case Ongoing(game):
+                        game.onSpectatorJoined(session);
+                        session.emit(SpectationData(OngoingGameInfo.create(game.id, game.getTime(), game.log.get())));
+                    default:
+                        session.emit(FollowSuccess);
+                }
             }
-        }
+            else
+                session.emit(FollowAlreadySpectating(session.viewedGameID));
     }
 
     public static function stopFollowing(session:UserSession) 
@@ -179,7 +182,7 @@ class GameManager
             if (session.login != null)
                 for (follower in playerFollowersByLogin.get(session.login))
                 {
-                    game.onSpectatorJoined(session);
+                    game.onSpectatorJoined(follower);
                     follower.emit(GameStarted(gameID, logPreamble));
                 }
         }

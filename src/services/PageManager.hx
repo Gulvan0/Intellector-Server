@@ -25,9 +25,12 @@ class PageManager
             if (samePage(previousPage, page))
                 return;
             else
+            {
+                sessionsByPage.pop(previousPage, session);
                 onPageLeft(session, previousPage, false);
+            }
 
-            pageBySessionID.set(session.sessionID, page);
+        pageBySessionID.set(session.sessionID, page);
         sessionsByPage.push(page, session);
 
         onPageEntered(session, page);

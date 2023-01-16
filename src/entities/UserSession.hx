@@ -91,7 +91,7 @@ class UserSession
 
         switch event 
         {
-            case DontReconnect | KeepAliveBeat | ResendRequest(_, _) | MissedEvents(_):
+            case DontReconnect | KeepAliveBeat | ResendRequest(_, _) | MissedEvents(_) | GreetingResponse(_):
                 msg = new ServerMessage(-1, event);
             default:
                 lastSentServerEventID++;
