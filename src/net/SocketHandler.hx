@@ -40,7 +40,7 @@ class SocketHandler extends WebSocketHandler
         if (serialized.length < 1024)
             send(serialized);
         else
-            send(Bytes.ofString(new LZString().compress(serialized)));
+            send(Bytes.ofString(new LZString().compressToBase64(serialized)));
         Logger.logOutgoingMessage(msg, id, user);
     }
 
