@@ -10,6 +10,7 @@ using StringTools;
 
 class Telegram 
 {
+    private static var firstLaunch:Bool = true;
     private static var httpRequest:Http;
 
     public static function notifyAdmin(message:String) 
@@ -70,7 +71,7 @@ class Telegram
             var maxID:Null<Int> = null;
             for (update in list)
             {
-                if (Std.string(update.message.chat.id) == Config.tgChatID)
+                if (Std.string(update.message.chat.id) == Config.tgChatID && !firstLaunch)
                     CommandProcessor.processCommand(update.message.text, notifyAdmin);
     
                 if (maxID == null || update.update_id > maxID)
@@ -79,6 +80,8 @@ class Telegram
     
             if (maxID != null)
                 httpRequest.setParameter('offset', '${maxID + 1}');
+
+            firstLaunch = false;
         }
         catch (e)
         {
