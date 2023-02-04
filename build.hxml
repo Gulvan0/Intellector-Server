@@ -6,3 +6,4 @@
 --library argparse
 --library yaml
 --library haxe-strings
+--library lzstring

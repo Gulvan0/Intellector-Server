@@ -1,5 +1,8 @@
 package net;
 
+import haxe.io.BytesData;
+import haxe.io.Bytes;
+import lzstring.LZString;
 import net.shared.ServerMessage;
 import net.shared.utils.MathUtils;
 import net.shared.ClientMessage;
@@ -33,8 +36,12 @@ class SocketHandler extends WebSocketHandler
 
     public function emit(msg:ServerMessage) 
     {
+        var serialized:String = Serializer.run(msg);
+        if (serialized.length < 1024)
+            send(serialized);
+        else
+            send(Bytes.ofString(new LZString().compress(serialized)));
         Logger.logOutgoingMessage(msg, id, user);
-        send(Serializer.run(msg));
     }
 
     private function onOpen()
