@@ -172,7 +172,7 @@ class GameManager
             
             stopFollowing(session);
 
-            if (params.timeControl.isCorrespondence())
+            if (params.timeControl.isCorrespondence() && session.storedData != null)
                 session.storedData.addOngoingCorrespondenceGame(gameID);
             else
                 session.ongoingFiniteGameID = gameID;
@@ -225,8 +225,8 @@ class GameManager
         {
             var playerRef:String = game.log.playerRefs.get(color);
             var login:Null<String> = Auth.isGuest(playerRef)? null : playerRef;
-            var data:Null<PlayerData> = login != null? Storage.loadPlayerData(login) : null;
             var session:Null<UserSession> = Auth.getUserByRef(playerRef);
+            var data:Null<PlayerData> = session != null? session.storedData : login != null? Storage.loadPlayerData(login) : null;
             
             var newElo:Null<EloValue> = null;
 
