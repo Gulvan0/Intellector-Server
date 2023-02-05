@@ -392,6 +392,24 @@ class PlayerData
         return Date.fromTime(lastMessageTimestamp);
     }
 
+    public function resetGames()
+    {
+        pastGames = [NoneOpt => []];
+        ratedGamesCnt = [];
+        elo = [];
+        ongoingCorrespondenceGames = [];
+        ongoingFiniteGameID = null;
+
+        for (timeControl in TimeControlType.createAll()) 
+        {
+            pastGames.set(Some(timeControl), []);
+            elo.set(timeControl, None);
+            ratedGamesCnt.set(timeControl, 0);
+        }
+
+        Storage.savePlayerData(login, this);
+    }
+
     private function new() 
     {
         

@@ -112,6 +112,11 @@ class Auth
         return passwordHashes.get(login);
     }
 
+    public static function getAllUsers():Array<String> 
+    {
+        return [for (login in passwordHashes.keys()) login];
+    }
+
     public static function addCredentials(login:String, password:String) 
     {
         if (passwordHashes.exists(login))

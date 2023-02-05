@@ -15,7 +15,15 @@ class CommandProcessor
 { 
     private static function games(callback:String->Void, args:Array<String>)
     {
-        for (gameInfo in GameManager.getCurrentFiniteTimeGames())
+        var foundGames = GameManager.getCurrentFiniteTimeGames();
+
+        if (Lambda.empty(foundGames))
+        {
+            callback('No active finite games found');
+            return;
+        }
+
+        for (gameInfo in foundGames)
         {
             var anyGame:AnyGame = GameManager.get(gameInfo.id);
 
@@ -245,6 +253,10 @@ class CommandProcessor
                         callback(session.storedData.getRoles().map(x -> x.getName()).join(", "));
                     else
                         callback(Storage.loadPlayerData(args[0]).getRoles().map(x -> x.getName()).join(", "));
+                case RecountGames:
+                    callback("Starting recount...");
+                    OneTimeTasks.recountGames();
+                    callback("Recount finished successfully");
                 default:
                     callback("Wrong number of arguments");
             }

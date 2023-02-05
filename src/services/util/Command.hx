@@ -25,4 +25,5 @@ enum Command
     Addrole;
     Rmrole;
     Roles;
+    RecountGames;
 }

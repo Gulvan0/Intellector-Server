@@ -1,5 +1,6 @@
 package entities.util;
 
+import net.shared.Outcome;
 import net.shared.Constants;
 import net.shared.PieceColor;
 import net.shared.board.Situation;
@@ -18,6 +19,7 @@ class GameLog
     public var playerRefs(default, null):Map<PieceColor, String>;
     public var timeControl(default, null):TimeControl;
     public var ongoing(default, null):Bool = true;
+    public var outcome(default, null):Null<Outcome> = null;
     public var rated(default, null):Bool;
     public var elo(default, null):Map<PieceColor, EloValue>;
     public var msLeftOnOver(default, null):Null<Map<PieceColor, Int>>;
@@ -74,7 +76,8 @@ class GameLog
                 customStartingSituation = situation.copy();
             case MsLeft(whiteMs, blackMs):
                 msLeftOnOver = [White => whiteMs, Black => blackMs];
-            case Result(_):
+            case Result(res):
+                outcome = res;
                 ongoing = false;
             default:
         }
@@ -109,14 +112,12 @@ class GameLog
         Storage.overwrite(GameData(gameID), log);
     }
 
-    public static function load(id:Int):Null<GameLog>
+    public static function loadFromStr(gameID:Int, logStr:String):Null<GameLog>
     {
-        var logStr = Storage.getGameLog(id);
-
         if (logStr == null)
             return null;
 
-        var log:GameLog = new GameLog(id);
+        var log:GameLog = new GameLog(gameID);
 
         for (entry in GameLogTranslator.parse(logStr))
             log.append(entry, false);
@@ -125,6 +126,11 @@ class GameLog
             log.timeControl = new TimeControl(600, 5);
 
         return log;
+    }
+
+    public static function load(gameID:Int):Null<GameLog>
+    {
+        return loadFromStr(gameID, Storage.getGameLog(gameID));
     }
 
     public static function createNew(id:Int, players:Map<PieceColor, UserSession>, timeControl:TimeControl, rated:Bool, ?customStartingSituation:Situation):GameLog 

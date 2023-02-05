@@ -194,7 +194,7 @@ class GameManager
         return gameID;
     }
 
-    private static function getNewElo(color:PieceColor, data:PlayerData, outcome:Outcome, gameLog:GameLog):EloValue
+    public static function getNewElo(color:PieceColor, data:PlayerData, outcome:Outcome, gameLog:GameLog):EloValue
     {
         var timeControlType:TimeControlType = gameLog.timeControl.getType();
         var login:String = gameLog.playerRefs.get(color);
@@ -239,6 +239,8 @@ class GameManager
 
                 if (timeControlType == Correspondence)
                     data.removeOngoingCorrespondenceGame(game.id);
+                else
+                    data.removeOngoingFiniteGame();
             }
 
             if (session != null)
