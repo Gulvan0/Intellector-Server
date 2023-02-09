@@ -217,8 +217,9 @@ class CommandProcessor
                     var users:Array<UserSession> = LoginManager.getLoggedUsers();
                     callback(users.map(x -> x.login).toString());
                 case Pwd if (args.length > 1):
-                    Auth.addCredentials(args[0], args[1]);
-                    callback('Credentials added. New hash for ${args[0]} is ${Auth.getHash(args[0])}');
+                    var login:String = args[0].toLowerCase();
+                    Auth.addCredentials(login, args[1]);
+                    callback('Credentials added. New hash for $login is ${Auth.getHash(login)}');
                 case Stop:
                     callback("Stopping the server...");
                     Shutdown.stop(false);
