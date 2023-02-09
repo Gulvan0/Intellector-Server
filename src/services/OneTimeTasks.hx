@@ -20,7 +20,7 @@ class OneTimeTasks
         for (login in Auth.getAllUsers())
             if (!dataMap.exists(login))
             {
-                var data = Storage.loadPlayerData(login, true);
+                var data = Storage.loadPlayerData(login);
                 data.resetGames();
                 dataMap.set(login, data);
             }

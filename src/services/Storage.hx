@@ -85,7 +85,7 @@ class Storage
         playerdataCleaners.remove(login);
     }
 
-    public static function startPlayerdataCleaningTimer(login:String) 
+    private static function startPlayerdataCleaningTimer(login:String) 
     {
         var cleanupTimer:Null<MovingCountdownTimer> = playerdataCleaners.get(login);
         if (cleanupTimer != null)
@@ -94,10 +94,9 @@ class Storage
             playerdataCleaners.set(login, new MovingCountdownTimer(removeCachedPlayerdata.bind(login), 10 * 60 * 1000));
     }
     
-    public static function loadPlayerData(login:String, ?sameThread:Bool = false):PlayerData
+    public static function loadPlayerData(login:String):PlayerData
     {
-        if (!sameThread)
-            startPlayerdataCleaningTimer(login);
+        startPlayerdataCleaningTimer(login);
 
         var cachedValue:Null<PlayerData> = playerdataCache.get(login);
 

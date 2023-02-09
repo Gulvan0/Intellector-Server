@@ -31,6 +31,8 @@ class Routines
 
         initTimer(1000, Telegram.checkAdminChat, 'checkAdminTG');
         Thread.createWithEventLoop(watchStdin);
+
+        Telegram.notifyAdmin("Server started");
     }
 
     private static function watchStdin() 
@@ -46,7 +48,7 @@ class Routines
         {
             try
             {
-                Thread.create(callback);
+                Thread.createWithEventLoop(callback);
             }
             catch (e)
             {
