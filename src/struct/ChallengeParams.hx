@@ -9,6 +9,7 @@ enum ChallengeType
     Public;
     ByLink;
     Direct(calleeRef:String);
+    ToBot(botHandle:String);
 }
 
 class ChallengeParams 
@@ -23,7 +24,7 @@ class ChallengeParams
     {
         var splitted:Array<String> = s.split(";");
         var timeControl:TimeControl = new TimeControl(Std.parseInt(splitted[0]), Std.parseInt(splitted[1]));
-        var type:ChallengeType = splitted[2] == "p"? Public : splitted[2] == "l"? ByLink : Direct(splitted[2].toLowerCase());
+        var type:ChallengeType = splitted[2] == "p"? Public : splitted[2] == "l"? ByLink : splitted[2].charAt(0) == "+"? ToBot(splitted[2].substr(1)) : Direct(splitted[2].toLowerCase());
         var acceptorColor:Null<PieceColor> = splitted[3] == "w"? White : splitted[3] == "b"? Black : null;
         var customStartingSituation:Null<Situation> = splitted[4] == ""? null : Situation.deserialize(splitted[4]);
         var rated:Bool = splitted[5] == "t";
@@ -37,6 +38,7 @@ class ChallengeParams
             case Public: "p";
             case ByLink: "l";
             case Direct(calleeLogin): calleeLogin;
+            case ToBot(botHandle): "+" + botHandle;
         }
 
         var colorStr = switch acceptorColor 

@@ -62,6 +62,7 @@ class Challenge
                 case Direct(calleeRef2): calleeRef2 == calleeRef1;
                 default: false;
             }
+            case ToBot(_): false;
         }
         var sameBrackets:Bool = anotherParams.rated == thisParams.rated;
         var sameTCs:Bool = anotherParams.timeControl.incrementSecs == thisParams.timeControl.incrementSecs && anotherParams.timeControl.startSecs == thisParams.timeControl.startSecs;

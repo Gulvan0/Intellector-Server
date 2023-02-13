@@ -35,6 +35,7 @@ class Game
 
     public final id:Int;
 
+    private var ended:Bool = false;
     public var log:GameLog;
     public var offers:GameOffers;
     public var sessions:GameSessions;
@@ -48,9 +49,9 @@ class Game
         return time.getTime(state.turnColor(), state.moveNum);
     }
 
-    private function onMoveSuccessful(author:UserSession, turnColor:PieceColor, moveNum:Int, rawPly:RawPly) 
+    private function onMoveSuccessful(author:UserSession, movedPlayerColor:PieceColor, moveNum:Int, rawPly:RawPly) 
     {
-        time.onMoveMade(turnColor, moveNum);
+        time.onMoveMade(movedPlayerColor, moveNum);
 
         var msAtMoveStart = time.getMsAtMoveStart();
         var whiteMs = msAtMoveStart != null? msAtMoveStart.get(White) : null;
@@ -59,10 +60,14 @@ class Game
         var actualTimeData = getTime();
 
         log.append(Move(rawPly, whiteMs, blackMs));
-        offers.onMoveMade();
+        if (offers != null)
+            offers.onMoveMade();
         sessions.broadcast(Move(rawPly, actualTimeData), author);
         if (actualTimeData != null)
-            sessions.tellPlayer(turnColor, TimeCorrection(actualTimeData));
+            sessions.tellPlayer(movedPlayerColor, TimeCorrection(actualTimeData));
+
+        if (log.playerRefs.get(opposite(movedPlayerColor)).charAt(0) == "+")
+            sessions.tellPlayer(movedPlayerColor, BotMove(actualTimeData));
     }
 
     private function performMove(author:UserSession, rawPly:RawPly) 
@@ -100,6 +105,10 @@ class Game
 
     private function endGame(outcome:Outcome) 
     {
+        if (ended)
+            return;
+
+        ended = true;
         Logger.serviceLog(serviceName, 'Ending game with outcome $outcome');
 
         time.stopTime(state.turnColor(), state.moveNum);
@@ -130,6 +139,9 @@ class Game
 
     public function processAction(action:GameAction, issuer:UserSession) 
     {
+        if (ended)
+            return;
+
         var issuerColor:Null<PieceColor> = log.getColorByRef(issuer);
 
         if (issuerColor == null && !action.match(Message(_)))
@@ -138,7 +150,8 @@ class Game
         switch action 
         {
             case Move(rawPly):
-                performMove(issuer, rawPly);
+                if (offers == null || issuerColor == state.turnColor())
+                    performMove(issuer, rawPly);
             case Message(text):
                 sendMessage(issuer, text);
             case Resign:
@@ -159,7 +172,7 @@ class Game
                     return;
                 }
 
-                if (offers.offerDraw(issuerColor))
+                if (offers != null && offers.offerDraw(issuerColor))
                 {
                     Logger.serviceLog(serviceName, '$issuer ($issuerColor) offered draw. Success');
                     log.append(Event(DrawOffered(issuerColor)));
@@ -168,7 +181,7 @@ class Game
                 else
                     Logger.serviceLog(serviceName, '$issuer ($issuerColor) tried to offer a draw, but failed');
             case CancelDraw:
-                if (offers.cancelDraw(issuerColor))
+                if (offers != null && offers.cancelDraw(issuerColor))
                 {
                     Logger.serviceLog(serviceName, '$issuer ($issuerColor) cancelled draw. Success');
                     log.append(Event(DrawCanceled(issuerColor)));
@@ -177,7 +190,7 @@ class Game
                 else
                     Logger.serviceLog(serviceName, '$issuer ($issuerColor) tried to cancel a draw, but failed');
             case AcceptDraw:
-                if (offers.acceptDraw(issuerColor))
+                if (offers != null && offers.acceptDraw(issuerColor))
                 {
                     Logger.serviceLog(serviceName, '$issuer ($issuerColor) accepted draw. Success');
                     log.append(Event(DrawAccepted(issuerColor)));
@@ -186,7 +199,7 @@ class Game
                 else
                     Logger.serviceLog(serviceName, '$issuer ($issuerColor) tried to accept a draw, but failed');
             case DeclineDraw:
-                if (offers.declineDraw(issuerColor))
+                if (offers != null && offers.declineDraw(issuerColor))
                 {
                     Logger.serviceLog(serviceName, '$issuer ($issuerColor) declined draw. Success');
                     log.append(Event(DrawDeclined(issuerColor)));
@@ -200,8 +213,17 @@ class Game
                     Logger.serviceLog(serviceName, '$issuer ($issuerColor) offered a takeback too early: on move ${state.moveNum}');
                     return;
                 }
-
-                if (offers.offerTakeback(issuerColor))
+                
+                if (offers == null)
+                {
+                    Logger.serviceLog(serviceName, '$issuer ($issuerColor) offered a takeback. Auto-accepting...');
+                    log.append(Event(TakebackOffered(issuerColor)));
+                    sessions.broadcast(TakebackOffered(issuerColor), issuer);
+                    rollback(issuerColor);
+                    log.append(Event(TakebackAccepted(issuerColor)));
+                    sessions.broadcast(TakebackAccepted(issuerColor), issuer);
+                }
+                else if (offers.offerTakeback(issuerColor))
                 {
                     Logger.serviceLog(serviceName, '$issuer ($issuerColor) offered a takeback. Success');
                     log.append(Event(TakebackOffered(issuerColor)));
@@ -210,7 +232,7 @@ class Game
                 else
                     Logger.serviceLog(serviceName, '$issuer ($issuerColor) tried to offer a takeback, but failed');
             case CancelTakeback:
-                if (offers.cancelTakeback(issuerColor))
+                if (offers != null && offers.cancelTakeback(issuerColor))
                 {
                     Logger.serviceLog(serviceName, '$issuer ($issuerColor) cancelled a takeback. Success');
                     log.append(Event(TakebackCanceled(issuerColor)));
@@ -219,7 +241,7 @@ class Game
                 else
                     Logger.serviceLog(serviceName, '$issuer ($issuerColor) tried to cancel a takeback, but failed');
             case AcceptTakeback:
-                if (offers.acceptTakeback(issuerColor))
+                if (offers != null && offers.acceptTakeback(issuerColor))
                 {
                     Logger.serviceLog(serviceName, '$issuer ($issuerColor) accepted a takeback. Success');
                     log.append(Event(TakebackAccepted(issuerColor)));
@@ -228,7 +250,7 @@ class Game
                 else
                     Logger.serviceLog(serviceName, '$issuer ($issuerColor) tried to accept a takeback, but failed');
             case DeclineTakeback:
-                if (offers.declineTakeback(issuerColor))
+                if (offers != null && offers.declineTakeback(issuerColor))
                 {
                     Logger.serviceLog(serviceName, '$issuer ($issuerColor) declined a takeback. Success');
                     log.append(Event(TakebackDeclined(issuerColor)));
@@ -253,6 +275,9 @@ class Game
 
     public function resendPendingOffers(receiver:UserSession) 
     {
+        if (offers == null)
+            return;
+
         var receiverColor:Null<PieceColor> = log.getColorByRef(receiver);
         if (receiverColor == null)
             return;
@@ -422,12 +447,12 @@ class Game
         return map;
     }
 
-    public static function create(id:Int, players:Map<PieceColor, UserSession>, timeControl:TimeControl, rated:Bool, ?customStartingSituation:Situation):Game
+    public static function create(id:Int, players:Map<PieceColor, UserSession>, timeControl:TimeControl, rated:Bool, ?customStartingSituation:Situation, ?botHandle:String):Game
     {
         if (timeControl.isCorrespondence())
-            return CorrespondenceGame.createNew(id, players, rated, customStartingSituation);
+            return CorrespondenceGame.createNew(id, players, rated, customStartingSituation, botHandle);
         else
-            return new FiniteTimeGame(id, players, timeControl, rated, customStartingSituation);
+            return new FiniteTimeGame(id, players, timeControl, rated, customStartingSituation, botHandle);
     }
 
     private function new(id:Int) 

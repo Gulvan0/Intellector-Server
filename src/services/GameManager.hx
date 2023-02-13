@@ -1,5 +1,6 @@
 package services;
 
+import services.util.GameOpponent;
 import net.shared.dataobj.OngoingGameInfo;
 import net.shared.Constants;
 import services.util.SimpleAnyGame;
@@ -139,11 +140,11 @@ class GameManager
         followedPlayerLoginByFollowerRef.remove(followerRef);
     }
 
-    public static function startGame(params:ChallengeParams, ownerSession:UserSession, acceptorSession:UserSession):Int
+    public static function startGame(params:ChallengeParams, ownerSession:UserSession, opponent:GameOpponent):Int
     {
         if (Shutdown.isStopping())
         {
-            Logger.serviceLog('GAMEMGR', 'Refusing to start a new game (server is preparing to shutdown). Created by: $ownerSession, accepted by: $acceptorSession');
+            Logger.serviceLog('GAMEMGR', 'Refusing to start a new game (server is preparing to shutdown). Created by: $ownerSession, opponent: $opponent');
             return -1;
         }
 
@@ -153,21 +154,35 @@ class GameManager
         var gameID:Int = lastGameID;
         var acceptorColor:PieceColor = params.calculateActualAcceptorColor();
 
-        Logger.serviceLog('GAMEMGR', 'Starting new game with ID $gameID. Created by: $ownerSession, accepted by: $acceptorSession');
+        Logger.serviceLog('GAMEMGR', 'Starting new game with ID $gameID. Created by: $ownerSession, opponent: $opponent');
 
         var playerSessions:Map<PieceColor, UserSession>;
-        if (acceptorColor == White)
-            playerSessions = [White => acceptorSession, Black => ownerSession];
-        else
-            playerSessions = [White => ownerSession, Black => acceptorSession];
+        var playerOpponentSession:Null<UserSession> = switch opponent 
+        {
+            case VersusHuman(acceptorSession): acceptorSession;
+            case VersusBot(_): null;
+        }
+        var botOpponent:Null<String> = switch opponent 
+        {
+            case VersusHuman(_): null;
+            case VersusBot(handle): handle;
+        }
 
-        var game:Game = Game.create(gameID, playerSessions, params.timeControl, params.rated, params.customStartingSituation);
+        if (acceptorColor == White)
+            playerSessions = [White => playerOpponentSession, Black => ownerSession];
+        else
+            playerSessions = [White => ownerSession, Black => playerOpponentSession];
+
+        var game:Game = Game.create(gameID, playerSessions, params.timeControl, params.rated, params.customStartingSituation, botOpponent);
         var logPreamble:String = game.log.get();
 
         games.addNew(gameID, game);
 
         for (session in playerSessions)
         {
+            if (session == null)
+                continue;
+
             ChallengeManager.cancelAllOutgoingChallenges(session);
             
             stopFollowing(session);
@@ -190,6 +205,9 @@ class GameManager
         PageManager.notifyPageViewers(MainMenu, MainMenuNewGame(game.getInfo()));
 
         Logger.serviceLog('GAMEMGR', 'Game $gameID started successfully');
+
+        if (opponent.match(VersusBot(_)) && acceptorColor == White)
+            ownerSession.emit(BotMove(game.getTime()));
 
         return gameID;
     }

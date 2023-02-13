@@ -144,12 +144,15 @@ class ChallengeManager
                 return false;
             }
 
-        var equivChallenge:Null<Challenge> = Lambda.find(getAllPendingChallenges(), challenge.isEquivalentTo);
-        if (equivChallenge != null)
+        if (!params.type.match(ToBot(_)))
         {
-            Logger.serviceLog('CHALLENGE', 'Failed to create a challenge by $authorRef: there is another equivalent pending challenge (ID: ${equivChallenge.id})');
-            requestAuthor.emit(CreateChallengeResult(Duplicate));
-            return false;
+            var equivChallenge:Null<Challenge> = Lambda.find(getAllPendingChallenges(), challenge.isEquivalentTo);
+            if (equivChallenge != null)
+            {
+                Logger.serviceLog('CHALLENGE', 'Failed to create a challenge by $authorRef: there is another equivalent pending challenge (ID: ${equivChallenge.id})');
+                requestAuthor.emit(CreateChallengeResult(Duplicate));
+                return false;
+            }
         }
 
         switch params.type
@@ -206,8 +209,17 @@ class ChallengeManager
         var challengeData:ChallengeData = challenge.toChallengeData();
 
         var creationNeeded:Bool = performPreliminaryChecks(requestAuthor, challenge);
+
         if (!creationNeeded)
             return;
+
+        switch params.type 
+        {
+            case ToBot(botHandle):
+                GameManager.startGame(challenge.params, requestAuthor, VersusBot(botHandle));
+                return;
+            default:
+        }
         
         lastChallengeID++;
 
@@ -278,7 +290,7 @@ class ChallengeManager
     {
         removeChallenge(challenge);
         
-        var gameID:Int = GameManager.startGame(challenge.params, ownerSession, acceptorSession);
+        var gameID:Int = GameManager.startGame(challenge.params, ownerSession, VersusHuman(acceptorSession));
         gameIDByFormerChallengeID.set(challenge.id, gameID);
         ownerLoginByFormerChallengeID.set(challenge.id, challenge.ownerLogin);
         

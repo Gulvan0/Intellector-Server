@@ -24,6 +24,11 @@ class GameLog
     public var elo(default, null):Map<PieceColor, EloValue>;
     public var msLeftOnOver(default, null):Null<Map<PieceColor, Int>>;
     public var customStartingSituation(default, null):Null<Situation>;
+
+    public function isAgainstBot():Bool
+    {
+        return playerRefs[White].charAt(0) == "+" || playerRefs[Black].charAt(0) == "+";
+    }
     
     public function get():String
     {
@@ -133,7 +138,7 @@ class GameLog
         return loadFromStr(gameID, Storage.getGameLog(gameID));
     }
 
-    public static function createNew(id:Int, players:Map<PieceColor, UserSession>, timeControl:TimeControl, rated:Bool, ?customStartingSituation:Situation):GameLog 
+    public static function createNew(id:Int, players:Map<PieceColor, UserSession>, timeControl:TimeControl, rated:Bool, ?customStartingSituation:Situation, ?botHandle:String):GameLog 
     {
         var log:GameLog = new GameLog(id);
 
@@ -145,7 +150,21 @@ class GameLog
             if (player != null && player.login != null && player.storedData != null)
                 eloValues[color] = player.storedData.getELO(timeControlType);
         
-        log.append(Players(players[White].getReference(), players[Black].getReference()), false);
+        if (players.get(White) == null)
+            if (players.get(Black) == null)
+                throw "Failed to create game: players map is empty";
+            else if (botHandle == null)
+                throw "Failed to create game: missing white player and no botHandle to replace";
+            else
+                log.append(Players("+" + botHandle, players[Black].getReference()), false);
+        else if (players.get(Black) == null)
+            if (botHandle == null)
+                throw "Failed to create game: missing black player and no botHandle to replace";
+            else
+                log.append(Players(players[White].getReference(), "+" + botHandle), false);
+        else
+            log.append(Players(players[White].getReference(), players[Black].getReference()), false);
+        
         if (rated)
             log.append(Elo(eloValues[White], eloValues[Black]), false);
         log.append(DateTime(Date.now()), false);

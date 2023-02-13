@@ -17,12 +17,12 @@ import net.shared.PieceType;
 
 class CorrespondenceGame extends Game
 {
-    public static function createNew(id:Int, players:Map<PieceColor, UserSession>, rated:Bool, ?customStartingSituation:Situation):CorrespondenceGame
+    public static function createNew(id:Int, players:Map<PieceColor, UserSession>, rated:Bool, ?customStartingSituation:Situation, ?botHandle:String):CorrespondenceGame
     {
         var game:CorrespondenceGame = new CorrespondenceGame(id);
         
-        game.log = GameLog.createNew(id, players, TimeControl.correspondence(), rated, customStartingSituation);
-        game.offers = new GameOffers(game.endGame.bind(Drawish(DrawAgreement)), game.rollback);
+        game.log = GameLog.createNew(id, players, TimeControl.correspondence(), rated, customStartingSituation, botHandle);
+        game.offers = game.log.isAgainstBot()? null : new GameOffers(game.endGame.bind(Drawish(DrawAgreement)), game.rollback);
         game.sessions = new GameSessions(players);
         game.state = GameState.createNew(customStartingSituation);
 
@@ -37,7 +37,7 @@ class CorrespondenceGame extends Game
         var game:CorrespondenceGame = new CorrespondenceGame(id);
 
         game.log = log;
-        game.offers = GameOffers.createFromLog(log.getEntries(), game.endGame.bind(Drawish(DrawAgreement)), game.rollback);
+        game.offers = game.log.isAgainstBot()? null : GameOffers.createFromLog(log.getEntries(), game.endGame.bind(Drawish(DrawAgreement)), game.rollback);
         game.sessions = new GameSessions([White => null, Black => null]);
         game.state = GameState.createFromLog(log.getEntries());
 
