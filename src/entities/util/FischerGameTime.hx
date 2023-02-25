@@ -1,49 +1,18 @@
 package entities.util;
 
+import services.Logger;
+import net.shared.TimeControl;
 import net.shared.Constants;
-import struct.TimeControl;
 import net.shared.dataobj.TimeReservesData;
 import haxe.Timer;
 import net.shared.PieceColor;
 
 using utils.ds.ArrayTools;
 
-interface IGameTime 
+class FischerGameTime implements IGameTime
 {
-    public function stopTime(turnColor:PieceColor, moveNum:Int):Void;
-    public function addTime(color:PieceColor, turnColor:PieceColor, moveNum:Int):Void;
-    public function onMoveMade(movedPlayerColor:PieceColor, moveNum:Int):Void;
-    public function onRollback(moveCnt:Int, newTurnColor:PieceColor, newMoveNum:Int):Void;
-    public function getTime(turnColor:PieceColor, moveNum:Int):Null<TimeReservesData>;
-    public function getMsAtMoveStart():Null<Map<PieceColor, Int>>;
-}
-
-private class Nil implements IGameTime
-{
-    public function onMoveMade(movedPlayerColor:PieceColor, moveNum:Int) {} 
-    public function onRollback(moveCnt:Int, newTurnColor:PieceColor, newMoveNum:Int) {} 
-    public function stopTime(turnColor:PieceColor, moveNum:Int) {} 
-    public function addTime(color:PieceColor, turnColor:PieceColor, moveNum:Int) {}
-
-    public function getTime(turnColor:PieceColor, moveNum:Int):Null<TimeReservesData> 
-    {
-        return null;
-    } 
-
-    public function getMsAtMoveStart():Null<Map<PieceColor, Int>>
-    {
-        return null;
-    }
-
-    public function new() 
-    {
-        
-    }
-}
-
-class GameTime implements IGameTime
-{
-    private var timeControl:TimeControl;
+	public final faithful:Bool;
+    private var secsPerMove:Int;
     private var secondsLeftOnMoveStart:Array<Map<PieceColor, Float>> = [];
     private var moveStartTimestamp:Float;
 
@@ -53,7 +22,17 @@ class GameTime implements IGameTime
     
     private var onTimeout:PieceColor->Void;
 
-    public function getMsAtMoveStart():Null<Map<PieceColor, Int>>
+    public function setTimeDirectly(timeData:TimeReservesData) 
+    {
+        if (faithful)
+        {
+
+        }
+        else
+            Logger.logError('Attempted to set time directly for non-faithful game time');
+    }
+
+    public function getLoggedMsAfterPrevMove():Null<Map<PieceColor, Int>>
     {
         var timeMap = secondsLeftOnMoveStart.last();
         return [White => Math.round(timeMap[White] * 1000), Black => Math.round(timeMap[Black] * 1000)];
@@ -67,7 +46,7 @@ class GameTime implements IGameTime
         if (timeMap[turnColor] > 0)
         {
             if (moveNum >= 2)
-                timeMap[turnColor] += timeControl.incrementSecs;
+                timeMap[turnColor] += secsPerMove;
             secondsLeftOnMoveStart.push(timeMap);
             moveStartTimestamp = timeData.timestamp;
 
@@ -143,21 +122,12 @@ class GameTime implements IGameTime
             restartTimer(turnColor, moveNum, getTime(turnColor, moveNum).secsLeftMap()[turnColor] * 1000);
     }
 
-    public static function nil():IGameTime
+    public function new(faithful:Bool, startSecs:Int, secsPerMove:Int, onTimeout:PieceColor->Void) 
     {
-        return new Nil();
-    }
-
-    public static function active(timeControl:TimeControl, onTimeout:PieceColor->Void):IGameTime
-    {
-        return new GameTime(timeControl, onTimeout);
-    }
-
-    private function new(timeControl:TimeControl, onTimeout:PieceColor->Void) 
-    {
+        this.faithful = faithful;
         this.onTimeout = onTimeout;
-        this.timeControl = timeControl;
-        secondsLeftOnMoveStart.push([White => timeControl.startSecs, Black => timeControl.startSecs]);
-        moveStartTimestamp = Sys.time() * 1000;
+        this.secsPerMove = secsPerMove;
+        this.secondsLeftOnMoveStart.push([White => startSecs, Black => startSecs]);
+        this.moveStartTimestamp = Sys.time() * 1000;
     }
 }

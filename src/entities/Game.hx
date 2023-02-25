@@ -1,15 +1,15 @@
 package entities;
 
+import entities.util.IGameTime;
+import net.shared.TimeControl;
 import net.shared.board.RawPly;
 import services.Auth;
 import net.shared.Constants;
 import services.Logger;
 import struct.ChallengeParams;
-import struct.TimeControl;
 import net.shared.dataobj.GameInfo;
 import net.shared.dataobj.TimeReservesData;
 import services.EloManager;
-import entities.util.GameTime.IGameTime;
 import net.shared.Outcome;
 import net.GameAction;
 import net.shared.dataobj.TimeReservesData;
@@ -53,7 +53,7 @@ class Game
     {
         time.onMoveMade(movedPlayerColor, moveNum);
 
-        var msAtMoveStart = time.getMsAtMoveStart();
+        var msAtMoveStart = time.getLoggedMsAfterPrevMove();
         var whiteMs = msAtMoveStart != null? msAtMoveStart.get(White) : null;
         var blackMs = msAtMoveStart != null? msAtMoveStart.get(Black) : null;
 
@@ -410,7 +410,7 @@ class Game
     {
         if (sessions.isDerelict(true) && state.moveNum < 2)
             abortGame();
-        else if (sessions.isDerelict() && log.timeControl.isCorrespondence())
+        else if (sessions.isDerelict() && log.timeControl.match(Correspondence))
             GameManager.unloadDerelictCorrespondence(id);
     }
 
@@ -449,7 +449,7 @@ class Game
 
     public static function create(id:Int, players:Map<PieceColor, UserSession>, timeControl:TimeControl, rated:Bool, ?customStartingSituation:Situation, ?botHandle:String):Game
     {
-        if (timeControl.isCorrespondence())
+        if (timeControl.match(Correspondence))
             return CorrespondenceGame.createNew(id, players, rated, customStartingSituation, botHandle);
         else
             return new FiniteTimeGame(id, players, timeControl, rated, customStartingSituation, botHandle);

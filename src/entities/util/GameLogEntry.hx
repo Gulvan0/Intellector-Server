@@ -1,9 +1,9 @@
 package entities.util;
 
+import net.shared.TimeControl;
 import net.shared.board.RawPly;
 import net.shared.Outcome;
 import net.shared.PieceColor;
-import struct.TimeControl;
 import net.shared.board.Situation;
 import net.shared.EloValue;
 import net.shared.PieceType;

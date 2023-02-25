@@ -1,12 +1,12 @@
 package entities.util;
 
+import net.shared.TimeControl;
 import net.shared.Outcome;
 import net.shared.Constants;
 import net.shared.PieceColor;
 import net.shared.board.Situation;
 import net.shared.TimeControlType;
 import net.shared.EloValue;
-import struct.TimeControl;
 import services.EloManager;
 import services.Storage;
 
@@ -128,7 +128,7 @@ class GameLog
             log.append(entry, false);
 
         if (log.timeControl == null)
-            log.timeControl = new TimeControl(600, 5);
+            log.timeControl = Fischer(600, 5);
 
         return log;
     }

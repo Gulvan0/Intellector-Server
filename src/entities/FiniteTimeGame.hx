@@ -1,8 +1,9 @@
 package entities;
 
+import entities.util.GameTimeFactory;
+import net.shared.TimeControl;
 import net.shared.Outcome;
 import net.GameAction;
-import entities.util.GameTime;
 import entities.util.GameOffers;
 import entities.util.GameState;
 import entities.util.GameSessions;
@@ -13,7 +14,6 @@ import haxe.Timer;
 import net.shared.PieceColor;
 import net.shared.ServerEvent;
 import net.shared.board.Situation;
-import struct.TimeControl;
 import services.Storage;
 
 using StringTools;
@@ -33,6 +33,6 @@ class FiniteTimeGame extends Game
         offers = log.isAgainstBot()? null : new GameOffers(endGame.bind(Drawish(DrawAgreement)), rollback);
         sessions = new GameSessions(players);
         state = GameState.createNew(customStartingSituation);
-        time = GameTime.active(timeControl, onTimeout);
+        time = GameTimeFactory.build(timeControl, log.isAgainstBot(), onTimeout);
     }
 }

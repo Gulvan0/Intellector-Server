@@ -1,5 +1,6 @@
 package struct;
 
+import net.shared.TimeControl;
 import net.shared.board.Situation;
 import net.shared.utils.MathUtils;
 import net.shared.PieceColor;
@@ -23,7 +24,7 @@ class ChallengeParams
     public static function deserialize(s:String):ChallengeParams
     {
         var splitted:Array<String> = s.split(";");
-        var timeControl:TimeControl = new TimeControl(Std.parseInt(splitted[0]), Std.parseInt(splitted[1]));
+        var timeControl:TimeControl = TimeControl.construct(Std.parseInt(splitted[0]), Std.parseInt(splitted[1]));
         var type:ChallengeType = splitted[2] == "p"? Public : splitted[2] == "l"? ByLink : splitted[2].charAt(0) == "+"? ToBot(splitted[2].substr(1)) : Direct(splitted[2].toLowerCase());
         var acceptorColor:Null<PieceColor> = splitted[3] == "w"? White : splitted[3] == "b"? Black : null;
         var customStartingSituation:Null<Situation> = splitted[4] == ""? null : Situation.deserialize(splitted[4]);
@@ -33,6 +34,13 @@ class ChallengeParams
 
     public function serialize():String
     {
+        var timeStr:String = switch timeControl 
+        {
+            case Correspondence: '0;0';
+            case Fischer(startSecs, incrementSecs): startSecs + ";" + incrementSecs;
+            case FixedTimePerMove(secsPerMove): "0;" + secsPerMove;
+        }
+
         var typeStr:String = switch type 
         {
             case Public: "p";
@@ -51,7 +59,7 @@ class ChallengeParams
         var sitStr = customStartingSituation == null? "" : customStartingSituation.serialize();
         var ratedStr = rated? "t" : "";
 
-        return timeControl.startSecs + ";" + timeControl.incrementSecs + ";" + typeStr + ";" + colorStr + ";" + sitStr + ";" + ratedStr;
+        return timeStr + ";" + typeStr + ";" + colorStr + ";" + sitStr + ";" + ratedStr;
     }
 
     private function isValid():Bool
