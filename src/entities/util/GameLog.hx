@@ -1,5 +1,6 @@
 package entities.util;
 
+import net.shared.board.RawPly;
 import net.shared.Outcome;
 import net.shared.Constants;
 import net.shared.PieceColor;
@@ -24,6 +25,8 @@ class GameLog
     public var elo(default, null):Map<PieceColor, EloValue>;
     public var msLeftOnOver(default, null):Null<Map<PieceColor, Int>>;
     public var customStartingSituation(default, null):Null<Situation>;
+    public var datetime(default, null):Null<Date>;
+    public var moves(default, null):Array<RawPly> = [];
 
     public function isAgainstBot():Bool
     {
@@ -84,6 +87,10 @@ class GameLog
             case Result(res):
                 outcome = res;
                 ongoing = false;
+            case DateTime(ts):
+                datetime = ts;
+            case Move(rawPly, _, _):
+                moves.push(rawPly);
             default:
         }
 

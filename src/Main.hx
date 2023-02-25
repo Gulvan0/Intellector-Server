@@ -1,3 +1,4 @@
+import services.OneTimeTasks;
 import net.ServerManager;
 
 class Main 
@@ -5,6 +6,7 @@ class Main
 	public static function main() 
 	{
         Routines.onStartup();
-        ServerManager.start();
+        OneTimeTasks.gatherGameArchiveCSV();
+        //ServerManager.start();
     }
 }
