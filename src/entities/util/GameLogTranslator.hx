@@ -1,7 +1,7 @@
 package entities.util;
 
-import net.shared.TimeControl;
 import net.shared.board.RawPly;
+import struct.TimeControl;
 import net.shared.board.Situation;
 import net.shared.EloValue.serialize;
 import net.shared.EloValue.deserialize;
@@ -188,7 +188,7 @@ class GameLogTranslator
             case "S":
                 return CustomStartingSituation(Situation.deserialize(args[0]));
             case "T":
-                return TimeControl(TimeControl.construct(Std.parseInt(args[0]), Std.parseInt(args[1])));
+                return TimeControl(new TimeControl(Std.parseInt(args[0]), Std.parseInt(args[1])));
             case "C":
                 return PlayerMessage(colorByLetter(args[0]), args[1]);
             case "R":
