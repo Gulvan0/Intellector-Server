@@ -2,11 +2,11 @@
 
 This project is a game server for Intellector, an exciting board game for 2 players.
 
-
+\
 
 Client-side repo with docs and contributing guide - https://github.com/Gulvan0/Intellector
 
-
+\
 
 Live version - https://intellector.info/game/?p=home
 
