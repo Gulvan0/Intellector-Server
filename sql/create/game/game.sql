@@ -1,0 +1,5 @@
+CREATE TABLE game.game (
+    id MEDIUMINT NOT NULL PRIMARY KEY,
+    start_ts TIMESTAMP NOT NULL,
+    TODO
+)
