@@ -1,5 +1,7 @@
 package net.shared.board;
 
+import haxe.Unserializer;
+import haxe.Serializer;
 import net.shared.utils.MathUtils;
 import net.shared.converters.SituationSerializer;
 import net.shared.PieceColor;
@@ -43,6 +45,22 @@ class Situation
         return sit;
     }
 
+    @:keep
+    private function hxSerialize(s:Serializer) 
+    {
+        s.serialize(serialize());
+    }
+
+    @:keep
+    private function hxUnserialize(u:Unserializer) 
+    {
+        var sit:Situation = deserialize(u.unserialize());
+
+        pieces = sit.pieces;
+        turnColor = sit.turnColor;
+        intellectorPos = sit.intellectorPos;
+    }
+
     public static function deserialize(sip:String):Null<Situation>
     {
         return SituationSerializer.deserialize(sip);
@@ -51,6 +69,16 @@ class Situation
     public function serialize():String
     {
         return SituationSerializer.serialize(this);
+    }
+
+    public function symmetrical():Situation
+    {
+        var sit:Situation = Situation.empty();
+
+        for (coords in HexCoords.enumerate())
+            sit.set(coords.horizontalReflection(), get(coords));
+
+        return sit;
     }
 
     public function isValidStarting():Bool
@@ -66,6 +94,23 @@ class Situation
             return false;
         else
             return true;
+    }
+
+    public function countPieces():Int
+    {
+        var cnt:Int = 0;
+
+        for (coords in HexCoords.enumerate()) 
+        {
+            switch get(coords) 
+            {
+                case Occupied(_):
+                    cnt++;
+                default:
+            }
+        }
+
+        return cnt;
     }
 
     public function collectPieces():Map<HexCoords, PieceData>
@@ -252,7 +297,12 @@ class Situation
 
     public function copy(?newTurnColor:PieceColor):Situation
     {
-        return new Situation(pieces.copy(), newTurnColor != null? newTurnColor : turnColor, intellectorPos.copy());
+        return new Situation(pieces.copy(), newTurnColor ?? turnColor, intellectorPos.copy());
+    }
+
+    public function equals(otherSituation:Situation):Bool
+    {
+        return getHash() == otherSituation.getHash();
     }
 
     public function toString():String

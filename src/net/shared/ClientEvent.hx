@@ -1,5 +1,6 @@
 package net.shared;
 
+import net.shared.utils.UnixTimestamp;
 import net.shared.dataobj.*;
 import net.shared.board.RawPly;
 
@@ -9,7 +10,7 @@ enum ClientEvent
     Login(login:String, password:String);
     Register(login:String, password:String);
     LogOut;
-    CreateChallenge(serializedParams:String);
+    CreateChallenge(params:ChallengeParams);
     CancelChallenge(challengeID:Int);
     AcceptChallenge(challengeID:Int); 
     DeclineDirectChallenge(challengeID:Int);
@@ -17,15 +18,10 @@ enum ClientEvent
     Message(text:String); 
     SimpleRematch;
     Resign; 
-    OfferDraw; 
-    CancelDraw; 
-    AcceptDraw; 
-    DeclineDraw; 
-    OfferTakeback; 
-    CancelTakeback; 
-    AcceptTakeback; 
-    DeclineTakeback;
+    PerformOfferAction(kind:OfferKind, action:OfferAction);
     AddTime; 
+    BotGameRollback(plysReverted:Int, updatedTimestamp:Null<UnixTimestamp>);
+    BotMessage(text:String);
     GetOpenChallenge(id:Int); 
     FollowPlayer(login:String);
     StopFollowing;

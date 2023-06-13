@@ -25,7 +25,7 @@ class Notation
         return plyStrSeq;
     }
 
-    public static function plyFromNotation(plyStr:String, context:Situation):RawPly
+    public static function plyFromNotation(plyStr:String, context:Situation):Null<RawPly>
     {
         var ply:RawPly = new RawPly();
 
@@ -84,7 +84,7 @@ class Notation
         }
     }
 
-    public static function plyToNotation(ply:RawPly, context:Situation, ?indicateColor:Bool):String
+    public static function plyToNotation(ply:RawPly, context:Situation, ?indicateColor:Bool = false, ?displayedPlyNum:Null<Int>):String
     {
         var hexFrom = context.get(ply.from);
         var hexTo = context.get(ply.to);
@@ -101,6 +101,9 @@ class Notation
             else 
                 str += '⬢';
 
+        if (displayedPlyNum != null)
+            str += '$displayedPlyNum. ';
+
         if (castle)
             if (hexTo.type() == Intellector)
                 return str + Notation.hexNotation(ply.to).toUpperCase() + ":" + Notation.hexNotation(ply.from).toUpperCase();
@@ -113,7 +116,7 @@ class Notation
         for (coords => piece in context.collectPieces())
             if (!coords.equals(ply.from))
                 if (piece.type == hexFrom.type() && piece.color == hexFrom.color())
-                    if (Lambda.exists(Rules.getPossibleDestinations(coords, context.pieces), ply.to.equals))
+                    if (Lambda.exists(Rules.getPossibleDestinations(coords, context.pieces.get), ply.to.equals))
                     {
                         another = coords;
                         break;

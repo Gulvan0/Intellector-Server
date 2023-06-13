@@ -25,11 +25,11 @@ class Rules
         }
     }
     
-    public static function getPossibleDestinations(departure:HexCoords, pieceArrangement:PieceArrangement, ?excludeDefensorCastling:Bool = false):Array<HexCoords> 
+    public static function getPossibleDestinations(departure:HexCoords, hexRetriever:HexCoords->Hex, ?excludeDefensorCastling:Bool = false):Array<HexCoords> 
     {
         var possibleDestinations:Array<HexCoords> = [];
 
-        var departureHex:Hex = pieceArrangement.get(departure);
+        var departureHex:Hex = hexRetriever(departure);
         var allowedMovements:Map<MovementPattern, Array<Direction>> = getAllowedMovements(departureHex);
 
         for (pattern => directions in allowedMovements)
@@ -38,11 +38,11 @@ class Rules
                 {
                     case SimpleJump(distance):
                         var destination:HexCoords = departure.step(dir, distance);
-                        if (destination.isValid() && pieceArrangement.get(destination).color() != departureHex.color()) //Empty or occupied by enemy
+                        if (destination.isValid() && hexRetriever(destination).color() != departureHex.color()) //Empty or occupied by enemy
                             possibleDestinations.push(destination);
                     case NonCapturingJump(distance):
                         var destination:HexCoords = departure.step(dir, distance);
-                        if (destination.isValid() && pieceArrangement.get(destination).match(Empty))
+                        if (destination.isValid() && hexRetriever(destination).match(Empty))
                             possibleDestinations.push(destination);
                     case NormalSlide:
                         var destination:HexCoords = departure;
@@ -54,7 +54,7 @@ class Rules
                             if (!destination.isValid())
                                 break;
 
-                            var hexColor:Null<PieceColor> = pieceArrangement.get(destination).color();
+                            var hexColor:Null<PieceColor> = hexRetriever(destination).color();
                             if (hexColor == departureHex.color())
                                 proceed = false;
                             else if (hexColor == null)
@@ -70,7 +70,7 @@ class Rules
                         if (!destination.isValid())
                             continue;
 
-                        var destinationHex:Hex = pieceArrangement.get(destination);
+                        var destinationHex:Hex = hexRetriever(destination);
                         var desiredHex:Hex = Occupied(new PieceData(partner, departureHex.color()));
                         if (destinationHex.equals(desiredHex))
                             possibleDestinations.push(destination);
@@ -116,7 +116,7 @@ class Rules
         if (movingPiece == null)
             return false;
         else
-            return getPossibleDestinations(from, pieceArrangement).exists(x -> x.equals(to));
+            return getPossibleDestinations(from, pieceArrangement.get).exists(x -> x.equals(to));
     }
 
     public static function isPossible(ply:RawPly, situation:Situation):Bool
@@ -125,26 +125,23 @@ class Rules
 
         if (movingPiece == null || movingPiece.color != situation.turnColor)
             return false;
-        else if (ply.morphInto != null && movingPiece.type == Progressor && ply.to.isFinal(movingPiece.color))
+        else if (isPromotionAvailable(ply.from, ply.to, situation))
         {
-            var impossiblePromotionType:Bool = ply.morphInto == Intellector || ply.morphInto == Progressor;
+            var validPromotionType:Bool = ply.morphInto != null && possiblePromotionTypes().contains(ply.morphInto);
 
-            if (impossiblePromotionType)
+            if (!validPromotionType)
                 return false;
         }
         else if (ply.morphInto != null)
         {
-            var intCoords:Null<HexCoords> = situation.intellectorCoords(movingPiece.color);
-            
-            var noAura:Bool = intCoords == null? true : !intCoords.isLaterallyNear(ply.from);
-            var intChameleon:Bool = movingPiece.type == Intellector;
-            var wrongChameleonType:Bool = ply.morphInto != situation.pieces.get(ply.to).type();
+            var chameleonNotPossible:Bool = !isChameleonAvailable(ply.from, ply.to, situation);
+            var fakedChameleon:Bool = ply.morphInto != situation.get(ply.to).type();
 
-            if (intChameleon || noAura || wrongChameleonType)
+            if (chameleonNotPossible || fakedChameleon)
                 return false;
         }
 
-        return getPossibleDestinations(ply.from, situation.pieces).exists(x -> x.equals(ply.to));
+        return getPossibleDestinations(ply.from, situation.pieces.get).exists(x -> x.equals(ply.to));
     }
 
     public static function isPremovePossible(from:HexCoords, to:HexCoords, pieceArrangement:PieceArrangement):Bool 
@@ -154,6 +151,32 @@ class Rules
             return false;
         else
             return getPossiblePremoveDestinations(from, movingPiece).exists(x -> x.equals(to));
+    }
+
+    public static function isPromotionAvailable(from:HexCoords, to:HexCoords, situation:Situation):Bool
+    {
+        var movingPiece:Null<PieceData> = situation.get(from).piece();
+
+        if (movingPiece == null)
+            return false;
+
+        return movingPiece.type == Progressor && to.isFinal(movingPiece.color);
+    }
+
+    public static function isChameleonAvailable(from:HexCoords, to:HexCoords, situation:Situation):Bool
+    {
+        var movingPiece:Null<PieceData> = situation.get(from).piece();
+        var pieceOnDestination:Null<PieceData> = situation.get(to).piece();
+
+        if (movingPiece == null)
+            return false;
+
+        var pieceCanChameleon:Bool = movingPiece.type != Intellector && movingPiece.type != Progressor;
+        var isCapture:Bool = pieceOnDestination != null && pieceOnDestination.color != movingPiece.color;
+        var isAffectedByAura:Bool = situation.intellectorCoords(movingPiece.color).isLaterallyNear(from);
+        var pieceTypeWillChange:Bool = pieceOnDestination.type != movingPiece.type;
+
+        return pieceCanChameleon && isCapture && isAffectedByAura && pieceTypeWillChange;
     }
 
     public static function possiblePromotionTypes():Array<PieceType>
@@ -168,21 +191,22 @@ class Rules
 
         for (coords => piece in allPieces)
             if (piece.color == situation.turnColor)
-                for (destination in getPossibleDestinations(coords, situation.pieces, true))
-                    if (piece.type == Progressor && destination.isFinal(piece.color))
+                for (destination in getPossibleDestinations(coords, situation.pieces.get, true))
+                    if (isPromotionAvailable(coords, destination, situation))
                         for (newType in possiblePromotionTypes())
                             plys.push(RawPly.construct(coords, destination, newType));
                     else 
                     {
-                        var pieceOnDestination:Null<PieceData> = situation.get(destination).piece();
-                        var isCapture:Bool = pieceOnDestination != null && pieceOnDestination.color != piece.color;
-                        var isAffectedByAura:Bool = situation.intellectorCoords(piece.color).isLaterallyNear(coords);
-
                         plys.push(RawPly.construct(coords, destination, null));
-                        if (piece.type != Intellector && isCapture && isAffectedByAura)
-                            plys.push(RawPly.construct(coords, destination, pieceOnDestination.type));
+                        if (isChameleonAvailable(coords, destination, situation))
+                            plys.push(RawPly.chameleon(coords, destination, situation));
                     }
 
         return plys;
+    }
+
+    public static function getActiveTimerColorAt(pointer:Int, firstColorToMove:PieceColor):Null<PieceColor>
+    {
+        return pointer < 2? null : pointer % 2 == 0? firstColorToMove : opposite(firstColorToMove);
     }
 }
