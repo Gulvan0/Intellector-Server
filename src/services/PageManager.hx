@@ -1,7 +1,6 @@
 package services;
 
 import net.shared.dataobj.ChallengeData;
-import net.shared.dataobj.GameInfo;
 import net.shared.ServerEvent;
 import utils.ds.DefaultArrayMap;
 import net.shared.dataobj.ViewedScreen;

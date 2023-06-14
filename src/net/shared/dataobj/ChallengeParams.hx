@@ -1,7 +1,6 @@
 package net.shared.dataobj;
 
 import net.shared.utils.MathUtils;
-import browser.ChallengeParamsCookies;
 import net.shared.board.Situation;
 
 class ChallengeParams
