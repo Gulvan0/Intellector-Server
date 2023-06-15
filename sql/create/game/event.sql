@@ -1,6 +1,6 @@
 CREATE TABLE game.event (
-    id INT NOT NULL AUTO_INCREMENT,
-    game_id MEDIUMINT NOT NULL,
+    id INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    game_id MEDIUMINT UNSIGNED NOT NULL,
     ts TIMESTAMP NOT NULL,
 
     INDEX game_id_ind (game_id),

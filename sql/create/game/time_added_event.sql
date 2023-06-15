@@ -1,5 +1,5 @@
 CREATE TABLE game.time_added_event (
-    event_id INT NOT NULL,
+    event_id INT UNSIGNED NOT NULL,
     receiving_color ENUM('white', 'black') NOT NULL,
 
     INDEX event_id_ind (event_id),

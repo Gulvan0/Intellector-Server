@@ -3,7 +3,7 @@ CREATE TABLE log.antifraud (
     entry_type ENUM('elo','xp') NOT NULL,
     player_login VARCHAR(16) NOT NULL,
     delta SMALLINT NOT NULL,
-    game_id MEDIUMINT,
+    game_id MEDIUMINT UNSIGNED,
 
     INDEX player_login_ind (player_login),
     INDEX game_id_ind (game_id),

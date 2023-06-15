@@ -1,5 +1,5 @@
 CREATE TABLE game.message_event (
-    event_id INT NOT NULL,
+    event_id INT UNSIGNED NOT NULL,
     author_ref VARCHAR(16) NOT NULL,
     msg_text VARCHAR(500) NOT NULL,
 

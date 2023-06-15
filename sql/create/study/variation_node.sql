@@ -1,8 +1,8 @@
 CREATE TABLE study.variation_node (
-    study_id MEDIUMINT NOT NULL,
+    study_id MEDIUMINT UNSIGNED NOT NULL,
     joined_path VARCHAR(500) NOT NULL,
-    ply_departure_coord TINYINT NOT NULL,
-    ply_destination_coord TINYINT NOT NULL,
+    ply_departure_coord TINYINT UNSIGNED NOT NULL,
+    ply_destination_coord TINYINT UNSIGNED NOT NULL,
     ply_morph_into ENUM('aggressor','defensor','dominator','liberator','progressor'),
 
     INDEX study_id_ind (study_id),

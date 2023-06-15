@@ -1,6 +1,6 @@
 CREATE TABLE connection.login_event (
     ts TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    session_id MEDIUMINT NOT NULL,
+    session_id MEDIUMINT UNSIGNED NOT NULL,
     assigned_ref VARCHAR(16),
 
     INDEX session_id_ind (session_id),

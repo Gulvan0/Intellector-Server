@@ -1,7 +1,7 @@
 CREATE TABLE challenge.fischer_time_control (
-    challenge_id MEDIUMINT NOT NULL,
-    start_secs SMALLINT NOT NULL,
-    increment_secs SMALLINT NOT NULL,
+    challenge_id MEDIUMINT UNSIGNED NOT NULL,
+    start_secs SMALLINT UNSIGNED NOT NULL,
+    increment_secs SMALLINT UNSIGNED NOT NULL,
 
     INDEX challenge_id_ind (challenge_id),
 

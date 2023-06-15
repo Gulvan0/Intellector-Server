@@ -1,5 +1,5 @@
 CREATE TABLE general.follower (
-    follower_session_id MEDIUMINT NOT NULL,
+    follower_session_id MEDIUMINT UNSIGNED NOT NULL,
     followed_login VARCHAR(16) NOT NULL,
 
     INDEX follower_session_id_ind (follower_session_id),
