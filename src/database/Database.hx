@@ -18,7 +18,7 @@ class Database
 
         if (queryText == null)
         {
-            //TODO: Log error
+            Logging.error("database", 'Failed to retrieve a query from $resourceName');
             return null;
         }
 
@@ -71,5 +71,18 @@ class Database
             user: Config.config.mysqlUser,
             pass: Config.config.mysqlPass
         });
+
+        var isEmpty:Bool = executeQuery("sql/dml/on_start/is_empty/check_if_database_empty.sql").set.length == 0;
+
+        if (isEmpty)
+        {
+            Logging.info("database", "Database seems to be fresh, filling it with tables...");
+            createTables();
+        }
+        else
+        {
+            Logging.info("database", "It seems database is already initialized. Cleaning short-term tables...");
+            cleanTablesOnLaunch();
+        }
     }
 }

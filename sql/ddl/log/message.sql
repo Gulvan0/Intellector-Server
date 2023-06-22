@@ -3,6 +3,7 @@ CREATE TABLE log.message (
     source ENUM('client','server') NOT NULL,
     connection_id MEDIUMINT UNSIGNED NOT NULL,
     message_id SMALLINT UNSIGNED NOT NULL,
-    event_name VARCHAR(50) NOT NULL,
-    event_args VARCHAR(500)
+    message_type ENUM('event','request') NOT NULL,
+    message_name VARCHAR(50) NOT NULL,
+    message_args VARCHAR(500)
 )
