@@ -1,4 +1,4 @@
-import net.ServerManager;
+import services.ServerManager;
 
 class Main 
 {

@@ -4,7 +4,7 @@ CREATE TABLE game.game (
     black_player_ref VARCHAR(16) NOT NULL,
     time_control_type ENUM('hyperbullet', 'bullet', 'blitz', 'rapid', 'classic', 'correspondence') NOT NULL,
     rated BIT(1) NOT NULL,
-    start_ts TIMESTAMP NOT NULL,
+    start_ts TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     custom_starting_sip VARCHAR(50),
 
     PRIMARY KEY (id)
