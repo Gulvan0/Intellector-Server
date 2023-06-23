@@ -5,7 +5,8 @@ CREATE TABLE challenge.challenge (
     callee_ref VARCHAR(16),
     accepting_side_color ENUM('white', 'black', 'random') NOT NULL,
     custom_starting_sip VARCHAR(50),
-    rated BIT(1) NOT NULL,
+    rated BOOLEAN NOT NULL,
+    active BOOLEAN NOT NULL,
     resulting_game_id MEDIUMINT UNSIGNED,
 
     INDEX resulting_game_id_ind (resulting_game_id),

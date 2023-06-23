@@ -8,7 +8,7 @@ CREATE TABLE study.study (
     publicity ENUM('public', 'direct_only', 'private') NOT NULL,
     starting_sip VARCHAR(50) NOT NULL,
     key_position_sip VARCHAR(50) NOT NULL,
-    is_deleted BIT(1) NOT NULL,
+    deleted BOOLEAN NOT NULL,
 
     INDEX author_login_ind (author_login),
 

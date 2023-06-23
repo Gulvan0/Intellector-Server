@@ -1,5 +1,6 @@
 package;
 
+import database.QueryShortcut;
 import net.shared.message.ServerRequestResponse;
 import net.shared.message.ClientRequest;
 import net.shared.message.ClientEvent;
@@ -51,7 +52,7 @@ class Logging
                 "delta" => delta,
                 "game_id" => gameID
             ];
-            database.executeQuery("sql/dml/logging/append_antifraud.sql", substitutions);
+            database.executeQuery(LogAntifraud, substitutions);
         }
     }    
 
@@ -79,7 +80,7 @@ class Logging
         }
 
         if (database != null)
-            database.executeQuery("sql/dml/logging/append_message.sql", substitutions);
+            database.executeQuery(LogMessage, substitutions);
     }
 
     public static function serverMessage(connectionID:Int, serverMessage:ServerMessage)
@@ -106,7 +107,7 @@ class Logging
         }
 
         if (database != null)
-            database.executeQuery("sql/dml/logging/append_message.sql", substitutions);
+            database.executeQuery(LogMessage, substitutions);
     }
 
     public static function info(serviceSlug:Null<String>, message:String) 
@@ -118,7 +119,7 @@ class Logging
                 "service_slug" => serviceSlug,
                 "entry_text" => message
             ];
-            database.executeQuery("sql/dml/logging/append_service.sql", substitutions);
+            database.executeQuery(LogService, substitutions);
         }
         
         if (Config.config.printLog)
@@ -134,7 +135,7 @@ class Logging
                 "service_slug" => serviceSlug,
                 "entry_text" => message
             ];
-            database.executeQuery("sql/dml/logging/append_service.sql", substitutions);
+            database.executeQuery(LogService, substitutions);
         }
         
         if (Config.config.printLog)
