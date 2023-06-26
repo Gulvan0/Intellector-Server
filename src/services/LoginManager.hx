@@ -7,17 +7,6 @@ import entities.UserSession;
 
 class LoginManager 
 {
-    private static var loggedUserByLogin:Map<String, UserSession> = [];
-
-    public static function getUser(login:String):Null<UserSession>
-    {
-        return loggedUserByLogin.get(login);
-    }
-
-    public static function getLoggedUsers():Array<UserSession>
-    {
-        return Lambda.array(loggedUserByLogin);
-    }
 
     public static function login(user:UserSession, login:String, password:String, ?asGreeting:Bool = false) 
     {
@@ -134,11 +123,5 @@ class LoginManager
         loggedUserByLogin.remove(user.login);
         user.onLoggedOut();
         Logger.serviceLog('LOGIN', 'Logged ${user.login} ($user) out');
-    }
-
-    public static function handleSessionDestruction(user:UserSession)
-    {
-        if (user.login != null)
-            logout(user);
     }
 }

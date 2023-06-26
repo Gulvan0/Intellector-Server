@@ -1,22 +1,30 @@
 package net;
 
+import database.Database;
+import database.TypedQueries;
+import net.shared.dataobj.ChallengeData;
+import sys.db.ResultSet;
+import haxe.crypto.Md5;
+import database.QueryShortcut;
+import net.shared.message.ServerMessage;
+import net.shared.dataobj.ReconnectionBundle;
+import services.SessionManager;
+import config.Config;
+import net.shared.dataobj.GreetingResponseData;
+import net.shared.dataobj.Greeting;
+import net.shared.message.ClientMessage;
+import utils.MovingCountdownTimer;
 import haxe.io.BytesData;
 import haxe.io.Bytes;
 import lzstring.LZString;
-import net.shared.ServerMessage;
 import net.shared.utils.MathUtils;
-import net.shared.ClientMessage;
 import services.Shutdown;
 import net.shared.utils.DateUtils;
 import net.shared.utils.Build;
 import services.LoginManager;
 import haxe.Timer;
 import haxe.CallStack;
-import services.Auth;
 import entities.UserSession;
-import services.Logger;
-import net.shared.ServerEvent;
-import net.shared.ClientEvent;
 import net.NetworkingError;
 import haxe.Unserializer;
 import haxe.Serializer;
@@ -28,11 +36,12 @@ using Lambda;
 
 class SocketHandler extends WebSocketHandler
 {
-    private var isNew:Bool = true;
-    private var user:UserSession;
+    private var session:Null<UserSession>;
+
     private var silentConnectionDropTimer:Timer;
-    private var ownHeartbeatTimer:Timer;
-    private var clientHeartbeatTimeoutTimer:Timer;
+    private var afkTimer:MovingCountdownTimer;
+
+    public var noActivity(default, null):Bool = false;
 
     public function emit(msg:ServerMessage) 
     {
@@ -41,44 +50,43 @@ class SocketHandler extends WebSocketHandler
             send(serialized);
         else
             send(Bytes.ofString(new LZString().compressToBase64(serialized)));
-        Logger.logOutgoingMessage(msg, id, user);
+        //Logger.logOutgoingMessage(msg, id, user);
     }
 
     private function onOpen()
     {
-        Logger.serviceLog("SOCKET", '$id connected');
+        //Logger.serviceLog("SOCKET", '$id connected');
     }
 
     private function onClosed()
     {
-        Logger.serviceLog("SOCKET", '$id closed');
+        //Logger.serviceLog("SOCKET", '$id closed');
 
         if (silentConnectionDropTimer != null)
             silentConnectionDropTimer.stop();
         silentConnectionDropTimer = null;
 
-        if (ownHeartbeatTimer != null)
-            ownHeartbeatTimer.stop();
-        ownHeartbeatTimer = null;
+        if (afkTimer != null)
+            afkTimer.stop();
+        afkTimer = null;
 
-        if (clientHeartbeatTimeoutTimer != null)
-            clientHeartbeatTimeoutTimer.stop();
-        clientHeartbeatTimeoutTimer = null;
+        if (session != null)
+            session.handleConnectionEvent(Closed);
 
-        if (user != null)
-            user.onDisconnected();
+        session = null;
     }
 
     private function onError(e:Dynamic)
     {
-        if (user != null)
-            user.onDisconnected();
+        if (session != null)
+            session.handleConnectionEvent(Closed);
         handleError(ConnectionError(e));
     }
 
     private function handleError(error:NetworkingError)
     {
-        Logger.serviceLog("SOCKET", '$id error');
+        //TODO
+        /*Logger.serviceLog("SOCKET", '$id error');
         switch error 
         {
             case ConnectionError(error):
@@ -94,7 +102,7 @@ class SocketHandler extends WebSocketHandler
                 else
                     emit(new ServerMessage(1, ServerError('Timestamp: ${Sys.time()}\nEvent: $eventStr\nException: ${exception.message} $stack')));
                 Logger.logError('Error during event processing:\nUUID: $id\nEvent: $eventStr\nException:\n${exception.message}\nNative:\n${exception.native}\nPrevious:\n${exception.previous}\nStack:$stack');
-        }
+        }*/
     }
 
     private function processMessage(message:MessageType)
@@ -106,6 +114,108 @@ class SocketHandler extends WebSocketHandler
             case StrMessage(content):
                 processEvent(content);
         }
+    }
+
+    private function onGreeting(greeting:Greeting, clientBuild:Int, minServerBuild:Int)
+    {
+        if (silentConnectionDropTimer != null)
+            silentConnectionDropTimer.stop();
+        silentConnectionDropTimer = null;
+
+        //TODO: Logger.serviceLog("SOCKET", 'Greeting received from $id');
+
+        if (clientBuild < Config.config.minClientVer)
+        {
+            emit(GreetingResponse(OutdatedClient));
+
+            var actualDatetime:String = DateUtils.strDatetimeFromSecs(clientBuild);
+            var minDatetime:String = DateUtils.strDatetimeFromSecs(Config.minClientVer);
+            //TODO: Logger.serviceLog("SOCKET", 'Refusing to connect $id: outdated client ($actualDatetime < $minDatetime)');
+
+            return;
+        }
+
+        if (Build.buildTime() < minServerBuild)
+        {
+            emit(GreetingResponse(OutdatedServer));
+
+            var actualDatetime:String = DateUtils.strDatetimeFromSecs(Build.buildTime());
+            var minDatetime:String = DateUtils.strDatetimeFromSecs(minServerBuild);
+            //TODO: Logger.serviceLog("SOCKET", 'Refusing to connect $id: outdated server ($actualDatetime < $minDatetime)');
+
+            return;
+        }
+
+        var orchestrator:Orchestrator = Orchestrator.getInstance();
+        var sessionManager:SessionManager = orchestrator.sessionManager;
+        var db:Database = orchestrator.database;
+
+        var isShuttingDown:Bool = Shutdown.isStopping();
+
+        switch greeting 
+        {
+            case Simple:
+                var createdSessionData = sessionManager.createSession(this);
+                this.session = createdSessionData.session;
+                emit(GreetingResponse(ConnectedAsGuest(session.sessionID, createdSessionData.token, false, isShuttingDown)));
+            case Login(login, password):
+                var createdSessionData = sessionManager.createSession(this);
+                var queryResult:ResultSet = db.executeQuery(GetPasswordHash, ["login" => login])[0].set;
+                var realPasswordHash:Null<String> = queryResult.length > 0? queryResult.getResult(0) : null;
+                var receivedPasswordHash:String = Md5.encode(password);
+
+                if (realPasswordHash == null)
+                {
+                    //TODO: Fill
+
+                    //TODO: Logging
+                }
+                else if (realPasswordHash != receivedPasswordHash)
+                {
+                    //TODO: Fill
+
+                    //TODO: Logging
+                }
+                else
+                {
+                    var createdSessionData = sessionManager.createSession(this);
+                    this.session = createdSessionData.session;
+                    this.session.login = login;
+                    
+                    emit(GreetingResponse(Logged(session.sessionID, createdSessionData.token, TypedQueries.getIncomingChallenges(db, login), isShuttingDown)));
+                    //TODO: Logging
+                }
+            case Reconnect(token, lastProcessedServerEventID, unansweredRequests):
+                var retrievedSession:Null<UserSession> = sessionManager.getByToken(token);
+                if (retrievedSession != null)
+                {
+                    this.session = retrievedSession;
+                    var bundle:ReconnectionBundle = this.session.onReconnected(this, lastProcessedServerEventID, unansweredRequests);
+                    emit(GreetingResponse(Reconnected(bundle)));
+                }
+                else
+                {
+                    emit(GreetingResponse(NotReconnected));
+                    //TODO: Logger.serviceLog("SOCKET", '$id attempted to restore a session with a wrong token: $token');
+                }
+        }
+
+        afkTimer = new MovingCountdownTimer(onClientBeatTimeout, 1000 * 60 * 5); //TODO: Move delay to config
+    }
+
+    private function onBeat()
+    {
+        if (afkTimer != null)
+            afkTimer.refresh();
+        else
+            afkTimer = new MovingCountdownTimer(onClientBeatTimeout, 1000 * 60 * 5); //TODO: Move delay to config
+        
+        var hadNoActivity:Bool = noActivity;
+
+        noActivity = false;
+
+        if (hadNoActivity && session != null)
+            session.handleConnectionEvent(PresenceUpdated);
     }
 
     private function processEvent(message:String) 
@@ -122,61 +232,30 @@ class SocketHandler extends WebSocketHandler
             return;
         }
 
+        //TODO: Logger.logIncomingMessage(clientMessage, id, user);
+        //TODO: Normalize login
+
         try
         {
-            var event:ClientEvent = EventTransformer.normalizeLogin(clientMessage.event);
-            Logger.logIncomingMessage(clientMessage, id, user);
-            
-            if (isNew)
-            {
-                processFirstEvent(event);
-                return;
-            }
-
-            switch event 
+            switch clientMessage 
             {
                 case Greet(greeting, clientBuild, minServerBuild):
-                    Logger.logError('Unexpected greeting from connection $id');
-                case KeepAliveBeat:
-                    if (clientHeartbeatTimeoutTimer != null)
-                        clientHeartbeatTimeoutTimer.stop();
-                    clientHeartbeatTimeoutTimer = Timer.delay(onClientBeatTimeout, Config.keepAliveClientBeatTimeoutMs);
-                case ResendRequest(from, to):
-                    if (user == null)
-                        Logger.logError('Unexpected event $event from connection $id with user == null');
+                    if (session != null)
+                        trace("TODO");//TODO: Logger.logError('Unexpected greeting from connection $id');
                     else
-                        user.resendMessages(from, to);
-                case MissedEvents(map):
-                    if (user == null)
-                        Logger.logError('Unexpected event $event from connection $id with user == null');
+                        onGreeting(greeting, clientBuild, minServerBuild);
+                case HeartBeat:
+                    onBeat();
+                case Event(id, event):
+                    if (session != null)
+                        session.handleConnectionEvent(EventReceived(id, event));
                     else
-                    {
-                        var nextID:Int = user.lastProcessedClientEventID + 1;
-                        while (map.exists(nextID))
-                        {
-                            Orchestrator.processEvent(map.get(nextID), user);
-                            user.lastProcessedClientEventID = nextID;
-                            nextID++;
-                        }
-                        user.lastReceivedClientEventID = MathUtils.maxInt(user.lastReceivedClientEventID, user.lastProcessedClientEventID);
-                    }
-                default:
-                    if (clientMessage.id == -1)
-                        Logger.logError('Event $event should have a message ID associated with it');
-                    else if (user == null)
-                        Logger.logError('Unexpected event $event from connection $id with user == null');
-                    else if (clientMessage.id == user.lastProcessedClientEventID + 1)
-                    {
-                        Orchestrator.processEvent(event, user);
-                        user.lastProcessedClientEventID = clientMessage.id;
-                        user.lastReceivedClientEventID = MathUtils.maxInt(user.lastReceivedClientEventID, clientMessage.id);
-                    }
+                        trace("TODO");//TODO: Logger.logError('Unexpected event $event from connection $id with user == null');
+                case Request(id, request):
+                    if (session != null)
+                        session.handleConnectionEvent(RequestReceived(id, request));
                     else
-                    {
-                        user.lastReceivedClientEventID = MathUtils.maxInt(user.lastReceivedClientEventID, clientMessage.id);
-                        if (user.lastReceivedClientEventID > user.lastProcessedClientEventID)
-                            user.emit(ResendRequest(user.lastProcessedClientEventID + 1, user.lastReceivedClientEventID));
-                    }
+                        trace("TODO");//TODO: Logger.logError('Unexpected event $event from connection $id with user == null');
             }
         }
         catch (e)
@@ -185,89 +264,20 @@ class SocketHandler extends WebSocketHandler
         }
     }
 
-    private function processFirstEvent(event:ClientEvent) 
-    {
-        isNew = false;
-
-        if (silentConnectionDropTimer != null)
-            silentConnectionDropTimer.stop();
-        silentConnectionDropTimer = null;
-
-        switch event
-        {
-            case Greet(greeting, clientBuild, minServerBuild):
-                Logger.serviceLog("SOCKET", 'Greeting received from $id');
-                
-                if (clientBuild < Config.minClientVer)
-                {
-                    if (user != null)
-                        user.emit(GreetingResponse(OutdatedClient));
-                    else
-                        emit(new ServerMessage(-1, GreetingResponse(OutdatedClient)));
-                    var actualDatetime:String = DateUtils.strDatetimeFromSecs(clientBuild);
-                    var minDatetime:String = DateUtils.strDatetimeFromSecs(Config.minClientVer);
-                    Logger.serviceLog("SOCKET", 'Refusing to connect $id: outdated client ($actualDatetime < $minDatetime)');
-                    return;
-                }
-
-                if (Build.buildTime() < minServerBuild)
-                {
-                    if (user != null)
-                        user.emit(GreetingResponse(OutdatedServer));
-                    else
-                        emit(new ServerMessage(-1, GreetingResponse(OutdatedServer)));
-                    var actualDatetime:String = DateUtils.strDatetimeFromSecs(Build.buildTime());
-                    var minDatetime:String = DateUtils.strDatetimeFromSecs(minServerBuild);
-                    Logger.serviceLog("SOCKET", 'Refusing to connect $id: outdated server ($actualDatetime < $minDatetime)');
-                    return;
-                }
-
-                switch greeting 
-                {
-                    case Simple:
-                        this.user = Auth.createSession(this);
-                        user.emit(GreetingResponse(ConnectedAsGuest(user.sessionID, Auth.getTokenBySessionID(user.sessionID), false, Shutdown.isStopping())));
-                    case Login(login, password):
-                        this.user = Auth.createSession(this);
-                        LoginManager.login(user, login, password, true);
-                    case Reconnect(token, lastProcessedMessageID):
-                        var restoredUser:Null<UserSession> = Auth.getUserBySessionToken(token);
-                        if (restoredUser != null)
-                        {
-                            this.user = restoredUser;
-                            var missedEvents:Map<Int, ServerEvent> = user.onReconnected(this, lastProcessedMessageID);
-                            user.emit(GreetingResponse(Reconnected(missedEvents)));
-                        }
-                        else
-                        {
-                            if (user != null)
-                                user.emit(GreetingResponse(NotReconnected));
-                            else
-                                emit(new ServerMessage(-1, GreetingResponse(NotReconnected)));
-                            Logger.serviceLog("SOCKET", '$id attempted to restore a session with a wrong token: $token');
-                            return;
-                        }
-                }
-
-                ownHeartbeatTimer = new Timer(Config.keepAliveOwnBeatIntervalMs);
-                ownHeartbeatTimer.run = user.emit.bind(KeepAliveBeat);
-
-                clientHeartbeatTimeoutTimer = Timer.delay(onClientBeatTimeout, Config.keepAliveClientBeatTimeoutMs);
-            default:
-                Logger.serviceLog("SOCKET", '$id sent an event without greeting, closing');
-                close();
-        }
-    }
-
     private function onClientBeatTimeout() 
     {
-        Logger.serviceLog("SOCKET", 'Stopped receiving heartbeat from $id, closing');
-        close();
+        afkTimer = null;
+
+        //TODO: Logger.serviceLog("SOCKET", 'Stopped receiving heartbeat from $id');
+
+        noActivity = true;
+        if (session != null)
+            session.handleConnectionEvent(PresenceUpdated);
     }
 
     private function onNoGreetingAfterTimeout() 
     {
-        Logger.serviceLog("SOCKET", '$id remained silent since the connection was estabilished, closing');
+        //TODO: Logger.serviceLog("SOCKET", '$id remained silent since the connection was estabilished, closing');
         close();
     }
 
@@ -276,7 +286,7 @@ class SocketHandler extends WebSocketHandler
         super(s);
 
         var peer = s.peer();
-        Logger.serviceLog("SOCKET", '$id created for ${peer.host.toString()}:${peer.port}');
+        //TODO: Logger.serviceLog("SOCKET", '$id created for ${peer.host.toString()}:${peer.port}');
 
         silentConnectionDropTimer = Timer.delay(onNoGreetingAfterTimeout, 1000 * 60);
 

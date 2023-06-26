@@ -1,27 +1,55 @@
 package;
 
+import services.events.GenericServiceEvent;
+import services.Service;
+import database.Database;
+import services.SubscriptionManager;
+import services.SessionManager;
 import net.shared.PieceColor;
 import services.PageManager;
-import services.SpecialBroadcaster;
 import services.ProfileManager;
 import services.Auth;
 import entities.Game;
 import services.StudyManager;
 import net.shared.dataobj.StudyInfo;
-import net.shared.dataobj.GameInfo;
-import stored.PlayerData;
-import services.Storage;
 import net.EventTransformer;
 import services.GameManager;
-import struct.ChallengeParams;
 import services.ChallengeManager;
 import services.LoginManager;
-import services.Logger;
 import entities.UserSession;
-import net.shared.ClientEvent;
 
 class Orchestrator
 {
+    private static var instance:Orchestrator;
+
+    public final database:Database;
+
+    public final sessionManager:SessionManager;
+    public final subscriptionManager:SubscriptionManager;
+
+    public final allServices:Array<Service>;
+
+    public static function getInstance():Orchestrator
+    {
+        return instance;
+    }
+
+    public static function init() 
+    {
+        instance = new Orchestrator();
+    }
+
+    public function new()
+    {
+        //TODO: Fill
+    }
+
+    public function propagateServiceEvent(event:GenericServiceEvent)
+    {
+        for (service in allServices)
+            service.handleServiceEvent(event);
+    }
+
     private static function processGetGameRequest(author:UserSession, id:Int) 
     {
         switch GameManager.getSimple(id) 
