@@ -1,6 +1,6 @@
 INSERT INTO log.message
 SELECT
-    NULL as ts,
+    CURRENT_TIMESTAMP as ts,
     {source} as source,
     {connection_id} as connection_id,
     {message_id} as message_id,

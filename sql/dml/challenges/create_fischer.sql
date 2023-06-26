@@ -4,6 +4,7 @@ SELECT
     {owner_ref} as owner_ref,
     {challenge_type} as challenge_type,
     {callee_ref} as callee_ref,
+    {time_control_type} as time_control_type,
     {accepting_side_color} as accepting_side_color,
     {custom_starting_sip} as custom_starting_sip,
     {rated} as rated,

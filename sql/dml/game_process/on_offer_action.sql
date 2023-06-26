@@ -2,7 +2,7 @@ INSERT INTO game.event
 SELECT
     NULL as id,
     {game_id} as game_id,
-    NULL as ts;
+    CURRENT_TIMESTAMP as ts;
 
 INSERT INTO game.offer_event
 SELECT
