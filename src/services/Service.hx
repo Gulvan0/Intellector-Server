@@ -16,7 +16,7 @@ abstract class Service
         Logging.info(getServiceSlug(), message);
     }
 
-    private function logError(message:String, ?notifyAdmin:Bool) 
+    private function logError(message:String, ?notifyAdmin:Bool = true) 
     {
         Logging.error(getServiceSlug(), message, notifyAdmin);
     }

@@ -1,25 +1,25 @@
 package entities;
 
+import net.shared.message.ServerEvent;
 import net.shared.dataobj.ReconnectionBundle;
-import entities.events.ConnectionEvent;
-import entities.events.SessionEvent;
+import entities.Connection;
 import entities.util.SessionStatus;
 import utils.MovingCountdownTimer;
 import net.shared.message.ServerRequestResponse;
 import net.shared.message.ServerMessage;
 import net.shared.utils.UnixTimestamp;
 import services.PageManager;
-import services.LoginManager;
 import services.GameManager;
 import haxe.Timer;
 import services.ChallengeManager;
 import haxe.Json;
-import net.SocketHandler;
 
 class UserSession
 {
-    public var connection:Null<SocketHandler>;
-    public var sessionID(default, null):Int;
+    public final sessionID:Int;
+    public final token:String;
+
+    public var connection:Null<Connection>;
     public var login:Null<String>;
 
     private var sentEvents:Map<Int, ServerEvent> = [];
@@ -27,7 +27,10 @@ class UserSession
     public var lastSentServerEventID(default, null):Int = 0;
     public var lastProcessedClientEventID:Int = 0;
 
-    private var eventHandler:SessionEvent->Void;
+    public function equals(otherSession:UserSession):Bool 
+    {
+        return this.sessionID == otherSession.sessionID;    
+    }
 
     public function getSessionStatus():SessionStatus
     {
@@ -47,24 +50,6 @@ class UserSession
             return login;
     }
 
-    public function handleConnectionEvent(event:ConnectionEvent) 
-    {
-        switch event 
-        {
-            case PresenceUpdated:
-                eventHandler(StatusChanged);
-            case EventReceived(id, event):
-                //TODO: Orchestrator
-            case RequestReceived(id, event):
-                //TODO: Orchestrator
-            case Closed:
-                //TODO: Logger.serviceLog("SESSION", '$this disconnected (skipDisconnectionProcessing = $skipDisconnectionProcessing)');
-
-                this.connection = null;
-                eventHandler(StatusChanged);
-        }
-    }
-
     public function emit(event:ServerEvent) 
     {
         lastSentServerEventID++;
@@ -82,7 +67,8 @@ class UserSession
 
     public function onReconnected(connection:SocketHandler, lastProcessedServerEventID:Int, unansweredRequests:Array<Int>):ReconnectionBundle
     {
-        //TODO: Logger.serviceLog("SESSION", '$this reconnected');
+        Logging.info("SESSION", '$this reconnected');
+
         this.connection = connection;
 
         var nextEventID:Int = lastProcessedServerEventID + 1;
@@ -108,10 +94,11 @@ class UserSession
         return getReference();    
     }
 
-    public function new(connection:SocketHandler, sessionID:Int, sessionEventHandler:UserSession->SessionEvent->Void)
+    public function new(connection:SocketHandler, sessionID:Int, token:String, sessionEventHandler:UserSession->SessionEvent->Void)
     {
         this.connection = connection;
         this.sessionID = sessionID;
+        this.token = token;
         this.eventHandler = sessionEventHandler.bind(this);
     }
 }

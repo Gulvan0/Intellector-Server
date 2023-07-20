@@ -1,14 +1,10 @@
 package config;
 
 import sys.io.File;
-import services.Logger;
 import yaml.Parser;
 import yaml.util.ObjectMap.AnyObjectMap;
 import yaml.util.StringMap;
 import yaml.Yaml;
-import hx.ws.WebSocketSecureServer;
-import net.SocketHandler;
-import hx.ws.WebSocketServer;
 import argparse.Namespace;
 import argparse.ArgParser;
 import sys.ssl.Key;
@@ -29,6 +25,8 @@ class Config
     public final printLog:Bool;
     public final maxConnections:Int;
     public final sleepAmount:Float;
+
+    public final clientHeartbeatTimeoutMs:Int;
 
     public final discordWebhookURL:Null<String>;
     public final tgToken:Null<String>;
@@ -109,6 +107,8 @@ class Config
         minClientVer = loadOption(data, "min-client-build", false)?.asInt() ?? 0;
         maxConnections = loadOption(data, "max-connections", false)?.asInt() ?? 1000;
         sleepAmount = loadOption(data, "sleep", false)?.asFloat() ?? 0.5;
+
+        clientHeartbeatTimeoutMs = loadOption(data, "client-heartbeat-timeout", false)?.asInt() ?? 1000 * 60 * 5;
 
         discordWebhookURL = loadOption(data, "integrations/discord/", false)?.asString();
         tgToken = loadOption(data, "integrations/telegram/bot-token", false)?.asString();

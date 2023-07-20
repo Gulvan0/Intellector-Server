@@ -1,12 +1,12 @@
 package services;
 
 import config.Config;
-import net.SocketHandler;
+import entities.Connection;
 import hx.ws.WebSocketServer;
 
 class ServerManager 
 {
-    private static var server:WebSocketServer<SocketHandler>;
+    private static var server:WebSocketServer<Connection>;
     
     public static function start(config:Config) 
     {
@@ -19,14 +19,14 @@ class ServerManager
         server.stop();
     }
 
-    private static function constructServer(config:Config):WebSocketServer<SocketHandler>
+    private static function constructServer(config:Config):WebSocketServer<Connection>
     {
-        var server:WebSocketServer<SocketHandler>;
+        var server:WebSocketServer<Connection>;
 
         if (config.hasSSL())
-            server = new WebSocketSecureServer<SocketHandler>(config.host, config.port, config.sslCert, config.sslKey, config.sslCert, config.maxConnections);
+            server = new WebSocketSecureServer<Connection>(config.host, config.port, config.sslCert, config.sslKey, config.sslCert, config.maxConnections);
         else
-            server = new WebSocketServer<SocketHandler>(config.host, config.port, config.maxConnections);
+            server = new WebSocketServer<Connection>(config.host, config.port, config.maxConnections);
 
         server.sleepAmount = config.sleepAmount / 1000; //ms to secs
 

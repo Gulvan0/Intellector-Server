@@ -15,9 +15,23 @@ abstract PlayerRef(String) from String to String
     {
         return switch this.charAt(0) 
         {
-            case "+": Bot(this.substr(1));
-            case "_": Guest(this.substr(1));
-            default: Normal(this);
+            case "+": 
+                Bot(this.substr(1));
+            case "_": 
+                Guest(this.substr(1));
+            default: 
+                Normal(this);
+        }
+    }
+
+    public function normalized():PlayerRef
+    {
+        return switch concretize() 
+        {
+            case Normal(login):
+                login.toLowerCase();
+            default: 
+                this;
         }
     }
 

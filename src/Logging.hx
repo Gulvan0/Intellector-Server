@@ -56,7 +56,7 @@ class Logging
         }
     }    
 
-    public static function clientMessage(connectionID:Int, clientMessage:ClientMessage)
+    public static function clientMessage(connectionID:String, clientMessage:ClientMessage)
     {
         var substitutions:Map<String, String> = [
             "source" => "client",
@@ -83,7 +83,7 @@ class Logging
             database.executeQuery(LogMessage, substitutions);
     }
 
-    public static function serverMessage(connectionID:Int, serverMessage:ServerMessage)
+    public static function serverMessage(connectionID:String, serverMessage:ServerMessage)
     {
         var substitutions:Map<String, String> = [
             "source" => "server",

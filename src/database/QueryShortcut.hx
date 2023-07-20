@@ -26,6 +26,6 @@ enum abstract QueryShortcut(String) to String
     var GetUnfinishedFiniteGames = "sql/dml/on_start/get_unfinished_finite_games.sql";
 
     var GetGameToFollow = "sql/dml/player/get_game_to_follow.sql";
-
-    var GetPasswordHash = "//TODO";
+    var GetPasswordHash = "sql/dml/player/get_password_hash.sql";
+    var SetPasswordHash = "sql/dml/player/set_password_hash.sql";
 }

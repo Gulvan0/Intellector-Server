@@ -9,17 +9,26 @@ import sys.db.ResultSet;
 import net.shared.dataobj.ChallengeData;
 import net.shared.utils.PlayerRef;
 
-class TypedQueries 
+using database.ScalarGetters;
+
+class TypedRetrievers
 {
+    public static function simpleSet(database:Database, query:QueryShortcut, substitutions:Map<String, Dynamic>):ResultSet
+    {
+        return database.executeQuery(query, substitutions)[0].set;
+    }
+
     public static function simpleRows(database:Database, query:QueryShortcut, substitutions:Map<String, Dynamic>):Array<ResultRow>
     {
         var a:Array<ResultRow> = [];
 
-        for (row in database.executeQuery(query, substitutions)[0].set)
+        for (row in simpleSet(database, query, substitutions))
             a.push(row);
 
         return a;
     }
+
+    //====================================================================================================================================
 
     public static function getIncomingChallenges(database:Database, calleeRef:PlayerRef):Array<ChallengeData>
     {
@@ -39,5 +48,10 @@ class TypedQueries
 
             incomingChallenges.push(data);
         }
-    }    
+    }
+    
+    public static function playerPasswordHash(database:Database, login:String):Null<String>
+    {
+        return simpleSet(database, GetPasswordHash, ["player_login" => login]).getScalarString();
+    }
 }

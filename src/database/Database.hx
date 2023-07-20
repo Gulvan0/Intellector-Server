@@ -82,7 +82,7 @@ class Database
 
     private function createTables() 
     {
-        for (resourceName in Resource.listNames())
+        for (resourceName in Resource.listNames()) //TODO: Needs to be recursive
             if (resourceName.startsWith("sql/ddl/"))
             {
                 executeQuery(resourceName);
