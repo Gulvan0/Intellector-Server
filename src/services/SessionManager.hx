@@ -4,7 +4,6 @@ import services.util.ReconnectionResult;
 import haxe.Timer;
 import entities.util.SessionStatus;
 import haxe.crypto.Md5;
-import database.TypedRetrievers;
 import services.util.LoginResult;
 import entities.Connection;
 import services.events.GenericServiceEvent;
@@ -49,7 +48,7 @@ class SessionManager extends Service
     public function tryLogin(connection:Connection, login:String, password:String):LoginResult
     {
         var session:Null<UserSession> = getByConnectionID(connection.id);
-        var passwordHash:Null<String> = TypedRetrievers.playerPasswordHash(orchestrator.database, login);
+        var passwordHash:Null<String> = Player.getPasswordHash(orchestrator.database, login);
 
         if (session == null)
         {

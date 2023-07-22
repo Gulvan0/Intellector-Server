@@ -1,5 +1,6 @@
 package;
 
+import database.endpoints.Log;
 import database.QueryShortcut;
 import net.shared.message.ServerRequestResponse;
 import net.shared.message.ClientRequest;
@@ -45,82 +46,44 @@ class Logging
     public static function antifraudEloUpdate(playerLogin:String, delta:Int, gameID:Int)
     {
         if (database != null)
-        {
-            var substitutions:Map<String, String> = [
-                "entry_type" => "elo",
-                "player_login" => playerLogin,
-                "delta" => delta,
-                "game_id" => gameID
-            ];
-            database.executeQuery(LogAntifraud, substitutions);
-        }
+            Log.antifraud(database, "elo", playerLogin, delta, gameID);
     }    
 
     public static function clientMessage(connectionID:String, clientMessage:ClientMessage)
     {
-        var substitutions:Map<String, String> = [
-            "source" => "client",
-            "connection_id" => connectionID
-        ];
+        if (database == null)
+            return;
 
         switch clientMessage 
         {
             case Event(id, event):
-                substitutions["message_id"] = id;
-                substitutions["message_type"] = "event";
-                substitutions["message_name"] = event.getName();
-                substitutions["message_args"] = getClientEventArgs(event);
+                Log.message(database, "client", connectionID, id, "event", event.getName(), getClientEventArgs(event));
             case Request(id, request):
-                substitutions["message_id"] = id;
-                substitutions["message_type"] = "request";
-                substitutions["message_name"] = request.getName();
-                substitutions["message_args"] = getClientRequestArgs(request);
+                Log.message(database, "client", connectionID, id, "request", request.getName(), getClientRequestArgs(request));
             default:
-                return;
         }
-
-        if (database != null)
-            database.executeQuery(LogMessage, substitutions);
     }
 
     public static function serverMessage(connectionID:String, serverMessage:ServerMessage)
     {
-        var substitutions:Map<String, String> = [
-            "source" => "server",
-            "connection_id" => connectionID
-        ];
+        if (database == null)
+            return;
 
         switch serverMessage 
         {
             case Event(id, event):
-                substitutions["message_id"] = id;
-                substitutions["message_type"] = "event";
-                substitutions["message_name"] = event.getName();
-                substitutions["message_args"] = getServerEventArgs(event);
+                Log.message(database, "server", connectionID, id, "event", event.getName(), getServerEventArgs(event));
             case RequestResponse(requestID, response):
-                substitutions["message_id"] = requestID;
-                substitutions["message_type"] = "request";
-                substitutions["message_name"] = response.getName();
-                substitutions["message_args"] = getServerRequestResponseArgs(response);
+                Log.message(database, "server", connectionID, requestID, "request", response.getName(), getServerRequestResponseArgs(response));
             default:
                 return;
         }
-
-        if (database != null)
-            database.executeQuery(LogMessage, substitutions);
     }
 
     public static function info(serviceSlug:Null<String>, message:String) 
     {
         if (database != null)
-        {
-            var substitutions:Map<String, String> = [
-                "entry_type" => "info",
-                "service_slug" => serviceSlug,
-                "entry_text" => message
-            ];
-            database.executeQuery(LogService, substitutions);
-        }
+            Log.service(database, "info", serviceSlug, message);
         
         if (Config.config.printLog)
             Sys.println('INFO: $message');
@@ -129,14 +92,7 @@ class Logging
     public static function error(serviceSlug:Null<String>, message:String, ?notifyAdmin:Bool = true) 
     {
         if (database != null)
-        {
-            var substitutions:Map<String, String> = [
-                "entry_type" => "error",
-                "service_slug" => serviceSlug,
-                "entry_text" => message
-            ];
-            database.executeQuery(LogService, substitutions);
-        }
+            Log.service(database, "error", serviceSlug, message);
         
         if (Config.config.printLog)
             Sys.println('ERROR: $message');

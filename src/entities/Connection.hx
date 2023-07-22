@@ -2,7 +2,6 @@ package entities;
 
 import utils.Normalizer;
 import database.Database;
-import database.TypedRetrievers;
 import net.shared.dataobj.ChallengeData;
 import sys.db.ResultSet;
 import haxe.crypto.Md5;

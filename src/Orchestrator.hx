@@ -1,10 +1,10 @@
 package;
 
+import database.endpoints.Challenge;
 import net.shared.message.ClientRequest;
 import net.shared.message.ClientEvent;
 import services.util.ReconnectionResult;
 import net.shared.dataobj.ChallengeData;
-import database.TypedRetrievers;
 import services.util.LoginResult;
 import entities.Connection;
 import entities.events.ConnectionEvent;
@@ -74,7 +74,7 @@ class Orchestrator
         switch loginResult 
         {
             case Logged:
-                var incomingChallenges:Array<ChallengeData> = TypedRetrievers.getIncomingChallenges(db, login);
+                var incomingChallenges:Array<ChallengeData> = Challenge.getActiveIncoming(db, login);
                 connection.emit(GreetingResponse(Logged(session.sessionID, createdSessionData.token, incomingChallenges, isShuttingDown)));
             default:
                 connection.emit(GreetingResponse(ConnectedAsGuest(session.sessionID, createdSessionData.token, true, isShuttingDown)));
@@ -155,7 +155,7 @@ class Orchestrator
                 switch loginResult 
                 {
                     case Logged:
-                        var incomingChallenges:Array<ChallengeData> = TypedRetrievers.getIncomingChallenges(db, login);
+                        var incomingChallenges:Array<ChallengeData> = Challenge.getActiveIncoming(db, login);
                         author.respondToRequest(id, LoginResult(Success(incomingChallenges)));
                     default:
                         author.respondToRequest(id, LoginResult(Fail));

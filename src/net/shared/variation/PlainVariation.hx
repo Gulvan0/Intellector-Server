@@ -31,6 +31,16 @@ class PlainVariation
         }
     }
 
+    public function getStartingSituation():Situation
+    {
+        return startingSituation.copy();
+    }
+
+    public function getPlys():VariationMap<RawPly>
+    {
+        return plys.map(x -> x.copy());
+    }
+
     public function toVariation():Variation
     {
         var variation:Variation = new Variation(startingSituation);

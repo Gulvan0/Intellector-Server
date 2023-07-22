@@ -1,5 +1,6 @@
 package services;
 
+import services.events.GenericServiceEvent;
 import net.shared.message.ServerEvent;
 import net.shared.Subscription;
 import entities.UserSession;
@@ -59,10 +60,15 @@ class SubscriptionManager extends Service
         return observers.get(subscription).contains(obs);
     }
 
-    public function onSessionDestroyed(user:UserSession) 
+    public function handleServiceEvent(event:GenericServiceEvent)
     {
-        for (subscription in observers.keys())
-            removeObserver(subscription, user);
+        switch event 
+        {
+            case Session(SessionToBeDestroyed(session)):
+                for (subscription in observers.keys())
+                    removeObserver(subscription, session);
+            default:
+        }
     }
 
     public function new(orchestrator:Orchestrator)

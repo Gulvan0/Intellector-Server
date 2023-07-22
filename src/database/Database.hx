@@ -1,5 +1,6 @@
 package database;
 
+import database.endpoints.Job;
 import database.QueryShortcut;
 import config.Config;
 import sys.db.Mysql;
@@ -14,7 +15,7 @@ class Database
 {
     private var mainConnection:Connection;
 
-    public function executeQuery(resourceName:String, ?replacements:Map<String, Dynamic>, ?getInsertID:Bool = false, ?customConnection:Connection):Array<QueryExecutionResult>
+    public function executeQuery(resourceName:String, ?replacements:Map<String, Dynamic>, ?getInsertID:Bool = false, ?splittingDelimiter:Null<String>, ?customConnection:Connection):Array<QueryExecutionResult>
     {
         var queryText:Null<String> = Resource.getString(resourceName);
 
@@ -26,21 +27,10 @@ class Database
 
         if (replacements != null)
             for (sub => by in replacements.keyValueIterator())
-            {
-                var trueReplacement:String;
-                if (by == null)
-                    trueReplacement = "NULL";
-                else if (Std.isOfType(by, Int) || Std.isOfType(by, Float))
-                    trueReplacement = Std.string(by);
-                else if (Std.isOfType(by, Bool))
-                    trueReplacement = by? "1" : "0";
-                else
-                    trueReplacement = '\'$by\'';
-                queryText = queryText.replace('{$sub}', trueReplacement);
-            }
+                queryText = queryText.replace('{$sub}', Utils.toMySQLValue(by));
 
         var usedConnection:Connection = customConnection ?? mainConnection;
-        var individualQueries:Array<String> = queryText.split(";");
+        var individualQueries:Array<String> = splittingDelimiter != null? queryText.split(splittingDelimiter) : [queryText];
         var lastID:Int = -1;
         var output:Array<QueryExecutionResult> = [];
 
@@ -63,41 +53,62 @@ class Database
         return output;
     }
 
-    public function repairGameLogs() 
+    public function insertRows(fullTableName:String, rows:Array<Array<Dynamic>>, getLastInsertID:Bool):QueryExecutionResult
     {
-        var gameIDs:ResultSet = executeQuery(GetUnfinishedFiniteGames)[0].set;
+        var queryPrefix:String = 'INSERT INTO $fullTableName\nVALUES\n\t';
 
-        for (i in 0...gameIDs.length)
-        {
-            var gameID:Int = gameIDs.getIntResult(i);
-            var substitutions:Map<String, Dynamic> = [
-                "game_id" => gameID, 
-                "event_id" => eventID, 
-                "outcome_type" => "abort", 
-                "winner_color" => null
-            ];
-            executeQuery(OnGameEnded, substitutions);
-        }
+        var preparedRows:Array<String> = rows.map(Utils.toMySQLValuesRow);
+
+        var fullQuery:String = queryPrefix + preparedRows.join(',\n\t');
+        var results:Array<QueryExecutionResult> = executeQuery(fullQuery, [], getLastInsertID);
+
+        return results[0];
     }
 
-    private function createTables() 
+    public function insertRow(fullTableName:String, row:Array<Dynamic>, getLastInsertID:Bool):QueryExecutionResult
     {
-        for (resourceName in Resource.listNames()) //TODO: Needs to be recursive
-            if (resourceName.startsWith("sql/ddl/"))
-            {
-                executeQuery(resourceName);
-                Logging.info("database", 'Executed $resourceName');
-            }
+        return insertRows(fullTableName, [row], getLastInsertID);
     }
 
-    private function cleanTablesOnLaunch()
+    public function update(fullTableName:String, updates:Map<String, Dynamic>, conditions:Array<String>) 
     {
-        for (resourceName in Resource.listNames())
-            if (resourceName.startsWith("sql/dml/on_start/clean_short_term_tables/")) //TODO: Fill dir
-            {
-                executeQuery(resourceName);
-                Logging.info("database", 'Executed $resourceName');
-            }
+        var queryPrefix:String = 'UPDATE $fullTableName\nSET\n\t';
+
+        var preparedUpdateLines:Array<String> = [];
+        for (columnName => value in updates)
+            preparedUpdateLines.push('$columnName = ${Utils.toMySQLValue(value)}');
+
+        var fullQuery:String = queryPrefix + preparedUpdateLines.join(',\n\t') + "\nWHERE " + conditions.join("\nAND ");
+        executeQuery(fullQuery);
+    }
+
+    public function filter(fullTableName:String, conditions:Array<String>, ?columns:Null<Array<String>>):ResultSet 
+    {
+        var selected:String = columns?.join(', ') ?? '*';
+        return simpleSet('SELECT $selected\nFROM $fullTableName\nWHERE ' + conditions.join("\nAND "), []);
+    }
+
+    public function delete(fullTableName:String, conditions:Array<String>)
+    {
+        if (Lambda.empty(conditions))
+            executeQuery('DELETE\nFROM $fullTableName');
+        else
+            executeQuery('DELETE\nFROM $fullTableName\nWHERE ' + conditions.join("\nAND "));
+    }
+
+    public function simpleSet(query:QueryShortcut, ?substitutions:Map<String, Dynamic>):ResultSet
+    {
+        return executeQuery(query, substitutions)[0].set;
+    }
+
+    public function simpleRows(query:QueryShortcut, ?substitutions:Map<String, Dynamic>):Array<ResultRow>
+    {
+        var a:Array<ResultRow> = [];
+
+        for (row in simpleSet(query, substitutions))
+            a.push(row);
+
+        return a;
     }
 
     public function new()
@@ -109,17 +120,15 @@ class Database
             pass: Config.config.mysqlPass
         });
 
-        var isEmpty:Bool = executeQuery(CheckDatabaseEmptyness)[0].set.length == 0;
-
-        if (isEmpty)
+        if (Job.isDatabaseEmpty(this))
         {
             Logging.info("database", "Database seems to be fresh, filling it with tables...");
-            createTables();
+            Job.createTables(this);
         }
         else
         {
-            Logging.info("database", "It seems database is already initialized. Cleaning short-term tables...");
-            cleanTablesOnLaunch();
+            Logging.info("database", "It seems database is already initialized");
+            Job.repairGameLogs(this);
         }
     }
 }

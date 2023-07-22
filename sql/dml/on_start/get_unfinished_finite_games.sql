@@ -1,5 +1,5 @@
 SELECT
-    games.id
+    games.id as id
 FROM game.game AS games
 LEFT JOIN game.event AS all_events
 ON games.id = all_events.game_id

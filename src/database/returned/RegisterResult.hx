@@ -1,4 +1,4 @@
-package database.action_results;
+package database.returned;
 
 enum RegisterResult 
 {
