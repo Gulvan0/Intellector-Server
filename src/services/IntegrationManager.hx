@@ -1,8 +1,6 @@
 package services;
 
-import utils.StringFilter;
 import integration.Telegram;
-import struct.ChallengeParams;
 import integration.Vk;
 import integration.Discord;
 import utils.ds.AutoQueue;
@@ -12,7 +10,12 @@ class IntegrationManager
 {
     private static var notificationTimestamps:Map<String, AutoQueue<Float>> = [];
 
-    public static var alertFilter:StringFilter;
+    //TODO:
+    /*
+        1. Proper alert filters
+        2. Update the code
+        3. Move (it's not a service) and update dependencies
+    */
 
     public static function init() 
     {

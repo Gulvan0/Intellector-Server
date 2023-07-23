@@ -6,6 +6,8 @@ import net.shared.EloValue;
 
 class EloManager 
 {
+    //TODO: Move (it's an utility, not a service) and update dependencies
+    
     public static function getNumericalElo(value:EloValue):Int 
     {
         return switch value 

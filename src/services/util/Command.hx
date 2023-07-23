@@ -4,18 +4,7 @@ enum Command
 {
     Help;
     Logged;
-    Lload;
-    Lcurrent;
-    Lskip;
-    Lprev;
-    Lnext;
-    Lprevdate;
-    Lnextdate;
-    Addfilter;
-    Rmfilter;
-    Getfilters;
-    Games;
-    Challenges;
+    Query;
     Profile;
     Game;
     Kick;

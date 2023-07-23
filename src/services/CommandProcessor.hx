@@ -5,135 +5,13 @@ import net.shared.dataobj.UserRole;
 import services.util.AnyGame;
 import entities.Game;
 import net.shared.utils.MathUtils;
-import services.Storage.LogType;
 import entities.UserSession;
 
 using StringTools;
 using hx.strings.Strings;
 
 class CommandProcessor 
-{ 
-    private static function games(callback:String->Void, args:Array<String>)
-    {
-        var foundGames = GameManager.getCurrentFiniteTimeGames();
-
-        if (Lambda.empty(foundGames))
-        {
-            callback('No active finite games found');
-            return;
-        }
-
-        for (gameInfo in foundGames)
-        {
-            var anyGame:AnyGame = GameManager.get(gameInfo.id);
-
-            switch anyGame 
-            {
-                case OngoingFinite(game):
-                    var desc:String = 'Game ${gameInfo.id}\n';
-                    desc += game.log.getEntries().map(Std.string).join('\n');
-                    desc += '\nTime left: White ' + MathUtils.roundTo(game.getTime().whiteSeconds, -2) + 's, Black ' + MathUtils.roundTo(game.getTime().blackSeconds, -2) + 's';
-                    callback(desc);
-                case OngoingCorrespondence(_):
-                    callback('Oops! Game with ID ${gameInfo.id} is considered finite, but is actually correspondence');
-                case Past(_):
-                    callback('Oops! Game with ID ${gameInfo.id} is considered ongoing, but has actually already ended');
-                case NonExisting:
-                    callback('Oops! Game with ID ${gameInfo.id} is considered ongoing, but actually does not exist');
-            }
-        }
-    }
-
-    private static function challenges(callback:String->Void, args:Array<String>)
-    {
-        var challenges = ChallengeManager.getAllPendingChallenges();
-
-        if (Lambda.empty(challenges))
-            callback('No challenges found');
-        else
-            for (challengeInfo in challenges)
-            {
-                var desc:String = 'Challenge ${challengeInfo.id} by ${challengeInfo.ownerLogin}\n';
-                desc += 'Type: ${challengeInfo.params.type}\n';
-                desc += 'Time control: ${challengeInfo.params.timeControl.toString(false)}\n';
-                desc += 'Rated: ${challengeInfo.params.rated}\n';
-                if (challengeInfo.params.customStartingSituation != null)
-                    desc += 'Custom SIP: ${challengeInfo.params.customStartingSituation.serialize()}\n';
-                desc += 'Acceptor color: ${challengeInfo.params.acceptorColor}';
-                callback(desc);
-            }
-    }
-
-    private static function addFilter(callback:String->Void, args:Array<String>) 
-    {
-        if (args[1] != "re" && args[1] != "str")
-        {
-            callback("Invalid second arg: must be one of 're', 'str'");
-            return;
-        }
-
-        var entry:String = args.slice(2).join(' ');
-        var regexp:Bool = args[1] == "re";
-        var cb = x -> {callback('Added. Current filters: $x');};
-
-        if (args[0] == "log")
-        {
-            LogReader.logFilter.addBlacklistEntry(entry, regexp);
-            getFilters(cb, args);
-        }
-        else if (args[0] == "alert")
-        {
-            IntegrationManager.alertFilter.addBlacklistEntry(entry, regexp);
-            getFilters(cb, args);
-        }
-        else
-            callback("Invalid first arg: must be one of 'log', 'alert'");
-    }
-
-    private static function removeFilter(callback:String->Void, args:Array<String>) 
-    {
-        if (args[1] != "re" && args[1] != "str")
-        {
-            callback("Invalid second arg: must be one of 're', 'str'");
-            return;
-        }
-
-        var entry:String = args.slice(2).join(' ');
-        var regexp:Bool = args[1] == "re";
-        var cb = x -> {callback('Removed. Current filters: $x');};
-
-        if (args[0] == "log")
-        {
-            LogReader.logFilter.removeBlacklistEntry(entry, regexp);
-            getFilters(cb, args);
-        }
-        else if (args[0] == "alert")
-        {
-            IntegrationManager.alertFilter.removeBlacklistEntry(entry, regexp);
-            getFilters(cb, args);
-        }
-        else
-            callback("Invalid first arg: must be one of 'log', 'alert'");
-    }
-
-    private static function getFilters(callback:String->Void, args:Array<String>) 
-    {
-        if (args[1] != "re" && args[1] != "str")
-        {
-            callback("Invalid second arg: must be one of 're', 'str'");
-            return;
-        }
-
-        var regexp:Bool = args[1] == "re";
-
-        if (args[0] == "log")
-            callback(LogReader.logFilter.getBlacklistEntries(regexp).join('\n'));
-        else if (args[0] == "alert")
-            callback(IntegrationManager.alertFilter.getBlacklistEntries(regexp).join('\n'));
-        else
-            callback("Invalid first arg: must be one of 'log', 'alert'");
-    }
-
+{
     private static function printHelp(callback:String->Void) 
     {
         var s:String = "Available commands: ";
@@ -143,6 +21,22 @@ class CommandProcessor
 
         callback(s);
     }
+
+    //TODO:
+    /*
+        1. Player queries tables
+        2. TG attachments
+        3. Query result to string (tsv probably)
+        4. Account for failed queries
+        5. Add query / remove query / execute named query / execute anon query / save last successful anon query commands
+        6. Think about commands for easier log quering and navigation
+        7. Commands for printing game/challenge/logged players infos (+ choose format)
+        8. Ban elo command
+        9. Update pwd command
+        10. Add/remove role commands
+        11. Cleanup (also check one-time tasks) + update Command.hx
+        12. Extend Service.hx
+    */
 
     public static function processCommand(rawText:String, callback:String->Void) 
     {
