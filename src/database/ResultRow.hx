@@ -23,6 +23,11 @@ using hx.strings.Strings;
 
 abstract ResultRow(Dynamic) from Dynamic
 {
+    public function isNotNull(columnName:String):Bool
+    {
+        return Reflect.field(this, columnName) != null;
+    }
+
     public function getString(columnName:String):Null<String> 
     {
         return Reflect.field(this, columnName);
