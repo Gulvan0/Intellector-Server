@@ -37,7 +37,7 @@ class Log
         var row:Array<Dynamic> = [
             CurrentTimestamp,
             entryType,
-            serviceSlug,
+            serviceSlug?.substr(0, 30),
             entryText
         ];
 

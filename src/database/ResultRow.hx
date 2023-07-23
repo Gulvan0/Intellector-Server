@@ -1,5 +1,6 @@
 package database;
 
+import net.shared.variation.VariationPath;
 import config.Config;
 import net.shared.EloValue;
 import net.shared.dataobj.StudyPublicity;
@@ -233,5 +234,15 @@ abstract ResultRow(Dynamic) from Dynamic
             return Provisional(value);
         else
             return Normal(value);
+    }
+
+    public function getVariationPath(joinedPathColumnName:String):Null<VariationPath>
+    {
+        var joinedPath:Null<String> = Reflect.field(this, joinedPathColumnName);
+
+        if (joinedPath == null)
+            return null;
+        else
+            return VariationPath.deserialize(joinedPath);
     }
 }

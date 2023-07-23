@@ -15,6 +15,16 @@ class Database
 {
     private var mainConnection:Connection;
 
+    public function startTransaction() 
+    {
+        mainConnection.startTransaction();
+    }
+
+    public function commit() 
+    {
+        mainConnection.commit();
+    }
+
     public function executeQuery(resourceName:String, ?replacements:Map<String, Dynamic>, ?getInsertID:Bool = false, ?splittingDelimiter:Null<String>, ?customConnection:Connection):Array<QueryExecutionResult>
     {
         var queryText:Null<String> = Resource.getString(resourceName);
