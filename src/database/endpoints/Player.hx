@@ -1,5 +1,7 @@
 package database.endpoints;
 
+import database.returned.RemoveFriendResult;
+import database.returned.AddFriendResult;
 import database.returned.UpdatePasswordResult;
 import database.returned.RegisterResult;
 import haxe.crypto.Md5;
@@ -20,9 +22,14 @@ class Player
         return database.filter("player.player", conditions, columns).getScalarString();
     }
 
+    public static function playerExists(database:Database, login:String):Bool
+    {
+        return getPasswordHash(database, login) != null;
+    }
+
     public static function register(database:Database, login:String, password:String):RegisterResult
     {
-        if (getPasswordHash(database, login) == null)
+        if (!playerExists(database, login))
         {
             var row:Array<Dynamic> = [
                 login, 
@@ -39,7 +46,7 @@ class Player
 
     public static function updatePassword(database:Database, login:String, password:String):UpdatePasswordResult
     {
-        if (getPasswordHash(database, login) != null)
+        if (playerExists(database, login))
         {
             var updates:Map<String, Dynamic> = [
                 "password_hash" => Md5.encode(password)
@@ -56,47 +63,46 @@ class Player
             return PlayerNonexistent;
     }
 
+    public static function isFriend(database:Database, friendOwnerLogin:String, friendLogin:String):Bool
+    {
+        return database.filter("player.friend_pair", [
+            Conditions.equals("friend_owner_login", friendOwnerLogin),
+            Conditions.equals("friend_login", friendLogin)
+        ]).hasNext();
+    }
+
+    public static function addFriend(database:Database, authorLogin:String, friendLogin:String):AddFriendResult
+    {
+        if (isFriend(database, authorLogin, friendLogin))
+            return AlreadyFriends;
+        else if (!playerExists(database, authorLogin))
+            return AuthorNonexistent;
+        else if (!playerExists(database, friendLogin))
+            return FriendNonexistent;
+
+        database.insertRow("player.friend_pair", [authorLogin, friendLogin]);
+
+        return Added;
+    }
+
+    public static function removeFriend(database:Database, authorLogin:String, friendLogin:String):RemoveFriendResult
+    {
+        if (!playerExists(database, authorLogin))
+            return AuthorNonexistent;
+        else if (!playerExists(database, friendLogin))
+            return FriendNonexistent;
+
+        database.delete("player.friend_pair", [
+            Conditions.equals("friend_owner_login", authorLogin),
+            Conditions.equals("friend_login", friendLogin)
+        ]);
+
+        return Removed;
+    }
+
     //TODO: Rewrite as endpoints
 
     /*
-    public static function addFriend(author:UserSession, login:String) 
-    {
-        Logger.serviceLog('PROFILEMGR', '$author wants to add $login as a friend');
-        if (Auth.userExists(login))
-        {
-            author.storedData.addFriend(login);
-            Logger.serviceLog('PROFILEMGR', 'Success: $author and $login are now friends');
-        }
-        else
-        {
-            author.emit(PlayerNotFound);
-            Logger.serviceLog('PROFILEMGR', 'Fail: $login not found');
-        }
-    }
-
-    public static function removeFriend(author:UserSession, login:String) 
-    {
-        Logger.serviceLog('PROFILEMGR', '$author wants to remove $login from their friend list');
-        if (Auth.userExists(login))
-        {
-            author.storedData.removeFriend(login);
-            Logger.serviceLog('PROFILEMGR', 'Success: $author and $login are no longer friends');
-        }
-        else
-        {
-            author.emit(PlayerNotFound);
-            Logger.serviceLog('PROFILEMGR', 'Fail: $login not found');
-        }
-    }
-
-    public static function isFriend(author:UserSession, login:String):Bool
-    {
-        if (Auth.userExists(login))
-            return author.storedData.hasFriend(login);
-        else
-            return false;
-    }
-
     public static function getProfile(author:UserSession, login:String) 
     {
         if (Auth.userExists(login))
