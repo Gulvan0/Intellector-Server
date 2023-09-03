@@ -47,7 +47,7 @@ class Job
 
         database.executeQuery(resourceName);
 
-        Logging.info("database", 'Executed $resourceName');
+        Logging.info("sink/database", 'Executed $resourceName');
     }
 
     public static function createTables(database:Database) 

@@ -40,9 +40,9 @@ class Study
         return tags.map(tag -> [studyID, tag]);
     }
 
-    private static function performStandardModificationChecks(database:Database, id:Int, requestedBy:PlayerRef):StandardModificationChecksResult
+    private static function performStandardModificationChecks(id:Int, requestedBy:PlayerRef):StandardModificationChecksResult
     {
-        var set:ResultSet = database.filter("study.study", [Conditions.equals("id", id)], ["author_login"]);
+        var set:ResultSet = Database.instance.filter("study.study", [Conditions.equals("id", id)], ["author_login"]);
 
         if (!set.hasNext())
         {
@@ -61,7 +61,7 @@ class Study
         return Passed;
     }
 
-    public static function create(database:Database, info:StudyInfo)
+    public static function create(info:StudyInfo)
     {
         var studyRow:Array<Dynamic> = [
             null,
@@ -76,25 +76,25 @@ class Study
             false
         ];
 
-        database.startTransaction();
+        Database.instance.startTransaction();
 
-        var result:QueryExecutionResult = database.insertRow("study.study", studyRow, true);
+        var result:QueryExecutionResult = Database.instance.insertRow("study.study", studyRow, true);
 
         var studyID:Int = result.lastID;
 
-        database.insertRows("study.study_tag", constructTagRows(studyID, info.tags), false);
-        database.insertRows("study.variation_node", constructVariationRows(studyID, info.plainVariation), false);
+        Database.instance.insertRows("study.study_tag", constructTagRows(studyID, info.tags), false);
+        Database.instance.insertRows("study.variation_node", constructVariationRows(studyID, info.plainVariation), false);
 
-        database.commit();
+        Database.instance.commit();
 
         Logging.info("e:Study.create()", 'Study created (ID = $studyID)');
 
         return studyID;
     }
 
-    public static function overwrite(database:Database, id:Int, info:StudyInfo, requestedBy:PlayerRef):OverwriteStudyResult 
+    public static function overwrite(id:Int, info:StudyInfo, requestedBy:PlayerRef):OverwriteStudyResult 
     {
-        switch performStandardModificationChecks(database, id, requestedBy) 
+        switch performStandardModificationChecks(id, requestedBy) 
         {
             case Nonexistent:
                 return Nonexistent;
@@ -116,25 +116,25 @@ class Study
             "deleted" => false
         ];
 
-        database.startTransaction();
+        Database.instance.startTransaction();
 
-        database.update("study.study", updates, filteringConditions);
+        Database.instance.update("study.study", updates, filteringConditions);
 
-        database.delete("study.study_tag", filteringConditions);
-        database.insertRows("study.study_tag", constructTagRows(id, info.tags), false);
+        Database.instance.delete("study.study_tag", filteringConditions);
+        Database.instance.insertRows("study.study_tag", constructTagRows(id, info.tags), false);
 
-        database.delete("study.variation_node", filteringConditions);
-        database.insertRows("study.variation_node", constructVariationRows(id, info.plainVariation), false);
+        Database.instance.delete("study.variation_node", filteringConditions);
+        Database.instance.insertRows("study.variation_node", constructVariationRows(id, info.plainVariation), false);
 
-        database.commit();
+        Database.instance.commit();
         
         Logging.info("e:Study.overwrite()", 'Study overwritten (ID = $id; requested by $requestedBy)');
         return Overwritten;
     }
 
-    public static function delete(database:Database, id:Int, requestedBy:PlayerRef):DeleteStudyResult 
+    public static function delete(id:Int, requestedBy:PlayerRef):DeleteStudyResult 
     {
-        switch performStandardModificationChecks(database, id, requestedBy) 
+        switch performStandardModificationChecks(id, requestedBy) 
         {
             case Nonexistent:
                 return Nonexistent;
@@ -150,17 +150,17 @@ class Study
             "deleted" => true
         ];
 
-        database.update("study.study", updates, filteringConditions);
+        Database.instance.update("study.study", updates, filteringConditions);
         
         Logging.info("e:Study.overwrite()", 'Study detached (ID = $id; requested by $requestedBy)');
         return Deleted;
     }
 
-    public static function getStudy(database:Database, id:Int, requestedBy:PlayerRef):GetStudyResult 
+    public static function getStudy(id:Int, requestedBy:PlayerRef):GetStudyResult 
     {
         var filteringConditions:Array<String> = [Conditions.equals("id", id)];
 
-        var set:ResultSet = database.filter("study.study", filteringConditions);
+        var set:ResultSet = Database.instance.filter("study.study", filteringConditions);
 
         if (!set.hasNext())
         {
@@ -187,14 +187,14 @@ class Study
 
         studyInfo.tags = [];
 
-        var tagSet:ResultSet = database.filter("study.study_tag", filteringConditions, ["tag"]);
+        var tagSet:ResultSet = Database.instance.filter("study.study_tag", filteringConditions, ["tag"]);
         for (i in 0...tagSet.length)
             studyInfo.tags.push(tagSet.getResult(i));
 
         var startingSituation:Situation = row.getSituation("starting_sip");
         var plys:VariationMap<RawPly> = new VariationMap<RawPly>();
 
-        var nodeSet:ResultSet = database.filter("study.variation_node", filteringConditions);
+        var nodeSet:ResultSet = Database.instance.filter("study.variation_node", filteringConditions);
         for (nodeRow in nodeSet)
         {
             var typedNodeRow:ResultRow = nodeRow;

@@ -4,7 +4,7 @@ import database.special_values.Timestamp;
 
 class Log 
 {
-    public static function antifraud(database:Database, entryType:String, playerLogin:String, delta:Int, gameID:Int) 
+    public static function antifraud(entryType:String, playerLogin:String, delta:Int, gameID:Int) 
     {
         var row:Array<Dynamic> = [
             CurrentTimestamp,
@@ -14,10 +14,10 @@ class Log
             gameID
         ];
 
-        database.insertRow("log.antifraud", row, false);
+        Database.instance.insertRow("log.antifraud", row, false);
     }
 
-    public static function message(database:Database, source:String, connectionID:String, messageID:Int, messageType:String, messageName:String, messageArgs:String) 
+    public static function message(source:String, connectionID:String, messageID:Int, messageType:String, messageName:String, messageArgs:String) 
     {
         var row:Array<Dynamic> = [
             CurrentTimestamp,
@@ -29,10 +29,10 @@ class Log
             messageArgs
         ];
 
-        database.insertRow("log.message", row, false);
+        Database.instance.insertRow("log.message", row, false);
     }
 
-    public static function service(database:Database, entryType:String, serviceSlug:String, entryText:String) 
+    public static function service(entryType:String, serviceSlug:String, entryText:String) 
     {
         var row:Array<Dynamic> = [
             CurrentTimestamp,
@@ -41,6 +41,6 @@ class Log
             entryText
         ];
 
-        database.insertRow("log.service", row, false);
+        Database.instance.insertRow("log.service", row, false);
     }    
 }

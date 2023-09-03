@@ -1,5 +1,7 @@
 package database.endpoints;
 
+import net.shared.dataobj.GameOverview;
+import database.special_values.RawInsert;
 import net.shared.dataobj.GameEventLogEntry;
 import net.shared.dataobj.GameEventLogItem;
 import net.shared.dataobj.LegacyFlag;
@@ -19,11 +21,29 @@ import net.shared.Outcome;
 import net.shared.dataobj.GameModelData;
 import database.QueryShortcut;
 
+private typedef GetGamesOutput = {dataRows:Array<ResultRow>, eventRows:Array<ResultRow>};
+
 class Game 
 {
-    public static function getGame(database:Database, id:Int, activeSubscribers:Array<PlayerRef>):Null<GameModelData>
+    private static function getGamesByCondition(condition:String, full:Bool):Null<GetGamesOutput>
     {
-        var dataSet:ResultSet = database.simpleSet(GetGameDataByID, ["id" => id]);
+        var dataRows:Array<ResultRow> = Database.instance.simpleRows(GetGameData, ["condition" => Raw(condition)]);
+        var eventRows:Array<ResultRow> = Database.instance.simpleRows(full? GetGameEvents : GetOverviewGameEvents, ["condition" => Raw(condition)]);
+
+        return {
+            dataRows: dataRows, 
+            eventRows: eventRows
+        };
+    }
+
+    public static function getGames(condition:String):Array<GameOverview>
+    {
+        
+    }
+
+    public static function getGame(id:Int, activeSubscribers:Array<PlayerRef>):Null<GameModelData>
+    {
+        var dataSet:ResultSet = Database.instance.simpleSet(GetGameData, ["id" => id]);
 
         if (!dataSet.hasNext())
             return null;
@@ -54,7 +74,7 @@ class Game
         if (id < -1) //TODO: Assign threshold ID
             legacyFlags.push(FakeEventTimestamps);
 
-        var eventRows:Array<ResultRow> = database.simpleRows(GetGameEventsByID, ["id" => id]);
+        var eventRows:Array<ResultRow> = Database.instance.simpleRows(GetGameEvents, ["id" => id]);
 
         var eventLog:Array<GameEventLogItem> = [];
         var gameEnded:Bool = false;
@@ -115,7 +135,7 @@ class Game
         }; 
     }
 
-    public static function create(database:Database, playerRefs:Map<PieceColor, PlayerRef>, challengeParams:ChallengeParams):Int
+    public static function create(playerRefs:Map<PieceColor, PlayerRef>, challengeParams:ChallengeParams):Int
     {
         var gameRow:Array<Dynamic> = [
             null,
@@ -124,20 +144,23 @@ class Game
             challengeParams.timeControl.getType(),
             challengeParams.rated,
             CurrentTimestamp,
-            challengeParams.customStartingSituation
+            challengeParams.customStartingSituation,
+            challengeParams.customStartingSituation ?? Situation.defaultStarting(),
+            null,
+            null
         ];
 
-        var result:QueryExecutionResult = database.insertRow("game.game", gameRow, true);
+        var result:QueryExecutionResult = Database.instance.insertRow("game.game", gameRow, true);
 
         var gameID:Int = result.lastID;
 
         if (!challengeParams.timeControl.isCorrespondence())
-            database.insertRow("game.fischer_time_control", [gameID, challengeParams.timeControl.startSecs, challengeParams.timeControl.incrementSecs], false);
+            Database.instance.insertRow("game.fischer_time_control", [gameID, challengeParams.timeControl.startSecs, challengeParams.timeControl.incrementSecs], false);
 
         return gameID;
     }
 
-    private static function addEntryToEventLog(database:Database, gameID:Int):Int
+    private static function addEntryToEventLog(gameID:Int):Int
     {
         var generalRow:Array<Dynamic> = [
             null,
@@ -145,14 +168,14 @@ class Game
             CurrentTimestamp
         ];
 
-        var result:QueryExecutionResult = database.insertRow("game.event", generalRow, true);
+        var result:QueryExecutionResult = Database.instance.insertRow("game.event", generalRow, true);
 
         return result.lastID;
     }
     
-    public static function endGame(database:Database, gameID:Int, outcome:Outcome)
+    public static function endGame(gameID:Int, outcome:Outcome)
     {
-        var eventID:Int = addEntryToEventLog(database, gameID);
+        var eventID:Int = addEntryToEventLog(gameID);
 
         var specificRow:Array<Dynamic> = [
             eventID,
@@ -160,12 +183,12 @@ class Game
             Utils.extractWinnerColor(outcome)
         ];
 
-        database.insertRow("game.game_ended_event", specificRow, false);
+        Database.instance.insertRow("game.game_ended_event", specificRow, false);
     }
 
-    public static function appendMessage(database:Database, gameID:Int, authorRef:PlayerRef, messageText:String) 
+    public static function appendMessage(gameID:Int, authorRef:PlayerRef, messageText:String) 
     {
-        var eventID:Int = addEntryToEventLog(database, gameID);
+        var eventID:Int = addEntryToEventLog(gameID);
 
         var specificRow:Array<Dynamic> = [
             eventID,
@@ -173,12 +196,12 @@ class Game
             messageText
         ];
 
-        database.insertRow("game.message_event", specificRow, false);
+        Database.instance.insertRow("game.message_event", specificRow, false);
     }
 
-    public static function appendOfferAction(database:Database, gameID:Int, action:OfferAction, kind:OfferKind, sentBy:PieceColor) 
+    public static function appendOfferAction(gameID:Int, action:OfferAction, kind:OfferKind, sentBy:PieceColor) 
     {
-        var eventID:Int = addEntryToEventLog(database, gameID);
+        var eventID:Int = addEntryToEventLog(gameID);
 
         var specificRow:Array<Dynamic> = [
             eventID,
@@ -187,12 +210,12 @@ class Game
             sentBy
         ];
 
-        database.insertRow("game.offer_event", specificRow, false);
+        Database.instance.insertRow("game.offer_event", specificRow, false);
     }
 
-    public static function appendPly(database:Database, gameID:Int, ply:RawPly) 
+    public static function appendPly(gameID:Int, ply:RawPly) 
     {
-        var eventID:Int = addEntryToEventLog(database, gameID);
+        var eventID:Int = addEntryToEventLog(gameID);
 
         var specificRow:Array<Dynamic> = [
             eventID,
@@ -201,30 +224,30 @@ class Game
             ply.morphInto
         ];
 
-        database.insertRow("game.ply_event", specificRow, false);
+        Database.instance.insertRow("game.ply_event", specificRow, false);
     }
 
-    public static function appendRollback(database:Database, gameID:Int, cancelledMovesCnt:Int) 
+    public static function appendRollback(gameID:Int, cancelledMovesCnt:Int) 
     {
-        var eventID:Int = addEntryToEventLog(database, gameID);
+        var eventID:Int = addEntryToEventLog(gameID);
 
         var specificRow:Array<Dynamic> = [
             eventID,
             cancelledMovesCnt
         ];
 
-        database.insertRow("game.rollback_event", specificRow, false);
+        Database.instance.insertRow("game.rollback_event", specificRow, false);
     }
 
-    public static function appendTimeAdded(database:Database, gameID:Int, receivingSide:PieceColor) 
+    public static function appendTimeAdded(gameID:Int, receivingSide:PieceColor) 
     {
-        var eventID:Int = addEntryToEventLog(database, gameID);
+        var eventID:Int = addEntryToEventLog(gameID);
 
         var specificRow:Array<Dynamic> = [
             eventID,
             receivingSide
         ];
 
-        database.insertRow("game.time_added_event", specificRow, false);
+        Database.instance.insertRow("game.time_added_event", specificRow, false);
     }
 }

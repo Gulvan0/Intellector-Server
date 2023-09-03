@@ -49,4 +49,14 @@ abstract PlayerRef(String) from String to String
                 false;
         }
     }
+
+    public function pretty()
+    {
+        return switch concretize() 
+        {
+            case Normal(login): login;
+            case Guest(guestID): 'Guest $guestID';
+            case Bot(botHandle): '$botHandle (bot)';
+        }
+    }
 }

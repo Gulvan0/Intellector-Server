@@ -27,6 +27,7 @@ class Config
     public final sleepAmount:Float;
 
     public final clientHeartbeatTimeoutMs:Int;
+    public final maxAllowedAfkMs:Int;
 
     public final discordWebhookURL:Null<String>;
     public final tgToken:Null<String>;
@@ -109,6 +110,7 @@ class Config
         sleepAmount = loadOption(data, "sleep", false)?.asFloat() ?? 0.5;
 
         clientHeartbeatTimeoutMs = loadOption(data, "client-heartbeat-timeout", false)?.asInt() ?? 1000 * 60 * 5;
+        maxAllowedAfkMs = loadOption(data, "max-allowed-afk", false)?.asInt() ?? 1000 * 60 * 60 * 24;
 
         discordWebhookURL = loadOption(data, "integrations/discord/", false)?.asString();
         tgToken = loadOption(data, "integrations/telegram/bot-token", false)?.asString();

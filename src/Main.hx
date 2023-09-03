@@ -1,3 +1,4 @@
+import net.shared.openings.OpeningDatabase;
 import sys.thread.Thread;
 import hx.ws.Log;
 import integration.Telegram;
@@ -13,6 +14,8 @@ class Main
 	public static function main() 
 	{
         Serializer.USE_ENUM_INDEX = true;
+
+        OpeningDatabase.generate();
 
         Config.load();
         Log.mask = Config.logMask;

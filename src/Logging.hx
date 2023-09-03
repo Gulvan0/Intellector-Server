@@ -47,7 +47,19 @@ class Logging
     {
         if (database != null)
             Log.antifraud(database, "elo", playerLogin, delta, gameID);
-    }    
+    }
+
+    public static function stringifyMessage(clientMessage:ClientMessage) 
+    {
+        return switch clientMessage 
+        {
+            case Event(id, event):
+                'Event(${event.getName()}(${getClientEventArgs(event)}))';
+            case Request(id, request):
+                'Request(${request.getName()}(${getClientRequestArgs(request)}))';
+            default:
+        } 
+    }
 
     public static function clientMessage(connectionID:String, clientMessage:ClientMessage)
     {

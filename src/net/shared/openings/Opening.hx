@@ -2,6 +2,7 @@ package net.shared.openings;
 
 class Opening
 {
+    public final id:Int;
     public final shownToPlayersName:String;
     public final realName:String;
     public final isContinuation:Bool;
@@ -25,8 +26,9 @@ class Opening
         return new Opening(newShownToPlayersName, newHiddenName, true);
     }
 
-    public function new(shownToPlayersName:String, realName:String, ?isContinuation:Bool = false) 
+    public function new(id:Int, shownToPlayersName:String, realName:String, ?isContinuation:Bool = false) 
     {
+        this.id = id;
         this.shownToPlayersName = shownToPlayersName;
         this.realName = realName;
         this.isContinuation = isContinuation;

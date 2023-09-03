@@ -13,7 +13,14 @@ using StringTools;
 
 class Database 
 {
+    public static var instance:Database;
+
     private var mainConnection:Connection;
+
+    public static function init() 
+    {
+        instance = new Database();
+    }
 
     public function startTransaction() 
     {
@@ -31,7 +38,7 @@ class Database
 
         if (queryText == null)
         {
-            Logging.error("database", 'Failed to retrieve a query from $resourceName');
+            Logging.error("sink/database", 'Failed to retrieve a query from $resourceName');
             return null;
         }
 
@@ -132,12 +139,12 @@ class Database
 
         if (Job.isDatabaseEmpty(this))
         {
-            Logging.info("database", "Database seems to be fresh, filling it with tables...");
+            Logging.info("sink/database", "Database seems to be fresh, filling it with tables...");
             Job.createTables(this);
         }
         else
         {
-            Logging.info("database", "It seems database is already initialized");
+            Logging.info("sink/database", "It seems database is already initialized");
             Job.repairGameLogs(this);
         }
     }

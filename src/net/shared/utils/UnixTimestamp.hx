@@ -94,6 +94,16 @@ abstract UnixTimestamp(Float)
         return format(DashDelimitedDayWithTJoinedTime);
     }
 
+    public function add(interval:TimeInterval)
+    {
+        return new UnixTimestamp(this + interval.getMilliseconds());
+    }
+
+    public function subtract(interval:TimeInterval)
+    {
+        return new UnixTimestamp(this - interval.getMilliseconds());
+    }
+
     private function new(ms:Float)
     {
         this = ms;

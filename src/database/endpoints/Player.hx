@@ -10,7 +10,7 @@ using database.ScalarGetters;
 
 class Player 
 {
-    public static function getPasswordHash(database:Database, login:String):Null<String>
+    public static function getPasswordHash(login:String):Null<String>
     {
         var conditions:Array<String> = [
             Conditions.equals("player_login", login)
@@ -19,24 +19,24 @@ class Player
             "password_hash"
         ];
 
-        return database.filter("player.player", conditions, columns).getScalarString();
+        return Database.instance.filter("player.player", conditions, columns).getScalarString();
     }
 
-    public static function playerExists(database:Database, login:String):Bool
+    public static function playerExists(login:String):Bool
     {
-        return getPasswordHash(database, login) != null;
+        return getPasswordHash(login) != null;
     }
 
-    public static function register(database:Database, login:String, password:String):RegisterResult
+    public static function register(login:String, password:String):RegisterResult
     {
-        if (!playerExists(database, login))
+        if (!playerExists(login))
         {
             var row:Array<Dynamic> = [
                 login, 
                 Md5.encode(password)
             ];
 
-            database.insertRow("player.player", row, false);
+            Database.instance.insertRow("player.player", row, false);
 
             return Registered;
         }
@@ -44,9 +44,9 @@ class Player
             return PlayerAlreadyExists;
     }
 
-    public static function updatePassword(database:Database, login:String, password:String):UpdatePasswordResult
+    public static function updatePassword(login:String, password:String):UpdatePasswordResult
     {
-        if (playerExists(database, login))
+        if (playerExists(login))
         {
             var updates:Map<String, Dynamic> = [
                 "password_hash" => Md5.encode(password)
@@ -55,7 +55,7 @@ class Player
                 Conditions.equals("player_login", login)
             ];
 
-            database.update("player.player", updates, conditions);
+            Database.instance.update("player.player", updates, conditions);
 
             return Updated;
         }
@@ -63,36 +63,36 @@ class Player
             return PlayerNonexistent;
     }
 
-    public static function isFriend(database:Database, friendOwnerLogin:String, friendLogin:String):Bool
+    public static function isFriend(friendOwnerLogin:String, friendLogin:String):Bool
     {
-        return database.filter("player.friend_pair", [
+        return Database.instance.filter("player.friend_pair", [
             Conditions.equals("friend_owner_login", friendOwnerLogin),
             Conditions.equals("friend_login", friendLogin)
         ]).hasNext();
     }
 
-    public static function addFriend(database:Database, authorLogin:String, friendLogin:String):AddFriendResult
+    public static function addFriend(authorLogin:String, friendLogin:String):AddFriendResult
     {
-        if (isFriend(database, authorLogin, friendLogin))
+        if (isFriend(authorLogin, friendLogin))
             return AlreadyFriends;
-        else if (!playerExists(database, authorLogin))
+        else if (!playerExists(authorLogin))
             return AuthorNonexistent;
-        else if (!playerExists(database, friendLogin))
+        else if (!playerExists(friendLogin))
             return FriendNonexistent;
 
-        database.insertRow("player.friend_pair", [authorLogin, friendLogin]);
+        Database.instance.insertRow("player.friend_pair", [authorLogin, friendLogin]);
 
         return Added;
     }
 
-    public static function removeFriend(database:Database, authorLogin:String, friendLogin:String):RemoveFriendResult
+    public static function removeFriend(authorLogin:String, friendLogin:String):RemoveFriendResult
     {
-        if (!playerExists(database, authorLogin))
+        if (!playerExists(authorLogin))
             return AuthorNonexistent;
-        else if (!playerExists(database, friendLogin))
+        else if (!playerExists(friendLogin))
             return FriendNonexistent;
 
-        database.delete("player.friend_pair", [
+        Database.instance.delete("player.friend_pair", [
             Conditions.equals("friend_owner_login", authorLogin),
             Conditions.equals("friend_login", friendLogin)
         ]);

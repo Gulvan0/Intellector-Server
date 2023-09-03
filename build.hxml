@@ -1,9 +1,13 @@
--cp src
--D analyzer-optimize
 --hl hl/app.hl
+-cp src
 -main Main
+
+-D analyzer-optimize
+
 --library hxWebSockets
 --library argparse
 --library yaml
 --library haxe-strings
 --library lzstring
+
+--resource ./src/net/shared/openings/openings.tree@openings

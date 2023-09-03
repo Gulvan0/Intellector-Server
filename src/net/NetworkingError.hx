@@ -1,8 +1,8 @@
 package net;
 
+import net.shared.message.ClientMessage;
 import haxe.CallStack;
 import haxe.Exception;
-import net.shared.ClientEvent;
 import haxe.io.Bytes;
 
 enum NetworkingError
@@ -10,5 +10,5 @@ enum NetworkingError
     ConnectionError(error:Dynamic);
     BytesReceived(bytes:Bytes);
     DeserializationError(message:String, exception:Exception);
-    ProcessingError(event:ClientEvent, exception:Exception, stack:CallStack);
+    ProcessingError(event:ClientMessage, exception:Exception, stack:CallStack);
 }

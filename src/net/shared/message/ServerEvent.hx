@@ -34,6 +34,4 @@ enum ServerEvent
     MainMenuOpenChallengeRemoved(id:Int); //MainMenuUpdates subscription: an existing open challenge has been removed
     MainMenuNewGame(data:GameModelData); //MainMenuUpdates subscription: new current game appeared
     MainMenuGameEnded(data:GameModelData); //MainMenuUpdates subscription: one of the current games has ended
-
-    ServerError(message:String); //An error occured while processing the event on the server-side
 }

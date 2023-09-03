@@ -10,7 +10,7 @@ import net.shared.dataobj.ChallengeParams;
 
 class Challenge
 {
-    public static function create(database:Database, data:ChallengeData):Int
+    public static function create(data:ChallengeData):Int
     {
         var timeControl:TimeControl = data.params.timeControl;
 
@@ -27,17 +27,17 @@ class Challenge
             null
         ];
 
-        var result:QueryExecutionResult = database.insertRow("challenge.challenge", challengeRow, true);
+        var result:QueryExecutionResult = Database.instance.insertRow("challenge.challenge", challengeRow, true);
 
         var challengeID:Int = result.lastID;
 
         if (!timeControl.isCorrespondence())
-            database.insertRow("challenge.fischer_time_control", [challengeID, timeControl.startSecs, timeControl.incrementSecs], false);
+            Database.instance.insertRow("challenge.fischer_time_control", [challengeID, timeControl.startSecs, timeControl.incrementSecs], false);
 
         return challengeID;
     }
 
-    public static function deactivate(database:Database, challengeID:Int, resultingGameID:Null<Int>) 
+    public static function deactivate(challengeID:Int, resultingGameID:Null<Int>) 
     {
         var updates:Map<String, Dynamic> = [
             "active" => false,
@@ -47,26 +47,26 @@ class Challenge
             Conditions.equals("id", challengeID)
         ];
 
-        database.update("challenge.challenge", updates, conditions);
+        Database.instance.update("challenge.challenge", updates, conditions);
     }
 
-    public static function getActiveIncoming(database:Database, calleeRef:PlayerRef):Array<ChallengeData>
+    public static function getActiveIncoming(calleeRef:PlayerRef):Array<ChallengeData>
     {
-        var rows:Array<ResultRow> = database.simpleRows(GetActiveIncomingChallenges, ["callee_ref" => calleeRef]);
+        var rows:Array<ResultRow> = Database.instance.simpleRows(GetActiveIncomingChallenges, ["callee_ref" => calleeRef]);
 
         return parseRowsAsChallenges(rows);
     }
 
-    public static function getActivePublic(database:Database):Array<ChallengeData>
+    public static function getActivePublic():Array<ChallengeData>
     {
-        var rows:Array<ResultRow> = database.simpleRows(GetActivePublicChallenges);
+        var rows:Array<ResultRow> = Database.instance.simpleRows(GetActivePublicChallenges);
 
         return parseRowsAsChallenges(rows);
     }
 
-    public static function getOpenChallengeByID(database:Database, challengeID:Int):GetOpenChallengeByIDResult
+    public static function getOpenChallengeByID(challengeID:Int):GetOpenChallengeByIDResult
     {
-        var rows:Array<ResultRow> = database.simpleRows(GetOpenChallengeByID, ["challenge_id" => challengeID]);
+        var rows:Array<ResultRow> = Database.instance.simpleRows(GetOpenChallengeByID, ["challenge_id" => challengeID]);
 
         if (rows.length == 0)
             return Nonexistent;

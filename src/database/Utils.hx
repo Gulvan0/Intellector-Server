@@ -1,5 +1,6 @@
 package database;
 
+import database.special_values.RawInsert;
 import net.shared.board.Situation;
 import net.shared.dataobj.StudyPublicity;
 import net.shared.dataobj.UserRole;
@@ -49,6 +50,8 @@ class Utils
             return quote(cast(val, Date).toString());
         else if (Std.isOfType(val, Bool))
             return cast(val, Bool)? "1" : "0";
+        else if (Std.isOfType(val, RawInsert))
+            return unwrapRawInsert(val);
         else if (Std.isOfType(val, Timestamp))
             return convertTimestamp(val);
         else if (Std.isOfType(val, Situation))
@@ -71,6 +74,15 @@ class Utils
             return convertStandardEnum(val);
         else
             throw 'Can\'t convert value to MySQL type: $val';
+    }
+
+    private static function unwrapRawInsert(insert:RawInsert):String
+    {
+        return switch insert 
+        {
+            case Raw(insertedQueryPart):
+                insertedQueryPart;
+        }
     }
 
     private static function convertStandardEnum(val:EnumValue):String 

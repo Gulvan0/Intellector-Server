@@ -9,7 +9,10 @@ using StringTools;
 
 class OpeningDatabase
 {
-    private static var openings:Map<String, Opening> = [];
+    private static var lastID:Int = 0;
+
+    private static var openingsByID:Map<Int, Opening> = [];
+    private static var openingsBySIP:Map<String, Opening> = [];
 
     public static function generate() 
     {
@@ -68,13 +71,13 @@ class OpeningDatabase
             var prevSIP:String = prevSituation.serialize();
             var nextSIP:String = nextSituation.serialize();
             var symNextSIP:String = symmetricalSituation.serialize();
-            var prevOpening:Opening = openings.get(prevSIP);
+            var prevOpening:Opening = openingsBySIP.get(prevSIP);
 
-            if (openings.exists(nextSIP))
-                throw 'Opening already exists: ${openings.get(nextSIP).realName} (Encountered again in openings.tree, line $lineIndex)';
+            if (openingsBySIP.exists(nextSIP))
+                throw 'Opening already exists: ${openingsBySIP.get(nextSIP).realName} (Encountered again in openings.tree, line $lineIndex)';
 
-            if (openings.exists(symNextSIP))
-                throw 'Opening already exists: ${openings.get(symNextSIP).realName} (Encountered again in openings.tree, line $lineIndex)';
+            if (openingsBySIP.exists(symNextSIP))
+                throw 'Opening already exists: ${openingsBySIP.get(symNextSIP).realName} (Encountered again in openings.tree, line $lineIndex)';
 
             if (name == "_")
             {
@@ -83,7 +86,7 @@ class OpeningDatabase
 
                 var opening:Opening = prevOpening.withContinuation(plyStr, level);
 
-                openings.set(nextSIP, opening);
+                openingsBySIP.set(nextSIP, opening);
 
                 if (includeSymmetrical)
                 {
@@ -91,7 +94,7 @@ class OpeningDatabase
                     var symPlyStr:String = symmetricalPly.toNotation(prevSituation.symmetrical());
                     var symOpening:Opening = prevOpening.withContinuation(symPlyStr, level);
     
-                    openings.set(symNextSIP, symOpening);
+                    openingsBySIP.set(symNextSIP, symOpening);
                 }
             }
             else if (name == null)
@@ -99,10 +102,10 @@ class OpeningDatabase
                 if (level == 1)
                     throw 'Empty opening at level 1 ($plyStr in openings.tree, line $lineIndex)';
 
-                openings.set(nextSIP, prevOpening);
+                openingsBySIP.set(nextSIP, prevOpening);
 
                 if (includeSymmetrical)
-                    openings.set(symNextSIP, prevOpening);
+                    openingsBySIP.set(symNextSIP, prevOpening);
             }
             else
             {
@@ -116,11 +119,14 @@ class OpeningDatabase
                     name = name.substr(hiddenTag.length).ltrim();
                 }
 
-                var opening:Opening = new Opening(hidden? prevOpening.shownToPlayersName : name, name);
-                openings.set(nextSIP, opening);
+                var opening:Opening = new Opening(lastID, hidden? prevOpening.shownToPlayersName : name, name);
+                openingsByID.set(lastID, opening);
+                lastID++;
+
+                openingsBySIP.set(nextSIP, opening);
 
                 if (includeSymmetrical)
-                    openings.set(symNextSIP, opening);
+                    openingsBySIP.set(symNextSIP, opening);
             }
 
             currentSequence.push(nextSituation);
@@ -129,6 +135,11 @@ class OpeningDatabase
 
     public static function get(sip:String):Null<Opening>
     {
-        return openings.get(sip);
+        return openingsBySIP.get(sip);
+    }
+
+    public static function getByID(id:Int):Null<Opening>
+    {
+        return openingsByID.get(id);
     }
 }

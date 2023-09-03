@@ -7,4 +7,5 @@ enum ServerMessage
     GreetingResponse(data:GreetingResponseData);
     Event(id:Int, event:ServerEvent);
     RequestResponse(requestID:Int, response:ServerRequestResponse);
+    ServerError(message:String);
 }
