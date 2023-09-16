@@ -1,5 +1,6 @@
 package database.endpoints;
 
+import processors.nodes.Subscriptions;
 import net.shared.dataobj.GameModelData;
 import database.returned.GetOpenChallengeByIDResult;
 import net.shared.TimeControl;
@@ -98,6 +99,18 @@ class Challenge
         else
             return Cancelled;
     }
+
+    /* //TODO:
+
+    public static function getAllPendingChallenges():Array<ChallengeData> 
+    {
+        return Lambda.array(pendingChallengeByID);
+    }
+
+    public static function getPublicPendingChallenges():Array<ChallengeData>
+    {
+        return Lambda.map(pendingPublicChallengeIDs, id -> pendingChallengeByID.get(id));
+    }*/
 
     private function parseRowAsChallenge(row:ResultRow):ChallengeData
     {

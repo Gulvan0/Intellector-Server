@@ -1,5 +1,6 @@
 package database.endpoints;
 
+import processors.nodes.Subscriptions;
 import net.shared.dataobj.GameOverview;
 import database.special_values.RawInsert;
 import net.shared.dataobj.GameEventLogEntry;
@@ -21,10 +22,14 @@ import net.shared.Outcome;
 import net.shared.dataobj.GameModelData;
 import database.QueryShortcut;
 
-private typedef GetGamesOutput = {dataRows:Array<ResultRow>, eventRows:Array<ResultRow>};
+using database.ScalarGetters;
 
 class Game 
 {
+    //TODO: Rewrite (but first, create filter enum and conversion algorithm)
+    /*
+    private typedef GetGamesOutput = {dataRows:Array<ResultRow>, eventRows:Array<ResultRow>};
+    
     private static function getGamesByCondition(condition:String, full:Bool):Null<GetGamesOutput>
     {
         var dataRows:Array<ResultRow> = Database.instance.simpleRows(GetGameData, ["condition" => Raw(condition)]);
@@ -39,11 +44,11 @@ class Game
     public static function getGames(condition:String):Array<GameOverview>
     {
         
-    }
+    }*/
 
-    public static function getGame(id:Int, activeSubscribers:Array<PlayerRef>):Null<GameModelData>
+    public static function getGame(id:Int):Null<GameModelData>
     {
-        var dataSet:ResultSet = Database.instance.simpleSet(GetGameData, ["id" => id]);
+        var dataSet:ResultSet = Database.instance.simpleSet(GetGameData, null, {concreteGameID: id});
 
         if (!dataSet.hasNext())
             return null;
@@ -53,7 +58,7 @@ class Game
         var gameID:Int = dataRow.getInt("id");
         var playerRefs:Map<PieceColor, PlayerRef> = [White => dataRow.getPlayerRef("white_player_ref"), Black => dataRow.getPlayerRef("black_player_ref")];
         var startTimestamp:Null<UnixTimestamp> = dataRow.getTimestamp("start_ts");
-        var startingSituation:Situation = dataRow.getSituation("custom_starting_sip") ?? Situation.defaultStarting();
+        var startingSituation:Situation = dataRow.getSituation("starting_sip");
 
         var timeControl:TimeControl = TimeControl.correspondence();
 
@@ -71,10 +76,10 @@ class Game
         
         var legacyFlags:Array<LegacyFlag> = [];
 
-        if (id < -1) //TODO: Assign threshold ID
+        if (id < -1) //TODO: Rewrite
             legacyFlags.push(FakeEventTimestamps);
 
-        var eventRows:Array<ResultRow> = Database.instance.simpleRows(GetGameEvents, ["id" => id]);
+        var eventRows:Array<ResultRow> = Database.instance.simpleRows(GetGameEvents, null, {concreteGameID: id});
 
         var eventLog:Array<GameEventLogItem> = [];
         var gameEnded:Bool = false;
@@ -105,11 +110,13 @@ class Game
             });
         }
 
+        var activeSubscribers:Array<PlayerRef> = Subscriptions.getObservers(Game(id, null)).map(x -> x.getReference());
+
         var playerOnline:Map<PieceColor, Bool> = [White => false, Black => false];
         var activeSpectators:Array<PlayerRef> = [];
 
         if (gameEnded)
-            activeSpectators = activeSubscribers.copy();
+            activeSpectators = activeSubscribers;
         else
         {
             for (subscriberRef in activeSubscribers)
@@ -144,8 +151,6 @@ class Game
             challengeParams.timeControl.getType(),
             challengeParams.rated,
             CurrentTimestamp,
-            challengeParams.customStartingSituation,
-            challengeParams.customStartingSituation ?? Situation.defaultStarting(),
             null,
             null
         ];
@@ -156,6 +161,9 @@ class Game
 
         if (!challengeParams.timeControl.isCorrespondence())
             Database.instance.insertRow("game.fischer_time_control", [gameID, challengeParams.timeControl.startSecs, challengeParams.timeControl.incrementSecs], false);
+
+        var startingSituation:Situation = challengeParams.customStartingSituation ?? Situation.defaultStarting();
+        Database.instance.insertRow("game.encountered_situation", [gameID, 0, startingSituation], true);
 
         return gameID;
     }
@@ -225,6 +233,16 @@ class Game
         ];
 
         Database.instance.insertRow("game.ply_event", specificRow, false);
+
+        var resultRow:ResultRow = Database.instance.simpleRows(GetMostRecentSituation, null, {concreteGameID: gameID})[0];
+
+        var currentSituation:Situation = resultRow.getSituation("most_recent_sip");
+        var lastPlyNum:Int = resultRow.getInt("max_ply_num");
+        
+        var nextSituation:Situation = currentSituation.situationAfterRawPly(ply);
+        var nextPlyNum:Int = lastPlyNum + 1;
+        
+        Database.instance.insertRow("game.encountered_situation", [gameID, nextPlyNum, nextSituation], true);
     }
 
     public static function appendRollback(gameID:Int, cancelledMovesCnt:Int) 

@@ -1,5 +1,6 @@
 package processors.nodes.struct;
 
+import net.shared.utils.PlayerRef;
 import net.Connection;
 import net.shared.dataobj.ReconnectionBundle;
 import net.shared.message.ServerRequestResponse;
@@ -25,7 +26,7 @@ class UserSession
         return this.sessionID == otherSession.sessionID;    
     }
 
-    public function getReference():String 
+    public function getReference():PlayerRef 
     {
         if (login == null)
             return '_$sessionID';

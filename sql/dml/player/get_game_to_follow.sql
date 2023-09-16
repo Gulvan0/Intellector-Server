@@ -1,6 +1,6 @@
 SELECT
     max(id)
-FROM game.game as gm
+FROM game.game AS gm
 LEFT JOIN game.event AS all_events
 ON gm.id = all_events.game_id
 LEFT JOIN game.game_ended_event AS game_ended_events

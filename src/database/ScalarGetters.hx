@@ -1,5 +1,6 @@
 package database;
 
+import net.shared.board.Situation;
 import sys.db.ResultSet;
 
 class ScalarGetters 
@@ -16,6 +17,14 @@ class ScalarGetters
     {
         if (set.hasNext())
             return set.getResult(0);
+        else
+            return null;
+    } 
+    
+    public static function getScalarSituation(set:ResultSet):Null<Situation> 
+    {
+        if (set.hasNext())
+            return Situation.deserialize(set.getResult(0));
         else
             return null;
     } 

@@ -1,5 +1,7 @@
 package database;
 
+import ftk.format.template.Parser;
+import ftk.format.template.Interp;
 import database.endpoints.Job;
 import database.QueryShortcut;
 import config.Config;
@@ -10,6 +12,7 @@ import sys.db.Connection;
 import database.QueryShortcut;
 
 using StringTools;
+using hx.strings.Strings;
 
 class Database 
 {
@@ -32,7 +35,7 @@ class Database
         mainConnection.commit();
     }
 
-    public function executeQuery(resourceName:String, ?replacements:Map<String, Dynamic>, ?getInsertID:Bool = false, ?splittingDelimiter:Null<String>, ?customConnection:Connection):Array<QueryExecutionResult>
+    public function executeQuery(resourceName:String, ?replacements:Map<String, Dynamic>, ?templateData:Null<Dynamic> = null, ?getInsertID:Bool = false, ?individualQueryCnt:Int = 1, ?splittingDelimiter:String = ";", ?customConnection:Connection):Array<QueryExecutionResult>
     {
         var queryText:Null<String> = Resource.getString(resourceName);
 
@@ -42,12 +45,21 @@ class Database
             return null;
         }
 
+        if (templateData != null)
+        {
+            var interp:Interp = new Interp();
+            var parser:Parser = new Parser();
+
+            var parsedOutput:String = parser.parse(queryText);
+		    queryText = interp.execute(parsedOutput, templateData);
+        }
+
         if (replacements != null)
             for (sub => by in replacements.keyValueIterator())
                 queryText = queryText.replace('{$sub}', Utils.toMySQLValue(by));
 
         var usedConnection:Connection = customConnection ?? mainConnection;
-        var individualQueries:Array<String> = splittingDelimiter != null? queryText.split(splittingDelimiter) : [queryText];
+        var individualQueries:Array<String> = individualQueryCnt > 1? queryText.split8(splittingDelimiter, individualQueryCnt) : [queryText];
         var lastID:Int = -1;
         var output:Array<QueryExecutionResult> = [];
 
@@ -77,7 +89,7 @@ class Database
         var preparedRows:Array<String> = rows.map(Utils.toMySQLValuesRow);
 
         var fullQuery:String = queryPrefix + preparedRows.join(',\n\t');
-        var results:Array<QueryExecutionResult> = executeQuery(fullQuery, [], getLastInsertID);
+        var results:Array<QueryExecutionResult> = executeQuery(fullQuery, null, null, getLastInsertID);
 
         return results[0];
     }
@@ -102,7 +114,7 @@ class Database
     public function filter(fullTableName:String, conditions:Array<String>, ?columns:Null<Array<String>>):ResultSet 
     {
         var selected:String = columns?.join(', ') ?? '*';
-        return simpleSet('SELECT $selected\nFROM $fullTableName\nWHERE ' + conditions.join("\nAND "), []);
+        return simpleSet('SELECT $selected\nFROM $fullTableName\nWHERE ' + conditions.join("\nAND "));
     }
 
     public function delete(fullTableName:String, conditions:Array<String>)
@@ -113,16 +125,16 @@ class Database
             executeQuery('DELETE\nFROM $fullTableName\nWHERE ' + conditions.join("\nAND "));
     }
 
-    public function simpleSet(query:QueryShortcut, ?substitutions:Map<String, Dynamic>):ResultSet
+    public function simpleSet(query:QueryShortcut, ?substitutions:Map<String, Dynamic>, ?templateData:Null<Dynamic>):ResultSet
     {
-        return executeQuery(query, substitutions)[0].set;
+        return executeQuery(query, substitutions, templateData)[0].set;
     }
 
-    public function simpleRows(query:QueryShortcut, ?substitutions:Map<String, Dynamic>):Array<ResultRow>
+    public function simpleRows(query:QueryShortcut, ?substitutions:Map<String, Dynamic>, ?templateData:Null<Dynamic>):Array<ResultRow>
     {
         var a:Array<ResultRow> = [];
 
-        for (row in simpleSet(query, substitutions))
+        for (row in simpleSet(query, substitutions, templateData))
             a.push(row);
 
         return a;

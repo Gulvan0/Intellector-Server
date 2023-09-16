@@ -99,7 +99,7 @@ abstract ResultRow(Dynamic) from Dynamic
             return new TimeControl(startSecs, bonusSecs);
     }
 
-    public function getSituation(sipColumnName:String):Null<String>
+    public function getSituation(sipColumnName:String):Null<Situation>
     {
         var field:Null<String> = Reflect.field(this, sipColumnName);
 
@@ -231,9 +231,9 @@ abstract ResultRow(Dynamic) from Dynamic
         else if (relevantGamesCount == 0)
             return None;
         else if (relevantGamesCount < Config.config.calibrationGamesCount)
-            return Provisional(value);
+            return Provisional(elo);
         else
-            return Normal(value);
+            return Normal(elo);
     }
 
     public function getVariationPath(joinedPathColumnName:String):Null<VariationPath>

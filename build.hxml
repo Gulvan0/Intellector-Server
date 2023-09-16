@@ -9,5 +9,6 @@
 --library yaml
 --library haxe-strings
 --library lzstring
+--library hscript_template
 
 --resource ./src/net/shared/openings/openings.tree@openings

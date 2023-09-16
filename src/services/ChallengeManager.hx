@@ -16,27 +16,8 @@ using utils.ds.ArrayTools;
 
 class ChallengeManager
 {
-    private static var lastChallengeID:Int = 0;
 
-    private static var pendingChallengeIDsByOwnerLogin:DefaultArrayMap<String, Int> = new DefaultArrayMap([]);
-    private static var pendingDirectChallengeIDsByReceiverRef:DefaultArrayMap<String, Int> = new DefaultArrayMap([]);
-    private static var pendingPublicChallengeIDs:Array<Int> = [];
-
-    private static var pendingChallengeByID:Map<Int, Challenge> = [];
-
-    private static var ownerLoginByFormerChallengeID:Map<Int, String> = [];
-    private static var gameIDByFormerChallengeID:Map<Int, Int> = [];
-
-    public static function getAllPendingChallenges():Array<Challenge> 
-    {
-        return Lambda.array(pendingChallengeByID);
-    }
-
-    public static function getPublicPendingChallenges():Array<Challenge>
-    {
-        return Lambda.map(pendingPublicChallengeIDs, id -> pendingChallengeByID.get(id));
-    }
-
+    
     public static function getAllIncomingChallengesByReceiverLogin(login:String):Array<ChallengeData>
     {
         var challengeInfos:Array<ChallengeData> = [];
