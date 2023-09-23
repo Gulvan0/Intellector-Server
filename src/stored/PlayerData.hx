@@ -319,8 +319,11 @@ class PlayerData
         Storage.savePlayerData(login, this);
     }
 
-    public function addOngoingCorrespondenceGame(id:Int)
+    public function addOngoingCorrespondenceGame(id:Int, ?checkExists:Bool = false)
     {
+        if (checkExists && ongoingCorrespondenceGames.contains(id))
+            return;
+        
         ongoingCorrespondenceGames.unshift(id);
         Logger.serviceLog('PLAYERDATA', 'Game $id added to the $login\'s list of ongoing correspondence games');
         Storage.savePlayerData(login, this);

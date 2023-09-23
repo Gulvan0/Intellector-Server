@@ -140,13 +140,19 @@ class GameManager
         followedPlayerLoginByFollowerRef.remove(followerRef);
     }
 
-    public static function startGame(params:ChallengeParams, ownerSession:UserSession, opponent:GameOpponent):Int
+    public static function startGame(params:ChallengeParams, ownerLogin:String, ownerSession:Null<UserSession>, opponent:GameOpponent):Int
     {
         if (Shutdown.isStopping())
         {
             Logger.serviceLog('GAMEMGR', 'Refusing to start a new game (server is preparing to shutdown). Created by: $ownerSession, opponent: $opponent');
             return -1;
         }
+
+        if (ownerSession == null)
+            if (opponent.match(VersusBot(_)))
+                throw "Cannot start game: ownerSession is null, but the opponent is bot";
+            else if (!params.timeControl.isCorrespondence())
+                throw "Cannot start game: ownerSession is null, but the time control is finite";
 
         lastGameID++;
         Storage.setServerDataField("lastGameID", lastGameID);
@@ -156,41 +162,60 @@ class GameManager
 
         Logger.serviceLog('GAMEMGR', 'Starting new game with ID $gameID. Created by: $ownerSession, opponent: $opponent');
 
-        var playerSessions:Map<PieceColor, UserSession>;
-        var playerOpponentSession:Null<UserSession> = switch opponent 
+        var playerRefs:Map<PieceColor, String> = [];
+        playerRefs[opposite(acceptorColor)] = ownerLogin;
+
+        var playerSessions:Map<PieceColor, UserSession> = [];
+        playerSessions[opposite(acceptorColor)] = ownerSession;
+
+        switch opponent 
         {
-            case VersusHuman(acceptorSession): acceptorSession;
-            case VersusBot(_): null;
-        }
-        var botOpponent:Null<String> = switch opponent 
-        {
-            case VersusHuman(_): null;
-            case VersusBot(handle): handle;
+            case VersusHuman(acceptorSession): 
+                playerRefs[acceptorColor] = acceptorSession.getReference();
+                playerSessions[acceptorColor] = acceptorSession;
+            case VersusBot(handle):
+                playerRefs[acceptorColor] = '+$handle';
+                playerSessions[acceptorColor] = null;
         }
 
-        if (acceptorColor == White)
-            playerSessions = [White => playerOpponentSession, Black => ownerSession];
-        else
-            playerSessions = [White => ownerSession, Black => playerOpponentSession];
-
-        var game:Game = Game.create(gameID, playerSessions, params.timeControl, params.rated, params.customStartingSituation, botOpponent);
+        var game:Game = Game.create(gameID, playerSessions, playerRefs, params.timeControl, params.rated, params.customStartingSituation);
         var logPreamble:String = game.log.get();
 
         games.addNew(gameID, game);
+
+        for (color => ref in playerRefs.keyValueIterator())
+        {
+            var session:UserSession = playerSessions.get(color);
+
+            if (ref.charAt(0) == "+" || ref.charAt(0) == "_")
+            {
+                if (!params.timeControl.isCorrespondence() && session != null)
+                    session.ongoingFiniteGameID = gameID; 
+                continue;
+            }
+
+            var data:PlayerData = Storage.loadPlayerData(ref);
+
+            if (params.timeControl.isCorrespondence())
+                data.addOngoingCorrespondenceGame(gameID);
+            else 
+            {
+                if (session == null)
+                    data.addOngoingFiniteGame(gameID);
+                else
+                    session.ongoingFiniteGameID = gameID; 
+            }
+        }
 
         for (session in playerSessions)
         {
             if (session == null)
                 continue;
 
-            ChallengeManager.cancelAllOutgoingChallenges(session);
+            if (!params.timeControl.isCorrespondence())
+                ChallengeManager.cancelAllOutgoingChallenges(session);
             
             stopFollowing(session);
-
-            if (params.timeControl.isCorrespondence() && session.storedData != null)
-                session.storedData.addOngoingCorrespondenceGame(gameID);
-            else
-                session.ongoingFiniteGameID = gameID;
 
             session.emit(GameStarted(gameID, logPreamble));
 

@@ -26,7 +26,7 @@ class OneTimeTasks
             }
 
         var lastGameID:Int = GameManager.getLastGameID();
-        var gameID:Int = 0;
+        var gameID:Int = 5681;
 
         while (gameID++ < lastGameID)
         {
@@ -34,50 +34,17 @@ class OneTimeTasks
 
             switch anyGame 
             {
-                case OngoingFinite(game):
-                    for (color in PieceColor.createAll())
-                    {
-                        var playerRef:String = game.log.playerRefs.get(color);
-                        if (Auth.isGuest(playerRef))
-                            continue;
-
-                        var data:PlayerData = dataMap[playerRef];
-                        data.addOngoingFiniteGame(gameID);
-                    }
                 case OngoingCorrespondence(game):
                     for (color in PieceColor.createAll())
                     {
                         var playerRef:String = game.log.playerRefs.get(color);
-                        if (Auth.isGuest(playerRef))
+                        if (Auth.isGuest(playerRef) || playerRef.charAt(0) == "+")
                             continue;
 
                         var data:PlayerData = dataMap[playerRef];
-                        data.addOngoingCorrespondenceGame(gameID);
+                        data.addOngoingCorrespondenceGame(gameID, true);
                     }
-                case Past(log):
-                    var gameLog:GameLog = GameLog.loadFromStr(gameID, log);
-
-                    for (color in PieceColor.createAll())
-                    {
-                        var playerRef:String = gameLog.playerRefs.get(color);
-                        if (Auth.isGuest(playerRef))
-                            continue;
-                        
-                        var data:PlayerData = dataMap[playerRef];
-                        
-                        if (data != null)
-                        {
-                            if (gameLog.rated && !gameLog.outcome.match(Drawish(Abort)))
-                            {
-                                var newElo = GameManager.getNewElo(color, data, gameLog.outcome, gameLog);
-                                data.addPastGame(gameID, gameLog.timeControl.getType(), newElo);
-                            }
-                            else
-                                data.addPastGame(gameID, gameLog.timeControl.getType(), null);
-                        }
-                    }
-                case NonExisting:
-                    //Do nothing
+                default:
             }
         }
     }

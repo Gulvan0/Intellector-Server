@@ -216,7 +216,7 @@ class ChallengeManager
         switch params.type 
         {
             case ToBot(botHandle):
-                GameManager.startGame(challenge.params, requestAuthor, VersusBot(botHandle));
+                GameManager.startGame(challenge.params, challenge.ownerLogin, requestAuthor, VersusBot(botHandle));
                 return;
             default:
         }
@@ -286,11 +286,11 @@ class ChallengeManager
         Logger.serviceLog('CHALLENGE', 'Challenge ${challenge.id} is cancelled');
     }
 
-    private static function fulfillChallenge(challenge:Challenge, ownerSession:UserSession, acceptorSession:UserSession) 
+    private static function fulfillChallenge(challenge:Challenge, ownerSession:Null<UserSession>, acceptorSession:UserSession) 
     {
         removeChallenge(challenge);
         
-        var gameID:Int = GameManager.startGame(challenge.params, ownerSession, VersusHuman(acceptorSession));
+        var gameID:Int = GameManager.startGame(challenge.params, challenge.ownerLogin, ownerSession, VersusHuman(acceptorSession));
         gameIDByFormerChallengeID.set(challenge.id, gameID);
         ownerLoginByFormerChallengeID.set(challenge.id, challenge.ownerLogin);
         
@@ -340,7 +340,7 @@ class ChallengeManager
         
         var ownerSession = LoginManager.getUser(challenge.ownerLogin);
 
-        if (ownerSession == null)
+        if ((!challenge.params.timeControl.isCorrespondence() || requestAuthor.isGuest()) && ownerSession == null)
         {
             removeChallenge(challenge);
             requestAuthor.emit(ChallengeOwnerOffline(challenge.ownerLogin));
@@ -380,7 +380,24 @@ class ChallengeManager
         var ids:Array<Int> = pendingChallengeIDsByOwnerLogin.get(user.login);
 
         for (id in ids)
-            cancel(user, id);
+        {
+            var challenge:Null<Challenge> = pendingChallengeByID.get(id);
+
+            if (challenge == null)
+                continue;
+
+            var isDirectToLoggedUser:Bool = switch challenge.params.type 
+            {
+                case Direct(calleeRef): 
+                    calleeRef.charAt(0) != "_" && calleeRef.charAt(0) != "+";
+                default:
+                    false;
+            }
+            var isCorrespondence:Bool = challenge.params.timeControl.isCorrespondence();
+
+            if (!isDirectToLoggedUser || !isCorrespondence)
+                cancel(user, id);
+        } 
     }
 
     public static function declineAllIncomingChallenges(user:UserSession)

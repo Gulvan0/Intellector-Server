@@ -138,7 +138,7 @@ class GameLog
         return loadFromStr(gameID, Storage.getGameLog(gameID));
     }
 
-    public static function createNew(id:Int, players:Map<PieceColor, UserSession>, timeControl:TimeControl, rated:Bool, ?customStartingSituation:Situation, ?botHandle:String):GameLog 
+    public static function createNew(id:Int, players:Map<PieceColor, UserSession>, playerRefs:Map<PieceColor, String>, timeControl:TimeControl, rated:Bool, ?customStartingSituation:Situation):GameLog 
     {
         var log:GameLog = new GameLog(id);
 
@@ -150,20 +150,7 @@ class GameLog
             if (player != null && player.login != null && player.storedData != null)
                 eloValues[color] = player.storedData.getELO(timeControlType);
         
-        if (players.get(White) == null)
-            if (players.get(Black) == null)
-                throw "Failed to create game: players map is empty";
-            else if (botHandle == null)
-                throw "Failed to create game: missing white player and no botHandle to replace";
-            else
-                log.append(Players("+" + botHandle, players[Black].getReference()), false);
-        else if (players.get(Black) == null)
-            if (botHandle == null)
-                throw "Failed to create game: missing black player and no botHandle to replace";
-            else
-                log.append(Players(players[White].getReference(), "+" + botHandle), false);
-        else
-            log.append(Players(players[White].getReference(), players[Black].getReference()), false);
+        log.append(Players(playerRefs[White], playerRefs[Black]), false);
         
         if (rated)
             log.append(Elo(eloValues[White], eloValues[Black]), false);

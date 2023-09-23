@@ -296,7 +296,7 @@ class Game
         {
             Logger.serviceLog(serviceName, 'Player $user ($playerColor) left');
             sessions.removePlayer(playerColor);
-            log.append(Event(PlayerDisconnected(playerColor)));
+            //log.append(Event(PlayerDisconnected(playerColor)));
             sessions.broadcast(PlayerDisconnected(playerColor));
         }
         else
@@ -322,7 +322,7 @@ class Game
 
         Logger.serviceLog(serviceName, 'Player $session ($playerColor) joined');
         sessions.attachPlayer(playerColor, session);
-        log.append(Event(PlayerReconnected(playerColor)));
+        //log.append(Event(PlayerReconnected(playerColor)));
         sessions.broadcast(PlayerReconnected(playerColor));
     }
 
@@ -346,7 +346,7 @@ class Game
                 return;
             
             Logger.serviceLog(serviceName, 'Player $user ($playerColor) disconnected');
-            log.append(Event(PlayerDisconnected(playerColor)));
+            //log.append(Event(PlayerDisconnected(playerColor)));
             sessions.broadcast(PlayerDisconnected(playerColor));
         }
         else
@@ -370,7 +370,7 @@ class Game
         if (playerColor != null)
         {
             Logger.serviceLog(serviceName, 'Player $user ($playerColor) reconnected');
-            log.append(Event(PlayerReconnected(playerColor)));
+            //log.append(Event(PlayerReconnected(playerColor)));
             sessions.broadcast(PlayerReconnected(playerColor));
         }
         else
@@ -408,7 +408,7 @@ class Game
 
     private function checkDerelictness()
     {
-        if (sessions.isDerelict(true) && state.moveNum < 2)
+        if (sessions.isDerelict(true) && state.moveNum < 2 && !log.timeControl.isCorrespondence())
             abortGame();
         else if (sessions.isDerelict() && log.timeControl.isCorrespondence())
             GameManager.unloadDerelictCorrespondence(id);
@@ -447,12 +447,12 @@ class Game
         return map;
     }
 
-    public static function create(id:Int, players:Map<PieceColor, UserSession>, timeControl:TimeControl, rated:Bool, ?customStartingSituation:Situation, ?botHandle:String):Game
+    public static function create(id:Int, players:Map<PieceColor, UserSession>, playerRefs:Map<PieceColor, String>, timeControl:TimeControl, rated:Bool, ?customStartingSituation:Situation):Game
     {
         if (timeControl.isCorrespondence())
-            return CorrespondenceGame.createNew(id, players, rated, customStartingSituation, botHandle);
+            return CorrespondenceGame.createNew(id, players, playerRefs, rated, customStartingSituation);
         else
-            return new FiniteTimeGame(id, players, timeControl, rated, customStartingSituation, botHandle);
+            return new FiniteTimeGame(id, players, playerRefs, timeControl, rated, customStartingSituation);
     }
 
     private function new(id:Int) 

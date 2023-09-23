@@ -25,11 +25,11 @@ class FiniteTimeGame extends Game
         endGame(Decisive(Timeout, opposite(timedOutColor)));
     }
 
-    public function new(id:Int, players:Map<PieceColor, UserSession>, timeControl:TimeControl, rated:Bool, ?customStartingSituation:Situation, ?botHandle:String)
+    public function new(id:Int, players:Map<PieceColor, UserSession>, playerRefs:Map<PieceColor, String>, timeControl:TimeControl, rated:Bool, ?customStartingSituation:Situation)
     {
         super(id);
 
-        log = GameLog.createNew(id, players, timeControl, rated, customStartingSituation, botHandle);
+        log = GameLog.createNew(id, players, playerRefs, timeControl, rated, customStartingSituation);
         offers = log.isAgainstBot()? null : new GameOffers(endGame.bind(Drawish(DrawAgreement)), rollback);
         sessions = new GameSessions(players);
         state = GameState.createNew(customStartingSituation);
