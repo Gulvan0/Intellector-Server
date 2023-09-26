@@ -70,16 +70,15 @@ class Telegram
 
             var maxID:Null<Int> = null;
             for (update in list)
-            {
-                if (Std.string(update.message.chat.id) == Config.tgChatID && !firstLaunch)
-                    CommandProcessor.processCommand(update.message.text, notifyAdmin);
-    
                 if (maxID == null || update.update_id > maxID)
                     maxID = update.update_id;
-            }
-    
+            
             if (maxID != null)
                 httpRequest.setParameter('offset', '${maxID + 1}');
+
+            for (update in list)
+                if (Std.string(update.message.chat.id) == Config.tgChatID && !firstLaunch)
+                    CommandProcessor.processCommand(update.message.text, notifyAdmin);
 
             firstLaunch = false;
         }

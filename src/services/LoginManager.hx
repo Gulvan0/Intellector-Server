@@ -67,42 +67,42 @@ class LoginManager
             loggedUserByLogin.set(login, user);
             user.onLoggedIn(login);
 
-            var incomingChallenges:Array<ChallengeData> = ChallengeManager.getAllIncomingChallengesByReceiverLogin(login);
+            var relevantChallenges:Array<ChallengeData> = ChallengeManager.getAllChallengesByPlayerLogin(login);
             var finiteGameID:Null<Int> = user.ongoingFiniteGameID;
 
             if (finiteGameID == null)
             {
-                Logger.serviceLog('LOGIN', 'Login successful for $login. Sent ${incomingChallenges.length} incoming challenges');
+                Logger.serviceLog('LOGIN', 'Login successful for $login. Sent ${relevantChallenges.length} incoming challenges');
                 if (asGreeting)
-                    user.emit(GreetingResponse(Logged(user.sessionID, Auth.getTokenBySessionID(user.sessionID), incomingChallenges, null, Shutdown.isStopping())));
+                    user.emit(GreetingResponse(Logged(user.sessionID, Auth.getTokenBySessionID(user.sessionID), relevantChallenges, null, Shutdown.isStopping())));
                 else
-                    user.emit(LoginResult(Success(incomingChallenges)));
+                    user.emit(LoginResult(Success(relevantChallenges)));
             }
             else 
             {
                 switch GameManager.get(finiteGameID) 
                 {
                     case OngoingFinite(game):
-                        Logger.serviceLog('LOGIN', 'Login successful for $login, but reconnection to game $finiteGameID is needed. Additionally sent ${incomingChallenges.length} incoming challenges');
+                        Logger.serviceLog('LOGIN', 'Login successful for $login, but reconnection to game $finiteGameID is needed. Additionally sent ${relevantChallenges.length} incoming challenges');
                         
                         game.onPlayerJoined(user);
 
                         var info:OngoingGameInfo = OngoingGameInfo.create(finiteGameID, game.getTime(), game.log.get());
                         if (asGreeting)
-                            user.emit(GreetingResponse(Logged(user.sessionID, Auth.getTokenBySessionID(user.sessionID), incomingChallenges, info, Shutdown.isStopping())));
+                            user.emit(GreetingResponse(Logged(user.sessionID, Auth.getTokenBySessionID(user.sessionID), relevantChallenges, info, Shutdown.isStopping())));
                         else
-                            user.emit(LoginResult(ReconnectionNeeded(incomingChallenges, info)));
+                            user.emit(LoginResult(ReconnectionNeeded(relevantChallenges, info)));
 
                         game.resendPendingOffers(user);
                     default:
-                        Logger.serviceLog('LOGIN', 'Login successful for $login. Sent ${incomingChallenges.length} incoming challenges');
+                        Logger.serviceLog('LOGIN', 'Login successful for $login. Sent ${relevantChallenges.length} incoming challenges');
 
                         user.ongoingFiniteGameID = null;
 
                         if (asGreeting)
-                            user.emit(GreetingResponse(Logged(user.sessionID, Auth.getTokenBySessionID(user.sessionID), incomingChallenges, null, Shutdown.isStopping())));
+                            user.emit(GreetingResponse(Logged(user.sessionID, Auth.getTokenBySessionID(user.sessionID), relevantChallenges, null, Shutdown.isStopping())));
                         else
-                            user.emit(LoginResult(Success(incomingChallenges)));
+                            user.emit(LoginResult(Success(relevantChallenges)));
                 }
             }
         }

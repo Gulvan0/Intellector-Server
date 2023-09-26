@@ -38,7 +38,14 @@ class Routines
     private static function watchStdin() 
     {
         while (true)
-            CommandProcessor.processCommand(Sys.stdin().readLine(), Sys.println);
+            try
+            {
+                CommandProcessor.processCommand(Sys.stdin().readLine(), Sys.println);
+            }
+            catch (e)
+            {
+                break;
+            }
     }
 
     private static function initTimer(intervalMs:Int, callback:Void->Void, routineName:String) 

@@ -11,19 +11,12 @@ class OneTimeTasks
     public static function recountGames() 
     {
         var dataMap:Map<String, PlayerData> = [];
-        for (user in LoginManager.getLoggedUsers())
-        {
-            user.storedData.resetGames();
-            dataMap.set(user.login, user.storedData);
-        }
 
         for (login in Auth.getAllUsers())
-            if (!dataMap.exists(login))
-            {
-                var data = Storage.loadPlayerData(login);
-                data.resetGames();
-                dataMap.set(login, data);
-            }
+        {
+            var data = Storage.loadPlayerData(login);
+            dataMap.set(login, data);
+        }
 
         var lastGameID:Int = GameManager.getLastGameID();
         var gameID:Int = 5681;

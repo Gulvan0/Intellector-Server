@@ -37,10 +37,10 @@ class ChallengeManager
         return Lambda.map(pendingPublicChallengeIDs, id -> pendingChallengeByID.get(id));
     }
 
-    public static function getAllIncomingChallengesByReceiverLogin(login:String):Array<ChallengeData>
+    public static function getAllChallengesByPlayerLogin(login:String):Array<ChallengeData>
     {
         var challengeInfos:Array<ChallengeData> = [];
-        var ids:Array<Int> = pendingDirectChallengeIDsByReceiverRef.get(login);
+        var ids:Array<Int> = pendingDirectChallengeIDsByReceiverRef.get(login).concat(pendingChallengeIDsByOwnerLogin.get(login));
         var challenges:Array<Challenge> = [for (id in ids) pendingChallengeByID.get(id)];
 
         for (challenge in challenges)
